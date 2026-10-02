@@ -115,15 +115,15 @@ coffre, synchronisée avec le serveur et le téléphone.
   Aucun chemin simple pour « récupérer mon coffre depuis le serveur » sur un PC neuf.
 
 **Périmètre :**
-- Emplacement par défaut dans `%APPDATA%\MyPass\` (même convention que `sync.json` et la
-  config navigateur), et mémorisation du dernier coffre ouvert.
-- Ouvrir un autre `.kdbx` via `@tauri-apps/plugin-dialog` (déjà installé, `dialog:default`
-  déjà accordé).
+- **Un seul coffre par PC** (décision du 2026-10-02), toujours dans `%APPDATA%\MyPass\`
+  (même convention que `sync.json` et la config navigateur). Pas de sélecteur de fichier.
 - Premier lancement sur un PC neuf : récupérer le coffre depuis le serveur (URL + jeton +
   mot de passe maître), l'écrire en local, pré-remplir la config de sync.
+- `create_database` ne doit plus jamais écraser un coffre existant.
 - Erreurs : normaliser le rejet **une seule fois** dans `tauriCommand` (`src/lib/tauri.ts:461`)
   pour que tous les appelants reçoivent une `Error`.
-- À trancher dans la spec : ouverture par double-clic sur un `.kdbx`.
+- Association `.kdbx` retirée du `.msi`.
+- Détail : `docs/superpowers/specs/2026-10-02-desktop-two-pcs-design.md`.
 
 **Prérequis sur chaque PC cible :** le `.msi` n'est pas signé, donc bloqué si Smart App Control
 est actif (vérifier `VerifiedAndReputablePolicyState`). Soit le désactiver sur ce PC, soit signer
@@ -279,7 +279,7 @@ redémarre en 0.1.1.
 | # | Sous-projet | Spec | Plan | Fait |
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
-| 1 | Desktop sur 2 PC | [ ] | [ ] | [ ] |
+| 1 | Desktop sur 2 PC | [x] | [ ] | [ ] |
 | 2 | Retrait du factice | [ ] | [ ] | [ ] |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
