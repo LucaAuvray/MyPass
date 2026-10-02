@@ -9,7 +9,7 @@
     "dev:web": "vite --mode web",
     "build:web": "npm run build:wasm && tsc -b && vite build --mode web",
     "preview": "vite preview",
-    "tauri": "set PATH=C:\\Users\\Utilisateur\\.cargo\\bin;%PATH% && tauri",
+    "tauri": "tauri",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,json}\"",
@@ -67,5 +67,9 @@
     "vite": "^6.3.0",
     "vite-plugin-pwa": "^1.0.0",
     "wasm-pack": "^0.15.0"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "wasm-pack@0.15.0": true
   }
 }

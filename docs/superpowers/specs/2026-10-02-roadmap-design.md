@@ -78,6 +78,10 @@ risque de perte de données ni fonction factice à l'écran.
 `wasm-pack`. `package.json:12` préfixe le PATH par `C:\Users\Utilisateur\.cargo\bin` (ancien PC).
 `npm ci` signale des scripts d'installation bloqués par npm 11 (`npm install-scripts ls`) : le
 paquet npm `wasm-pack` télécharge son binaire en postinstall.
+**Smart App Control était actif** (`HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState = 1`,
+politique `{0283ac0f-fff1-49ae-ada1-8a933130cad6}`) : il bloquait tout exécutable non signé produit
+par cargo (os error 4551) **et le `mypass.exe` installé** (non signé). Désactivé par Luca sur le PC de
+dev le 2026-10-02 (aucune exemption par dossier n'existe).
 
 **Périmètre :**
 - Visual Studio Build Tools (charge « Desktop development with C++ » : MSVC + Windows SDK).
@@ -88,6 +92,11 @@ paquet npm `wasm-pack` télécharge son binaire en postinstall.
 
 **Fini quand :** `cargo test` + `cargo clippy` dans `src-tauri`, `npm run build`,
 `npm run build:web`, `npm run smoke:wasm` passent, et `npm run tauri dev` ouvre l'app.
+
+**Résultat (2026-10-02) :** VS Build Tools 2026 (MSVC + SDK 10.0.26100), rustc 1.99.0,
+cible wasm32, wasm-pack 0.15.0 (postinstall autorisé via `allowScripts` dans `package.json`).
+`src-tauri` : 26/26 tests ; clippy passe avec **11 warnings de style préexistants** (état de
+référence, nettoyés au sous-projet 6). Builds desktop et web, smoke wasm et `tauri dev` OK.
 
 ## 1 — Desktop utilisable sur deux PC
 
@@ -115,6 +124,10 @@ coffre, synchronisée avec le serveur et le téléphone.
 - Erreurs : normaliser le rejet **une seule fois** dans `tauriCommand` (`src/lib/tauri.ts:461`)
   pour que tous les appelants reçoivent une `Error`.
 - À trancher dans la spec : ouverture par double-clic sur un `.kdbx`.
+
+**Prérequis sur chaque PC cible :** le `.msi` n'est pas signé, donc bloqué si Smart App Control
+est actif (vérifier `VerifiedAndReputablePolicyState`). Soit le désactiver sur ce PC, soit signer
+l'app avec un certificat reconnu (voir sous-projet 7).
 
 **Hors périmètre :** interface de fichier clé (supporté par le backend, aucun besoin exprimé).
 
@@ -240,6 +253,8 @@ mais aucun plugin updater n'est configuré dans `src-tauri/tauri.conf.json`.
 artefacts de mise à jour générés au build, endpoint
 `https://mypass-luca.tail7687c9.ts.net/download/latest.json`, vérification au démarrage, et
 procédure de release écrite (bump de version → build → copie sur le conteneur).
+À trancher : signature Authenticode (ex. Azure Trusted Signing) seulement si un PC cible doit
+garder Smart App Control actif ; la signature updater Tauri, elle, est gratuite et indépendante.
 
 **Fini quand :** après le déploiement d'une 0.1.1, le portable propose la mise à jour et
 redémarre en 0.1.1.
@@ -263,7 +278,7 @@ redémarre en 0.1.1.
 
 | # | Sous-projet | Spec | Plan | Fait |
 |---|---|---|---|---|
-| 0 | Poste de dev | — | — | [ ] |
+| 0 | Poste de dev | — | — | [x] 2026-10-02 |
 | 1 | Desktop sur 2 PC | [ ] | [ ] | [ ] |
 | 2 | Retrait du factice | [ ] | [ ] | [ ] |
 | 3 | TOTP | [ ] | [ ] | [ ] |
