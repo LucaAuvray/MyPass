@@ -10,11 +10,12 @@ export default defineConfig(({ mode }) => ({
     react(),
     tailwindcss(),
     VitePWA({
-      // The service worker is for the web PWA only. Desktop builds ship a
-      // self-destroying sw.js: a desktop install from before this fix
-      // registered one in the WebView2 profile, and it kept serving that
-      // old frontend from its cache over every newer .msi.
-      selfDestroying: mode !== "web",
+      // The service worker is for the web PWA only. Desktop installs from
+      // before October 2026 left one at http://tauri.localhost that serves
+      // their old frontend forever (a self-destroying sw.js never replaced
+      // it); desktop now lives at https://tauri.localhost (useHttpsScheme in
+      // tauri.conf.json), out of that worker's reach, and registers none.
+      disable: mode !== "web",
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: false, // We use public/manifest.json
