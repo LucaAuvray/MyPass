@@ -1,71 +1,37 @@
-export type ImportFormat =
-  | "csv"
-  | "1pux"
-  | "opvault"
-  | "bitwarden"
-  | "protonpass"
-  | "google"
-  | "apple"
-  | "keepass1";
-
-export interface ImportPreview {
-  entries: ImportPreviewEntry[];
-  groups: string[];
-  totalCount: number;
-  duplicateCount: number;
-}
-
-export interface ImportPreviewEntry {
-  title: string;
-  username: string;
-  url: string;
+/** One entry as it travels (MyPass JSON file, IPC, wasm) — mirrors mypass-core's ImportedEntry. */
+export interface ImportedEntry {
+  /** Folder path from the root, segments joined by "/"; "" is the root. */
   group: string;
-  hasPassword: boolean;
-  hasTotp: boolean;
-  isDuplicate: boolean;
-}
-
-export interface ImportResult {
-  imported: number;
-  skipped: number;
-  duplicates: number;
-  errors: string[];
-}
-
-export interface ColumnMapping {
-  title: number;
-  username: number;
-  password: number;
-  url: number;
-  notes: number;
-  totp: number;
-  group: number;
-  delimiter: string;
-  hasHeader: boolean;
-}
-
-export type ExportFormat = "csv" | "json" | "xml" | "html";
-
-// ── Deduplication types ──────────────────────────────────────────
-
-/** A parsed entry from the import file, before any dedup. */
-export interface ParsedEntry {
-  tempId: string;
   title: string;
   username: string;
   password: string;
   url: string;
   notes: string;
   tags: string[];
-  customFields: Record<string, string>;
+  /** otpauth:// URI, or "". */
   totp: string;
+  customFields: Record<string, string>;
 }
+
+export interface ImportResult {
+  imported: number;
+  updated: number;
+  skipped: number;
+}
+
+export type ExportFormat = "json" | "csv";
+
+// ── Deduplication types ──────────────────────────────────────────
+
+/** A parsed entry from the import file, before any dedup. */
+export type ParsedEntry = ImportedEntry & { tempId: string };
 
 /** One side of a duplicate comparison. */
 export interface DuplicateEntry {
   source: "import" | "vault";
   uuid?: string;
   tempId?: string;
+  group: string;
   title: string;
   username: string;
   password: string;
@@ -87,17 +53,11 @@ export interface DuplicateGroup {
   selectedIndex: number;
 }
 
-/** An entry resolved after dedup, ready for import. */
-export interface ResolvedEntry {
-  title: string;
-  username: string;
-  password: string;
-  url: string;
-  notes: string;
-  tags: string[];
-  customFields: Record<string, string>;
-  totp: string;
-}
+/** An entry resolved after dedup, ready for import_entries. */
+export type ResolvedEntry = ImportedEntry & {
+  /** The vault entry this one overwrites in place. */
+  replaceUuid?: string;
+};
 
 /** Result of the dedup resolution. */
 export interface DedupResolution {

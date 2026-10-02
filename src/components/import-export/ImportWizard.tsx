@@ -6,242 +6,139 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { tauriCommand } from "@/lib/tauri";
-import { FileSpreadsheet, Shield, Lock, Chrome, Apple, FileJson, ArrowRight, Check, AlertTriangle, Loader2 } from "lucide-react";
-import type { ImportFormat, ImportResult, ParsedEntry, DuplicateGroup } from "@/types/import";
-import { parseCsvToEntries, parseJsonToEntries, computeDuplicateGroups, findNonDuplicates, vaultEntryToDupEntry, resolveDuplicates } from "@/lib/dedup";
+import { FileUp, ArrowRight, Check, AlertTriangle, Loader2 } from "lucide-react";
+import type { ImportedEntry, ImportResult, ParsedEntry, DuplicateGroup, DedupResolution } from "@/types/import";
+import { computeDuplicateGroups, findNonDuplicates, vaultEntryToDupEntry, resolveDuplicates } from "@/lib/dedup";
 import { DedupDialog } from "@/components/import-export/DedupDialog";
 
 interface ImportWizardProps { open: boolean; onOpenChange: (open: boolean) => void; }
 
-type Step = "format" | "parsing" | "dedup" | "importing" | "done";
+type Step = "pick" | "parsing" | "dedup" | "importing" | "done";
 
-/** Returns the file extension filter for a format. */
-function fileExt(fmt: ImportFormat): string {
-  if (fmt === "1pux") return "1pux";
-  if (fmt === "bitwarden" || fmt === "protonpass") return "json";
-  return "csv";
-}
-
-/** Parse file content into ParsedEntry[] based on format. */
-function parseFileContent(content: string, fmt: ImportFormat): ParsedEntry[] {
-  if (fmt === "1pux" || fmt === "bitwarden" || fmt === "protonpass") {
-    return parseJsonToEntries(content, fmt);
-  }
-  return parseCsvToEntries(content, fmt);
-}
+/** Shape of get_entries rows used for the duplicate comparison. */
+type VaultEntry = Parameters<typeof vaultEntryToDupEntry>[0];
 
 export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
-  const [step, setStep] = useState<Step>("format");
+  const [step, setStep] = useState<Step>("pick");
   const [fileName, setFileName] = useState<string | null>(null);
   const [result, setResult] = useState<ImportResult | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [ignored, setIgnored] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [parsingProgress, setParsingProgress] = useState(0);
 
   // Dedup state
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[]>([]);
   const [nonDuplicates, setNonDuplicates] = useState<ParsedEntry[]>([]);
-  const [parsingProgress, setParsingProgress] = useState(0);
-
-  // Hidden file input for browser fallback
+  const parsedCountRef = useRef(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pendingFormatRef = useRef<ImportFormat | null>(null);
 
-  const FORMATS = [
-    { id: "csv" as ImportFormat, name: "CSV", icon: FileSpreadsheet, ext: ".csv" },
-    { id: "google" as ImportFormat, name: "Google", icon: Chrome, ext: ".csv" },
-    { id: "apple" as ImportFormat, name: "Apple", icon: Apple, ext: ".csv" },
-    { id: "1pux" as ImportFormat, name: "1Password", icon: Shield, ext: ".1pux" },
-    { id: "bitwarden" as ImportFormat, name: "Bitwarden", icon: Lock, ext: ".json" },
-    { id: "protonpass" as ImportFormat, name: "Proton Pass", icon: FileJson, ext: ".json" },
-  ];
+  /** Error codes from mypass-core are translated, anything else shown as is. */
+  const describe = (err: unknown, fallbackKey: string) => {
+    const msg = err instanceof Error ? err.message : String(err ?? "");
+    if (/^[A-Z_]+$/.test(msg) && i18n.exists(`import.errors.${msg}`)) return t(`import.errors.${msg}`);
+    return msg || t(fallbackKey);
+  };
 
-  // ── Analysis phase: parse content, detect duplicates ────────────
+  // ── Analysis: parse in mypass-core, then compare with the vault ──
 
-  const analyzeAndImport = async (fmt: ImportFormat, content: string, name: string) => {
+  const analyze = async (content: string, name: string) => {
     setStep("parsing");
     setFileName(name);
     setParsingProgress(30);
-
     try {
-      // 1. Parse the file
-      const parsed = parseFileContent(content, fmt);
+      const imported = await tauriCommand<ImportedEntry[]>("parse_import", { content });
+      const parsed: ParsedEntry[] = imported.map((e, i) => ({ ...e, tempId: `import-${i}` }));
+      parsedCountRef.current = parsed.length;
       setParsingProgress(60);
 
-      if (parsed.length === 0) {
-        setError("Aucune entrée trouvée dans le fichier");
-        setStep("format");
-        return;
-      }
-
-      // 2. Get existing vault entries for dedup comparison
-      let vaultDupEntries: ReturnType<typeof vaultEntryToDupEntry>[] = [];
-      try {
-        const vaultEntries = await tauriCommand<Array<{
-          uuid: string; title: string; username: string; password: string;
-          url: string; notes?: string; tags?: string[];
-          customFields?: Record<string, string>; created?: string; modified?: string;
-        }>>("get_entries_for_dedup");
-        if (vaultEntries) {
-          vaultDupEntries = vaultEntries.map(vaultEntryToDupEntry);
-        }
-      } catch {
-        // In dev mode, use get_entries fallback
-        try {
-          const entries = await tauriCommand<Array<{
-            uuid: string; title: string; username: string; password: string;
-            url: string; notes?: string; tags?: string[];
-            customFields?: Record<string, string>; created?: string; modified?: string;
-          }>>("get_entries");
-          if (entries) {
-            vaultDupEntries = entries.map(vaultEntryToDupEntry);
-          }
-        } catch {
-          // No vault entries available
-        }
-      }
-
+      const vault = await tauriCommand<VaultEntry[]>("get_entries", {});
       setParsingProgress(80);
 
-      // 3. Compute duplicate groups
-      const groups = computeDuplicateGroups(parsed, vaultDupEntries);
+      const groups = computeDuplicateGroups(parsed, (vault ?? []).map(vaultEntryToDupEntry));
       const nonDup = findNonDuplicates(parsed, groups);
-
       setParsingProgress(100);
 
-      // 4. If duplicates found → show dedup dialog
       if (groups.length > 0) {
         setDuplicateGroups(groups);
         setNonDuplicates(nonDup);
         setStep("dedup");
       } else {
-        // No duplicates → import directly
-        await executeDirectImport(fmt, parsed, name);
+        await runImport(resolveDuplicates([], nonDup));
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg || "Échec de l'analyse");
-      setStep("format");
+      setError(describe(err, "import.analyzeFailed"));
+      setStep("pick");
     }
   };
 
-  // ── Direct import (no dedup needed) ────────────────────────────
+  // ── Import: send what dedup kept ────────────────────────────────
 
-  const executeDirectImport = async (fmt: ImportFormat, entries: ParsedEntry[], _name: string) => {
+  const runImport = async (resolution: DedupResolution) => {
     setStep("importing");
-    setLoading(true);
-
     try {
-      const res = await tauriCommand<ImportResult>("import_entries", {
-        entries: entries.map((e) => ({
-          title: e.title,
-          username: e.username,
-          password: e.password,
-          url: e.url,
-          notes: e.notes,
-          tags: e.tags,
-          customFields: e.customFields,
-          totp: e.totp,
-        })),
-        format: fmt,
-      });
+      const res = await tauriCommand<ImportResult>("import_entries", { entries: resolution.resolvedEntries });
       setResult(res);
+      // Rows of the file not sent (the vault's copy was kept) count as ignored.
+      setIgnored(parsedCountRef.current - resolution.resolvedEntries.length + res.skipped);
       setStep("done");
-      // Invalidate entries query to refresh the list
       queryClient.invalidateQueries({ queryKey: ["entries"] });
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg || "Échec de l'import");
-      setStep("format");
-    } finally {
-      setLoading(false);
+      setError(describe(err, "import.importFailed"));
+      setStep("pick");
     }
   };
 
-  // ── Dedup confirmed → import resolved entries ──────────────────
-
-  const handleDedupConfirm = async (resolvedGroups: DuplicateGroup[]) => {
-    // Combine resolved duplicates with non-duplicate entries
-    const resolution = resolveDuplicates(resolvedGroups, nonDuplicates);
-    setStep("importing");
-    setLoading(true);
-
-    try {
-      const res = await tauriCommand<ImportResult>("import_entries", {
-        entries: resolution.resolvedEntries,
-        format: pendingFormatRef.current ?? "csv",
-      });
-      setResult({ ...res, duplicates: resolution.totalDiscarded });
-      setStep("done");
-      // Invalidate entries query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["entries"] });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg || "Échec de l'import");
-      setStep("format");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ── Dedup cancelled ────────────────────────────────────────────
+  const handleDedupConfirm = (resolvedGroups: DuplicateGroup[]) => runImport(resolveDuplicates(resolvedGroups, nonDuplicates));
 
   const handleDedupCancel = () => {
     setDuplicateGroups([]);
     setNonDuplicates([]);
-    setStep("format");
+    setStep("pick");
   };
 
   // ── File selection ─────────────────────────────────────────────
 
-  /** Open the browser file picker — works in Tauri webview AND browser. */
-  const handleSelectAndImport = (fmt: ImportFormat) => {
+  /** The browser file picker — works in the Tauri webview and in the PWA. */
+  const handlePick = () => {
     setError(null);
-    pendingFormatRef.current = fmt;
-
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
-      fileInputRef.current.accept = `.${fileExt(fmt)}`;
       fileInputRef.current.click();
     } else {
       setError(t("import.pickerError"));
     }
   };
 
-  /** HTML file input onChange → read content & analyze. */
   const handleFilePicked = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    const fmt = pendingFormatRef.current;
-    if (!file || !fmt) {
+    if (!file) {
       setError(t("import.noFile"));
       return;
     }
-
     try {
-      const content = await file.text();
-      await analyzeAndImport(fmt, content, file.name);
+      await analyze(await file.text(), file.name);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(t("import.readError", { msg }));
+      setError(t("import.readError", { msg: err instanceof Error ? err.message : String(err) }));
     }
   };
 
   // ── Reset & Close ──────────────────────────────────────────────
 
   const reset = () => {
-    setStep("format");
+    setStep("pick");
     setFileName(null);
     setResult(null);
+    setIgnored(0);
     setError(null);
     setDuplicateGroups([]);
     setNonDuplicates([]);
     setParsingProgress(0);
-    pendingFormatRef.current = null;
   };
 
   const handleClose = () => {
-    // BUG #2 fix: close first, then reset (so dialog closes before content changes)
+    // Close first, then reset, so the dialog closes before its content changes.
     onOpenChange(false);
     reset();
   };
@@ -254,35 +151,27 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
         <DialogContent className="sm:max-w-xl">
           <DialogHeader><DialogTitle>{t("import.title")}</DialogTitle></DialogHeader>
 
-          {/* Hidden file input for browser fallback */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFilePicked}
-          />
+          <input ref={fileInputRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFilePicked} />
 
-          {step === "format" && (
+          {step === "pick" && (
             <>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {FORMATS.map((fmt) => (
-                  <button
-                    key={fmt.id}
-                    onClick={() => handleSelectAndImport(fmt.id)}
-                    disabled={loading}
-                    className="flex items-start gap-3 rounded-lg border border-border p-4 text-left hover:border-primary/50 hover:bg-muted/50 disabled:opacity-50"
-                  >
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <fmt.icon className="size-4 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold">{fmt.name}</p>
-                      <Badge variant="secondary" className="mt-1 text-[10px]">{fmt.ext}</Badge>
-                    </div>
-                    <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
+              <button
+                onClick={handlePick}
+                className="flex items-start gap-3 rounded-lg border border-border p-4 text-left hover:border-primary/50 hover:bg-muted/50"
+              >
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                  <FileUp className="size-4 text-primary" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{t("import.pickFile")}</p>
+                  <p className="text-xs text-muted-foreground">{t("import.pickFileDesc")}</p>
+                  <div className="mt-1 flex gap-1">
+                    <Badge variant="secondary" className="text-[10px]">.csv</Badge>
+                    <Badge variant="secondary" className="text-[10px]">.json</Badge>
+                  </div>
+                </div>
+                <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
+              </button>
               {error && <p className="text-xs text-destructive">{error}</p>}
               <div className="flex items-center gap-2 pt-2 text-[10px] text-muted-foreground">
                 <AlertTriangle className="size-3" />
@@ -298,9 +187,7 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
                 {fileName ? t("import.analyzingNamed", { file: fileName }) : t("import.analyzingFile")}
               </p>
               <Progress value={parsingProgress} className="w-full" />
-              <p className="text-xs text-muted-foreground">
-                {t("dedup.analyzing")}
-              </p>
+              <p className="text-xs text-muted-foreground">{t("dedup.analyzing")}</p>
             </div>
           )}
 
@@ -319,16 +206,13 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
               <div className="flex size-16 items-center justify-center rounded-2xl bg-green-500/10">
                 <Check className="size-8 text-green-500" />
               </div>
-              <div className="text-center space-y-1">
+              <div className="space-y-1 text-center">
                 <h3 className="text-lg font-bold">{t("import.success")}</h3>
                 <p className="text-sm">{t("import.imported", { count: result.imported })}</p>
-                {result.duplicates > 0 && (
-                  <p className="text-xs text-amber-500">{t("import.duplicatesRemoved", { count: result.duplicates })}</p>
-                )}
+                <p className="text-sm">{t("import.updated", { count: result.updated })}</p>
+                {ignored > 0 && <p className="text-xs text-amber-500">{t("import.skipped", { count: ignored })}</p>}
               </div>
-              <Button onClick={handleClose} className="w-full">
-                {t("common.done")}
-              </Button>
+              <Button onClick={handleClose} className="w-full">{t("common.done")}</Button>
             </div>
           )}
         </DialogContent>

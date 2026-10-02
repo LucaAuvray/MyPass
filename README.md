@@ -23,8 +23,8 @@
 - 🔍 **⌘K search** — instant command palette
 - 🎲 **Password generator** — CSPRNG passwords & passphrases with strength evaluation
 - ⏱ **TOTP 2FA** — SHA1/SHA256/SHA512 support
-- 📥 **Import** — CSV, 1Password (1PUX), Bitwarden, Google, Apple, Proton Pass
-- 📤 **Export** — CSV, JSON, XML, HTML
+- 📥 **Import** — CSV (Google, Apple, KeePassXC, Bitwarden…) and MyPass JSON, with duplicate detection
+- 📤 **Export** — MyPass JSON (lossless) and CSV
 - 🛡 **Security dashboard** — weak/reused/old password detection, HIBP k-anonymity
 - ⏳ **Auto-lock** — idle activity timer
 - 🌐 **Browser integration** — NaCl-encrypted Native Messaging bridge
