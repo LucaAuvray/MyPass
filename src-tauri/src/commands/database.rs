@@ -135,34 +135,45 @@ fn create_vault_file(
     cipher: Cipher,
     kdf: &KdfParams,
 ) -> Result<(), String> {
-    if path.exists() {
-        return Err("VAULT_EXISTS".to_string());
-    }
+    let bytes = kdbx::writer::write_database_bytes(keepass_file, password, keyfile, cipher, kdf)?;
+    write_new_file(path, |f| std::io::Write::write_all(f, &bytes))
+}
+
+/// Create `path` with the content produced by `write`, all or nothing:
+/// written and synced to a unique temp file first, then hard-linked into
+/// place. The link fails if `path` exists (`VAULT_EXISTS`), so a vault is
+/// never replaced, and a failed or interrupted write never leaves a
+/// truncated vault at `path`.
+fn write_new_file(
+    path: &Path,
+    write: impl FnOnce(&mut std::fs::File) -> std::io::Result<()>,
+) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create vault folder: {e}"))?;
     }
-    kdbx::writer::write_database(path, keepass_file, password, keyfile, cipher, kdf)
+    let tmp = path.with_extension(format!("tmp-{}", uuid::Uuid::new_v4()));
+    let written = std::fs::File::create(&tmp).and_then(|mut f| {
+        write(&mut f)?;
+        f.sync_all()
+    });
+    let linked = written.and_then(|_| std::fs::hard_link(&tmp, path));
+    let _ = std::fs::remove_file(&tmp);
+    linked.map_err(|e| match e.kind() {
+        std::io::ErrorKind::AlreadyExists => "VAULT_EXISTS".to_string(),
+        _ => format!("Failed to write vault: {e}"),
+    })
 }
 
 /// Save a vault downloaded from the sync server as this PC's vault. The bytes
 /// must decrypt with `password` before anything touches the disk, and are
-/// written verbatim; `create_new` makes the no-overwrite check atomic.
+/// written verbatim through `write_new_file` (never overwrites, never partial).
 pub fn install_remote_vault(
     bytes: &[u8],
     password: &str,
     path: &Path,
 ) -> Result<kdbx::reader::DatabaseReadResult, String> {
     let result = read_vault_bytes(bytes, password, None)?;
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create vault folder: {e}"))?;
-    }
-    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(|e| {
-        match e.kind() {
-            std::io::ErrorKind::AlreadyExists => "VAULT_EXISTS".to_string(),
-            _ => format!("Failed to write vault: {e}"),
-        }
-    })?;
-    std::io::Write::write_all(&mut file, bytes).map_err(|e| format!("Failed to write vault: {e}"))?;
+    write_new_file(path, |f| std::io::Write::write_all(f, bytes))?;
     Ok(result)
 }
 
@@ -399,6 +410,41 @@ mod tests {
         create_vault_file(&path, &KeePassFile::new("T"), "pw", None, Cipher::Aes256, &KdfParams::default()).unwrap();
 
         assert!(kdbx::reader::read_database(&path, "pw", None).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn entry_count(dir: &Path) -> usize {
+        std::fs::read_dir(dir).map(|it| it.count()).unwrap_or(0)
+    }
+
+    #[test]
+    fn write_new_file_leaves_nothing_when_the_write_fails() {
+        let dir = temp_dir_unique("write-fails");
+        let path = dir.join("mypass-vault.kdbx");
+
+        let result = write_new_file(&path, |f| {
+            std::io::Write::write_all(f, b"KDBX-partial")?;
+            Err(std::io::Error::other("disk full"))
+        });
+
+        assert!(result.is_err());
+        assert!(!path.exists(), "a truncated vault must never be left at the vault path");
+        assert_eq!(entry_count(&dir), 0, "no temp file left behind");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn write_new_file_refuses_existing_without_leftovers() {
+        let dir = temp_dir_unique("write-existing");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("mypass-vault.kdbx");
+        std::fs::write(&path, b"keep me").unwrap();
+
+        let result = write_new_file(&path, |f| std::io::Write::write_all(f, b"new vault"));
+
+        assert_eq!(result, Err("VAULT_EXISTS".to_string()));
+        assert_eq!(std::fs::read(&path).unwrap(), b"keep me");
+        assert_eq!(entry_count(&dir), 1, "no temp file left behind");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

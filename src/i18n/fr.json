@@ -38,7 +38,7 @@
       "WRONG_PASSWORD": "Mot de passe maître incorrect",
       "SERVER_UNREACHABLE": "Serveur injoignable — vérifiez l'URL et votre connexion",
       "TOKEN_REFUSED": "Token du serveur refusé",
-      "NO_REMOTE_VAULT": "Aucun coffre sur le serveur",
+      "NO_REMOTE_VAULT": "Aucun coffre à cette adresse — vérifiez l'URL",
       "SERVER_ERROR": "Réponse inattendue du serveur"
     }
   },
