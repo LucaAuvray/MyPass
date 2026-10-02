@@ -110,8 +110,6 @@ struct NativeRequest {
     client_id: String,
     #[serde(rename = "publicKey", default)]
     public_key: Option<String>,
-    #[serde(default)]
-    id: Option<String>,
     #[serde(rename = "triggerUnlock", default)]
     trigger_unlock: Option<String>,
 }

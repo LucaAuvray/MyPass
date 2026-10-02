@@ -1,9 +1,5 @@
-#![allow(dead_code)]
-
-#[allow(dead_code)]
 mod commands;
 pub use mypass_core as kdbx;
-#[allow(dead_code)]
 pub mod security;
 pub mod native_messaging;
 pub mod ssh;
@@ -11,11 +7,6 @@ pub mod ssh;
 use commands::database::DbState;
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
-
-#[tauri::command]
-fn greet(name: &str) -> String {
-    format!("Hello, {}! Welcome to MyPass.", name)
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -46,7 +37,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            greet,
             // Database
             commands::database::open_database,
             commands::database::create_database,

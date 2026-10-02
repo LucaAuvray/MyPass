@@ -30,6 +30,8 @@ pub struct CsvColumnMapping {
     pub password: usize,
     pub url: usize,
     pub notes: usize,
+    // Received but not written to the vault yet (data loss on import) — roadmap sub-project 5.
+    #[allow(dead_code)]
     pub totp: usize,
     pub group: usize,
     pub delimiter: String,
@@ -438,9 +440,13 @@ pub struct ResolvedEntry {
     pub password: String,
     pub url: String,
     pub notes: String,
+    // Received but not written to the vault yet (data loss on import) — roadmap sub-project 5.
+    #[allow(dead_code)]
     pub tags: Vec<String>,
     #[serde(rename = "customFields")]
+    #[allow(dead_code)]
     pub custom_fields: std::collections::HashMap<String, String>,
+    #[allow(dead_code)]
     pub totp: String,
 }
 
