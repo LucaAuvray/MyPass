@@ -33,11 +33,12 @@ export function normalizeUrl(url: string): string {
 
 // ── Match key ────────────────────────────────────────────────────
 
-export type MatchType = "url+username" | "url" | "username";
+export type MatchType = "url+username" | "url" | "username" | "title";
 
 export function makeMatchKey(
   url: string,
   username: string,
+  title: string,
 ): { key: string; matchType: MatchType } {
   const normUrl = normalizeUrl(url);
   const normUser = username.trim().toLowerCase();
@@ -51,7 +52,11 @@ export function makeMatchKey(
   if (normUser) {
     return { key: `__empty__::${normUser}`, matchType: "username" };
   }
-  // Both empty — not a match
+  // Cards, identities, documents, SSH keys: no URL nor username, the title is all there is.
+  const normTitle = title.trim().toLowerCase();
+  if (normTitle) {
+    return { key: `__title__::${normTitle}`, matchType: "title" };
+  }
   return { key: "", matchType: "url+username" };
 }
 
@@ -115,7 +120,7 @@ export function computeDuplicateGroups(
 
   // Index import entries
   for (const e of importEntries) {
-    const { key, matchType } = makeMatchKey(e.url, e.username);
+    const { key, matchType } = makeMatchKey(e.url, e.username, e.title);
     if (!key) continue;
     let bucket = map.get(key);
     if (!bucket) {
@@ -127,7 +132,7 @@ export function computeDuplicateGroups(
 
   // Index vault entries
   for (const e of vaultEntries) {
-    const { key, matchType } = makeMatchKey(e.url, e.username);
+    const { key, matchType } = makeMatchKey(e.url, e.username, e.title);
     if (!key) continue;
     let bucket = map.get(key);
     if (!bucket) {
@@ -143,13 +148,14 @@ export function computeDuplicateGroups(
 
   for (const [, bucket] of map) {
     const allEntries = [...bucket.import, ...bucket.vault];
-    if (allEntries.length < 2) continue;
+    // Only what this import could duplicate; twins already in the vault are not its business.
+    if (allEntries.length < 2 || bucket.import.length === 0) continue;
 
     // Build match key display
     const representative = allEntries[0];
     const urlPart = normalizeUrl(representative.url) || "?";
     const userPart = representative.username || "?";
-    const matchKey = `${urlPart} — ${userPart}`;
+    const matchKey = bucket.matchType === "title" ? representative.title : `${urlPart} — ${userPart}`;
 
     groups.push({
       id: `dup-${groupIdx++}`,

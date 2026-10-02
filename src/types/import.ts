@@ -48,7 +48,7 @@ export interface DuplicateEntry {
 export interface DuplicateGroup {
   id: string;
   matchKey: string;
-  matchType: "url+username" | "url" | "username";
+  matchType: "url+username" | "url" | "username" | "title";
   entries: DuplicateEntry[];
   selectedIndex: number;
 }
