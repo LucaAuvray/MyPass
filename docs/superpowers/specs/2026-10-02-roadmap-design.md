@@ -304,7 +304,7 @@ redémarre en 0.1.1.
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
 | 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
-| 2 | Retrait du factice | [x] | [ ] | [ ] |
+| 2 | Retrait du factice | [x] | [x] | [ ] |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
 | 5 | Import / export | [ ] | [ ] | [ ] |
