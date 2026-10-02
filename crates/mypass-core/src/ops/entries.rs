@@ -510,4 +510,34 @@ mod tests {
         assert_eq!(list(&kf, None).unwrap().len(), 1);
         assert_eq!(kf.root.deleted_objects.items.len(), 1);
     }
+
+    /// MyPass has no passkey feature, but a vault from KeePassXC may carry
+    /// KPEX_PASSKEY_* fields: editing the entry here must not lose them.
+    #[test]
+    fn passkey_fields_survive_update_and_save() {
+        let mut kf = xml::KeePassFile::new("Test Vault");
+        let mut entry = Entry::new("GitHub", "dev", "pw", "https://github.com");
+        set_string_field(&mut entry, "KPEX_PASSKEY_CREDENTIAL_ID", "cred-id");
+        set_string_field_protected(&mut entry, "KPEX_PASSKEY_PRIVATE_KEY_PEM", "pem-blob");
+        let uuid = entry.uuid.clone();
+        kf.root.group.entries.push(entry);
+
+        let mut fields = HashMap::new();
+        fields.insert("Note".to_string(), "x".to_string());
+        update(&mut kf, &uuid, UpdateEntry {
+            title: Some("GitHub perso".to_string()), username: None, password: None, url: None,
+            notes: None, tags: None, group_uuid: None, custom_fields: Some(fields),
+        }).unwrap();
+
+        let bytes = crate::writer::write_database_bytes(
+            &kf, "pw", None, crate::crypto::Cipher::Aes256, &crate::keys::KdfParams::default(),
+        ).unwrap();
+        let back = crate::reader::read_database_bytes(&bytes, "pw", None).unwrap().keepass_file;
+        let e = find_entry(&back.root.group, &uuid).unwrap();
+        let value = |k: &str| e.strings.iter().find(|s| s.key == k).map(|s| s.value.content.clone());
+        assert_eq!(value("KPEX_PASSKEY_CREDENTIAL_ID").as_deref(), Some("cred-id"));
+        assert_eq!(value("KPEX_PASSKEY_PRIVATE_KEY_PEM").as_deref(), Some("pem-blob"));
+        assert_eq!(e.title(), "GitHub perso");
+        assert!(entry_to_info(e, "").has_passkey);
+    }
 }

@@ -21,7 +21,6 @@
 /// - get-database-groups: Get group list
 /// - create-new-group: Create new group
 /// - request-autotype: Global auto-type
-/// - passkeys-register / passkeys-get: Passkey operations
 
 use crate::commands::browser;
 use crate::commands::database::DbState;
@@ -388,8 +387,6 @@ fn handle_action(
         "get-database-groups" => handle_get_database_groups(req, session, db_state),
         "create-new-group" => handle_create_new_group(req, session, db_state),
         "request-autotype" => handle_request_autotype(req, session),
-        "passkeys-register" => handle_passkeys_register(req, session),
-        "passkeys-get" => handle_passkeys_get(req, session),
         _ => error_response(req, 0, &format!("Unknown action: {}", req.action)),
     }
 }
@@ -833,32 +830,6 @@ fn handle_request_autotype(_req: &NativeRequest, _session: &SessionState) -> Nat
         nonce: None,
         client_id: None,
         error: Some("Auto-type not supported".to_string()),
-        error_code: Some("8".to_string()),
-        version: None,
-        extra: HashMap::new(),
-    }
-}
-
-fn handle_passkeys_register(_req: &NativeRequest, _session: &SessionState) -> NativeResponse {
-    NativeResponse {
-        action: Some("passkeys-register".to_string()),
-        message: None,
-        nonce: None,
-        client_id: None,
-        error: Some("Passkeys not yet implemented".to_string()),
-        error_code: Some("8".to_string()),
-        version: None,
-        extra: HashMap::new(),
-    }
-}
-
-fn handle_passkeys_get(_req: &NativeRequest, _session: &SessionState) -> NativeResponse {
-    NativeResponse {
-        action: Some("passkeys-get".to_string()),
-        message: None,
-        nonce: None,
-        client_id: None,
-        error: Some("Passkeys not yet implemented".to_string()),
         error_code: Some("8".to_string()),
         version: None,
         extra: HashMap::new(),

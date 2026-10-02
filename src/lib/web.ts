@@ -345,8 +345,6 @@ export function createWebInvoke(): TauriInvokeFn {
         return false as T;
       case "get_ssh_agent_status":
         return { enabled: false, listening: false, serviceRunning: false } as T;
-      case "list_passkeys":
-        return [] as T;
 
       default:
         throw new Error(`Commande indisponible en mode web: ${cmd}`);

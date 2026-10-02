@@ -88,12 +88,6 @@ pub fn run() {
             commands::import_export::export_json,
             commands::import_export::import_entries,
             commands::import_export::get_entries_for_dedup,
-            // Passkeys
-            commands::passkeys::list_passkeys,
-            commands::passkeys::register_passkey,
-            commands::passkeys::authenticate_passkey,
-            commands::passkeys::export_passkeys,
-            commands::passkeys::import_passkeys,
             // Browser
             commands::browser::get_browser_status,
             commands::browser::is_browser_integration_enabled,

@@ -279,12 +279,6 @@ function createMockInvoke(): TauriInvokeFn {
       case "disable_windows_ssh_agent_service":
         return undefined as T;
 
-      case "list_passkeys":
-        return [
-          { entry_uuid: "pk-1", credential_id: "cred-mock-1", relying_party: "github.com", username: "dev", created: "2024-03-15", counter: 42 },
-          { entry_uuid: "pk-2", credential_id: "cred-mock-2", relying_party: "google.com", username: "user@gmail.com", created: "2024-02-10", counter: 127 },
-        ] as T;
-
       case "import_csv":
       case "import_google":
       case "import_apple": {
@@ -422,9 +416,6 @@ function createMockInvoke(): TauriInvokeFn {
           created: e.created ?? "",
           modified: e.modified ?? "",
         })) as T;
-
-      case "import_passkeys":
-        return { imported: 0, skipped: 0, duplicates: 0, errors: [] } as T;
 
       case "get_sync_config":
         return { serverUrl: "", enabled: false, hasToken: false } as T;

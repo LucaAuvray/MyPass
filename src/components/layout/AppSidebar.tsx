@@ -8,7 +8,7 @@ import { useEntriesStore } from "@/stores/entriesStore";
 import { GroupTree } from "@/components/groups/GroupTree";
 import { SearchDialog } from "@/components/layout/SearchDialog";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
-import { Lock, FolderOpen, Settings, Shield, Key, KeyRound, Plus, Upload, Download, Search, Contact, CreditCard, FileText, Terminal, RefreshCw } from "lucide-react";
+import { Lock, FolderOpen, Settings, Shield, KeyRound, Plus, Upload, Download, Search, Contact, CreditCard, FileText, Terminal, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { EntryForm } from "@/components/entries/EntryForm";
 import { ItemForm } from "@/components/entries/ItemForm";
@@ -129,7 +129,6 @@ export function AppSidebar({ className, groups = [], onNavigate }: AppSidebarPro
               <SidebarItem icon={CreditCard} label={t("nav.cards")} active={location.pathname === "/" && kindFilter === "card"} onClick={() => { navigate("/"); setKindFilter("card"); }} />
               <SidebarItem icon={FileText} label={t("nav.documents")} active={location.pathname === "/" && kindFilter === "document"} onClick={() => { navigate("/"); setKindFilter("document"); }} />
               <SidebarItem icon={Terminal} label={t("nav.sshKeys")} active={location.pathname === "/" && kindFilter === "ssh_key"} onClick={() => { navigate("/"); setKindFilter("ssh_key"); }} />
-              <SidebarItem icon={Key} label={t("nav.passkeys")} active={location.pathname === "/passkeys"} onClick={() => navigate("/passkeys")} />
               <SidebarItem icon={Terminal} label={t("nav.sshAgent")} active={location.pathname === "/ssh-agent"} onClick={() => navigate("/ssh-agent")} />
               <SidebarItem icon={Shield} label={t("nav.security")} active={location.pathname === "/security"} onClick={() => navigate("/security")} />
               <SidebarItem icon={RefreshCw} label={t("nav.sync")} active={location.pathname === "/sync"} onClick={() => navigate("/sync")} />
@@ -165,7 +164,6 @@ export function AppSidebar({ className, groups = [], onNavigate }: AppSidebarPro
           <nav className="flex flex-1 flex-col items-center gap-3 pt-4">
             <CollapsedIcon icon={Plus} label={t("nav.newPassword")} onClick={() => setShowNewEntry(true)} />
             <CollapsedIcon icon={FolderOpen} label={t("nav.allItems")} />
-            <CollapsedIcon icon={Key} label={t("nav.passkeys")} />
             <CollapsedIcon icon={Shield} label={t("nav.security")} />
             <LanguageSwitcher />
             <div className="mt-auto">

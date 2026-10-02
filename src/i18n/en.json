@@ -44,7 +44,6 @@
   },
   "nav": {
     "allItems": "All Items",
-    "passkeys": "Passkeys",
     "security": "Security",
     "search": "Search passwords...",
     "settings": "Settings",
@@ -162,16 +161,6 @@
     "lower": "lower",
     "upper": "UPPER",
     "titleCase": "Title"
-  },
-  "passkeys": {
-    "title": "Passkeys",
-    "subtitle": "Passwordless authentication using biometrics or device PIN.",
-    "empty": "No passkeys yet",
-    "emptyDesc": "Passkeys let you sign in without a password.",
-    "learnMore": "Learn more",
-    "credentialId": "Credential ID",
-    "usageCount": "Usage Count",
-    "created": "Created"
   },
   "import": {
     "title": "Import Passwords",

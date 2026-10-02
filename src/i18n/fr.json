@@ -44,7 +44,6 @@
   },
   "nav": {
     "allItems": "Tous les éléments",
-    "passkeys": "Clés d'accès",
     "security": "Sécurité",
     "search": "Rechercher...",
     "settings": "Paramètres",
@@ -165,16 +164,6 @@
     "lower": "minuscules",
     "upper": "MAJUSCULES",
     "titleCase": "Capitales"
-  },
-  "passkeys": {
-    "title": "Clés d'accès",
-    "subtitle": "Authentification sans mot de passe via biométrie ou code PIN.",
-    "empty": "Aucune clé d'accès",
-    "emptyDesc": "Les clés d'accès permettent de se connecter sans mot de passe.",
-    "learnMore": "En savoir plus",
-    "credentialId": "ID de la clé",
-    "usageCount": "Utilisations",
-    "created": "Créée"
   },
   "import": {
     "title": "Importer des mots de passe",

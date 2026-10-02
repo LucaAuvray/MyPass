@@ -9,7 +9,6 @@ export interface Entry {
   icon: number | string;
   tags: string[];
   totp?: TotpConfig;
-  passkey?: PasskeyData;
   customFields: Record<string, string>;
   attachments: Attachment[];
   expiry?: string;
@@ -28,14 +27,6 @@ export interface TotpConfig {
   url: string;
 }
 
-export interface PasskeyData {
-  credentialId: string;
-  relyingParty: string;
-  userId: string;
-  publicKey: string;
-  counter: number;
-  created: string;
-}
 
 export interface Attachment {
   uuid: string;
