@@ -316,7 +316,7 @@ redémarre en 0.1.1.
 | 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
-| 5 | Import / export | [ ] | [ ] | [ ] |
+| 5 | Import / export | [x] | [ ] | [ ] |
 | 6 | Durcissement | [ ] | [ ] | [ ] |
 | 7 | Mise à jour auto | [ ] | [ ] | [ ] |
 | 8 | Docs | — | — | [ ] |
