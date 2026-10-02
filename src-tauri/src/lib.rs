@@ -111,6 +111,7 @@ pub fn run() {
             commands::sync::set_sync_config,
             commands::sync::get_sync_status,
             commands::sync::sync_now,
+            commands::sync::fetch_vault_from_server,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MyPass");

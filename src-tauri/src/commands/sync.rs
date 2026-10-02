@@ -2,7 +2,9 @@
 /// Contrat serveur (voir plan serveur) : ETag ré-envoyé VERBATIM dans
 /// If-Match ; 5xx au PUT = état inconnu → re-GET avant retry ; serveur
 /// vide (404) → premier PUT sans If-Match.
-use crate::commands::database::DbState;
+use crate::commands::database::{
+    default_vault_path, install_remote_vault, load_into_state, DatabaseInfo, DbState,
+};
 use crate::kdbx::{self, merge};
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
@@ -89,7 +91,7 @@ pub async fn set_sync_config(
 ) -> Result<(), String> {
     let mut cfg = load_config();
     // URL changée → l'etag mémorisé ne veut plus rien dire
-    let normalized = server_url.trim().trim_end_matches('/').to_string();
+    let normalized = normalize_server_url(&server_url);
     if cfg.server_url != normalized {
         cfg.last_etag = None;
     }
@@ -101,6 +103,60 @@ pub async fn set_sync_config(
     }
     cfg.enabled = enabled;
     store_config(&cfg)
+}
+
+fn normalize_server_url(url: &str) -> String {
+    url.trim().trim_end_matches('/').to_string()
+}
+
+/// Config written after a successful fetch: this PC now syncs with that server.
+fn fetched_sync_config(server_url: &str, token: &str, etag: Option<String>) -> SyncConfig {
+    SyncConfig {
+        server_url: normalize_server_url(server_url),
+        token: token.trim().to_string(),
+        enabled: true,
+        last_etag: etag,
+    }
+}
+
+/// Fresh PC: download the vault from the sync server, keep it as this PC's
+/// vault (decrypted before writing, never overwriting), enable sync, open it.
+#[tauri::command]
+pub async fn fetch_vault_from_server(
+    db: State<'_, Arc<Mutex<DbState>>>,
+    server_url: String,
+    token: String,
+    password: String,
+) -> Result<DatabaseInfo, String> {
+    let path = default_vault_path()?;
+    if path.exists() {
+        return Err("VAULT_EXISTS".into());
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| e.to_string())?;
+    let resp = client
+        .get(format!("{}/api/vault", normalize_server_url(&server_url)))
+        .bearer_auth(token.trim())
+        .send()
+        .await
+        .map_err(|_| "SERVER_UNREACHABLE".to_string())?;
+    match resp.status().as_u16() {
+        200 => {}
+        401 => return Err("TOKEN_REFUSED".into()),
+        404 => return Err("NO_REMOTE_VAULT".into()),
+        _ => return Err("SERVER_ERROR".into()),
+    }
+    let etag = resp.headers().get("etag").and_then(|v| v.to_str().ok()).map(String::from);
+    let bytes = resp.bytes().await.map_err(|_| "SERVER_UNREACHABLE".to_string())?;
+
+    let result = install_remote_vault(&bytes, &password, &path)?;
+    store_config(&fetched_sync_config(&server_url, &token, etag))?;
+
+    let mut db = db.lock().map_err(|e| format!("Lock error: {e}"))?;
+    Ok(load_into_state(&mut db, path, result, &password, None))
 }
 
 #[tauri::command]
@@ -331,5 +387,14 @@ mod tests {
     #[test]
     fn default_status_is_idle() {
         assert_eq!(SyncStatus::default().state, "idle");
+    }
+
+    #[test]
+    fn fetched_sync_config_normalizes_inputs() {
+        let cfg = fetched_sync_config(" https://mypass.example.ts.net/ ", "  tok \n", Some("\"7\"".into()));
+        assert_eq!(cfg.server_url, "https://mypass.example.ts.net");
+        assert_eq!(cfg.token, "tok");
+        assert!(cfg.enabled);
+        assert_eq!(cfg.last_etag.as_deref(), Some("\"7\""));
     }
 }

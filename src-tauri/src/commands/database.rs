@@ -144,6 +144,28 @@ fn create_vault_file(
     kdbx::writer::write_database(path, keepass_file, password, keyfile, cipher, kdf)
 }
 
+/// Save a vault downloaded from the sync server as this PC's vault. The bytes
+/// must decrypt with `password` before anything touches the disk, and are
+/// written verbatim; `create_new` makes the no-overwrite check atomic.
+pub fn install_remote_vault(
+    bytes: &[u8],
+    password: &str,
+    path: &Path,
+) -> Result<kdbx::reader::DatabaseReadResult, String> {
+    let result = read_vault_bytes(bytes, password, None)?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create vault folder: {e}"))?;
+    }
+    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(path).map_err(|e| {
+        match e.kind() {
+            std::io::ErrorKind::AlreadyExists => "VAULT_EXISTS".to_string(),
+            _ => format!("Failed to write vault: {e}"),
+        }
+    })?;
+    std::io::Write::write_all(&mut file, bytes).map_err(|e| format!("Failed to write vault: {e}"))?;
+    Ok(result)
+}
+
 fn read_keyfile(keyfile_path: &Option<String>) -> Result<Option<Vec<u8>>, String> {
     keyfile_path
         .as_ref()
@@ -376,6 +398,57 @@ mod tests {
 
         create_vault_file(&path, &KeePassFile::new("T"), "pw", None, Cipher::Aes256, &KdfParams::default()).unwrap();
 
+        assert!(kdbx::reader::read_database(&path, "pw", None).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn install_remote_vault_wrong_password_writes_nothing() {
+        let dir = temp_dir_unique("install-wrong-pw");
+        let path = dir.join("mypass-vault.kdbx");
+
+        let err = install_remote_vault(&sample_vault("right"), "wrong", &path).unwrap_err();
+
+        assert_eq!(err, "WRONG_PASSWORD");
+        assert!(!path.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn install_remote_vault_rejects_html() {
+        let dir = temp_dir_unique("install-html");
+        let path = dir.join("mypass-vault.kdbx");
+
+        let err = install_remote_vault(b"<!doctype html>", "pw", &path).unwrap_err();
+
+        assert_eq!(err, "NOT_A_VAULT");
+        assert!(!path.exists());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn install_remote_vault_refuses_existing_file() {
+        let dir = temp_dir_unique("install-existing");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("mypass-vault.kdbx");
+        std::fs::write(&path, b"keep me").unwrap();
+
+        let err = install_remote_vault(&sample_vault("pw"), "pw", &path).unwrap_err();
+
+        assert_eq!(err, "VAULT_EXISTS");
+        assert_eq!(std::fs::read(&path).unwrap(), b"keep me");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn install_remote_vault_writes_bytes_verbatim_and_creates_parent() {
+        let dir = temp_dir_unique("install-ok");
+        let path = dir.join("MyPass").join("mypass-vault.kdbx");
+        let bytes = sample_vault("pw");
+
+        install_remote_vault(&bytes, "pw", &path).unwrap();
+
+        assert_eq!(std::fs::read(&path).unwrap(), bytes);
         assert!(kdbx::reader::read_database(&path, "pw", None).is_ok());
         let _ = std::fs::remove_dir_all(&dir);
     }
