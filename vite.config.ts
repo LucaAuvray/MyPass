@@ -5,11 +5,16 @@ import { VitePWA } from "vite-plugin-pwa";
 
 const host = process.env.TAURI_DEV_HOST;
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
+      // The service worker is for the web PWA only. Desktop builds ship a
+      // self-destroying sw.js: a desktop install from before this fix
+      // registered one in the WebView2 profile, and it kept serving that
+      // old frontend from its cache over every newer .msi.
+      selfDestroying: mode !== "web",
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png", "mask-icon.svg"],
       manifest: false, // We use public/manifest.json
@@ -69,4 +74,4 @@ export default defineConfig({
       "@wasm": "/crates/mypass-wasm/pkg",
     },
   },
-});
+}));
