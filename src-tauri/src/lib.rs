@@ -53,6 +53,7 @@ pub fn run() {
             commands::database::save_database,
             commands::database::lock_database,
             commands::database::get_database_info,
+            commands::database::get_vault_location,
             // Entries
             commands::entries::get_entries,
             commands::entries::get_entry,

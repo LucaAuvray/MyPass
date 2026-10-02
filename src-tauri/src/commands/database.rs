@@ -1,6 +1,6 @@
 /// Tauri commands for database operations: open, create, save, lock.
 use crate::kdbx::{self, crypto::Cipher, keys::KdfParams, xml::KeePassFile};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tauri::State;
 
@@ -68,71 +68,129 @@ pub struct DatabaseInfo {
     pub modified: String,
 }
 
-#[tauri::command]
-pub async fn open_database(
-    state: State<'_, Arc<Mutex<DbState>>>,
-    path: String,
-    password: String,
-    keyfile_path: Option<String>,
-) -> Result<DatabaseInfo, String> {
-    let path = PathBuf::from(&path);
+/// KDBX file signature (little-endian 0x9AA2D903, 0xB54BFB67).
+const KDBX_SIGNATURE: [u8; 8] = [0x9A, 0xA2, 0xD9, 0x03, 0xB5, 0x4B, 0xFB, 0x67];
 
-    // Read keyfile if provided
-    let keyfile_data = if let Some(kf_path) = &keyfile_path {
-        Some(std::fs::read(kf_path).map_err(|e| format!("Failed to read keyfile: {e}"))?)
-    } else {
-        None
-    };
+/// The one desktop vault location: one vault per PC, next to sync.json.
+pub fn default_vault_path() -> Result<PathBuf, String> {
+    let appdata = std::env::var("APPDATA").map_err(|_| "APPDATA introuvable".to_string())?;
+    Ok(PathBuf::from(appdata).join("MyPass").join("mypass-vault.kdbx"))
+}
 
-    // Read and decrypt the database
-    let result = kdbx::reader::read_database(
-        &path,
-        &password,
-        keyfile_data.as_deref(),
-    )?;
+/// Decrypt vault bytes, mapping failures to the stable codes the unlock
+/// screen translates (`NOT_A_VAULT`, `WRONG_PASSWORD`).
+pub fn read_vault_bytes(
+    bytes: &[u8],
+    password: &str,
+    keyfile: Option<&[u8]>,
+) -> Result<kdbx::reader::DatabaseReadResult, String> {
+    if !bytes.starts_with(&KDBX_SIGNATURE) {
+        return Err("NOT_A_VAULT".to_string());
+    }
+    // ponytail: a corrupted KDBX is indistinguishable from a wrong password here
+    // (both fail AEAD decryption) — split them if mypass-core ever exposes typed errors.
+    kdbx::reader::read_database_bytes(bytes, password, keyfile).map_err(|_| "WRONG_PASSWORD".to_string())
+}
 
+/// Install a decrypted vault as the open database. Shared by every way of
+/// opening a vault (local file, fetch from server).
+pub fn load_into_state(
+    db: &mut DbState,
+    path: PathBuf,
+    result: kdbx::reader::DatabaseReadResult,
+    password: &str,
+    keyfile: Option<Vec<u8>>,
+) -> DatabaseInfo {
     let kf = &result.keepass_file;
-
-    // Count entries recursively
-    let entry_count = count_entries(&kf.root.group);
-    let group_count = count_groups(&kf.root.group);
-
-    let mut db = state.lock().map_err(|e| format!("Lock error: {e}"))?;
-
     let info = DatabaseInfo {
         file_path: path.to_string_lossy().to_string(),
         name: kf.meta.database_name.clone(),
         description: kf.meta.database_description.clone(),
         encryption: format!("{:?}", result.cipher),
         kdf: "Argon2id".to_string(),
-        groups: group_count,
-        entries: entry_count,
+        groups: count_groups(&kf.root.group),
+        entries: count_entries(&kf.root.group),
         created: kf.meta.database_name_changed.clone(),
         modified: kf.meta.settings_changed.clone(),
     };
 
     db.is_open = true;
     db.file_path = Some(path);
-    db.keepass_file = Some(kf.clone());
+    db.keepass_file = Some(result.keepass_file);
     db.password_hash = Some(password.as_bytes().to_vec()); // Simplified — use hash in production
-    db.keyfile_data = keyfile_data;
+    db.keyfile_data = keyfile;
     db.cipher = result.cipher;
     db.kdf = result.kdf;
     db.salt = result.salt;
 
-    Ok(info)
+    info
+}
+
+/// Write a brand-new vault, refusing to replace an existing file.
+fn create_vault_file(
+    path: &Path,
+    keepass_file: &KeePassFile,
+    password: &str,
+    keyfile: Option<&[u8]>,
+    cipher: Cipher,
+    kdf: &KdfParams,
+) -> Result<(), String> {
+    if path.exists() {
+        return Err("VAULT_EXISTS".to_string());
+    }
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create vault folder: {e}"))?;
+    }
+    kdbx::writer::write_database(path, keepass_file, password, keyfile, cipher, kdf)
+}
+
+fn read_keyfile(keyfile_path: &Option<String>) -> Result<Option<Vec<u8>>, String> {
+    keyfile_path
+        .as_ref()
+        .map(|p| std::fs::read(p).map_err(|e| format!("Failed to read keyfile: {e}")))
+        .transpose()
+}
+
+#[derive(serde::Serialize)]
+pub struct VaultLocation {
+    pub path: String,
+    pub exists: bool,
+}
+
+#[tauri::command]
+pub async fn get_vault_location() -> Result<VaultLocation, String> {
+    let path = default_vault_path()?;
+    Ok(VaultLocation { exists: path.exists(), path: path.to_string_lossy().to_string() })
+}
+
+#[tauri::command]
+pub async fn open_database(
+    state: State<'_, Arc<Mutex<DbState>>>,
+    password: String,
+    keyfile_path: Option<String>,
+) -> Result<DatabaseInfo, String> {
+    let path = default_vault_path()?;
+    let keyfile_data = read_keyfile(&keyfile_path)?;
+
+    let bytes = std::fs::read(&path).map_err(|e| match e.kind() {
+        std::io::ErrorKind::NotFound => "NO_VAULT".to_string(),
+        _ => format!("Failed to read vault: {e}"),
+    })?;
+    let result = read_vault_bytes(&bytes, &password, keyfile_data.as_deref())?;
+
+    let mut db = state.lock().map_err(|e| format!("Lock error: {e}"))?;
+    Ok(load_into_state(&mut db, path, result, &password, keyfile_data))
 }
 
 #[tauri::command]
 pub async fn create_database(
     state: State<'_, Arc<Mutex<DbState>>>,
-    path: String,
     password: String,
     name: String,
     encryption: Option<String>,
     keyfile_path: Option<String>,
 ) -> Result<DatabaseInfo, String> {
-    let path = PathBuf::from(&path);
+    let path = default_vault_path()?;
 
     let cipher = match encryption.as_deref() {
         Some("chacha20") => Cipher::ChaCha20,
@@ -140,23 +198,10 @@ pub async fn create_database(
     };
 
     let kdf = KdfParams::default();
-    let keyfile_data = if let Some(kf_path) = &keyfile_path {
-        Some(std::fs::read(kf_path).map_err(|e| format!("Failed to read keyfile: {e}"))?)
-    } else {
-        None
-    };
+    let keyfile_data = read_keyfile(&keyfile_path)?;
 
     let keepass_file = KeePassFile::new(&name);
-
-    // Write to disk
-    kdbx::writer::write_database(
-        &path,
-        &keepass_file,
-        &password,
-        keyfile_data.as_deref(),
-        cipher,
-        &kdf,
-    )?;
+    create_vault_file(&path, &keepass_file, &password, keyfile_data.as_deref(), cipher, &kdf)?;
 
     let mut db = state.lock().map_err(|e| format!("Lock error: {e}"))?;
 
@@ -286,5 +331,52 @@ mod tests {
 
         let _ = std::fs::remove_file(&path);
         assert!(found, "custom data written before save() was lost on reload");
+    }
+
+    fn sample_vault(password: &str) -> Vec<u8> {
+        kdbx::writer::write_database_bytes(&KeePassFile::new("T"), password, None, Cipher::Aes256, &KdfParams::default())
+            .unwrap()
+    }
+
+    fn temp_dir_unique(tag: &str) -> PathBuf {
+        std::env::temp_dir().join(format!("mypass-{tag}-{}", uuid::Uuid::new_v4()))
+    }
+
+    #[test]
+    fn read_vault_bytes_rejects_non_kdbx() {
+        assert_eq!(read_vault_bytes(b"<!doctype html><html></html>", "pw", None).unwrap_err(), "NOT_A_VAULT");
+        assert_eq!(read_vault_bytes(b"", "pw", None).unwrap_err(), "NOT_A_VAULT");
+    }
+
+    #[test]
+    fn read_vault_bytes_maps_wrong_password() {
+        let bytes = sample_vault("right");
+        assert_eq!(read_vault_bytes(&bytes, "wrong", None).unwrap_err(), "WRONG_PASSWORD");
+        assert_eq!(read_vault_bytes(&bytes, "right", None).unwrap().keepass_file.meta.database_name, "T");
+    }
+
+    #[test]
+    fn create_vault_file_refuses_existing() {
+        let dir = temp_dir_unique("create-existing");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("mypass-vault.kdbx");
+        std::fs::write(&path, b"keep me").unwrap();
+
+        let result = create_vault_file(&path, &KeePassFile::new("T"), "pw", None, Cipher::Aes256, &KdfParams::default());
+
+        assert_eq!(result, Err("VAULT_EXISTS".to_string()));
+        assert_eq!(std::fs::read(&path).unwrap(), b"keep me");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn create_vault_file_creates_missing_parent() {
+        let dir = temp_dir_unique("create-parent");
+        let path = dir.join("MyPass").join("mypass-vault.kdbx");
+
+        create_vault_file(&path, &KeePassFile::new("T"), "pw", None, Cipher::Aes256, &KdfParams::default()).unwrap();
+
+        assert!(kdbx::reader::read_database(&path, "pw", None).is_ok());
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }
