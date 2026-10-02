@@ -33,13 +33,6 @@
     "icon": [
       "icons/icon.png",
       "icons/icon.ico"
-    ],
-    "fileAssociations": [
-      {
-        "ext": ["kdbx"],
-        "name": "KeePass Database",
-        "description": "KeePass KDBX Database File"
-      }
     ]
   },
   "plugins": {}
