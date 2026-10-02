@@ -233,7 +233,9 @@ le comportement de la suppression correspond à ce que la spec a décidé.
 dialogue (ligne 36). En mode web, `import_entries`, `export_csv` et `export_json` tombent dans
 « Commande indisponible en mode web » (`src/lib/web.ts:351`) ; le wasm n'expose aucune fonction
 d'import ou d'export. L'import passe déjà par un `<input type="file">` et le dédoublonnage TS
-(`src/lib/dedup.ts`), donc il est réutilisable côté web.
+(`src/lib/dedup.ts`), donc il est réutilisable côté web. **Perte de données à l'import**
+(relevée au sous-projet 2) : la colonne TOTP du CSV (`CsvColumnMapping.totp`) est ignorée, et
+`import_entries` n'écrit ni `tags`, ni `customFields`, ni `totp` des entrées résolues.
 
 **Périmètre :** boîte « Enregistrer sous » sur desktop (`plugin-dialog`) ; export en PWA
 (téléchargement de fichier) ; import en PWA. À trancher : une seule génération CSV/JSON
@@ -302,7 +304,7 @@ redémarre en 0.1.1.
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
 | 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
-| 2 | Retrait du factice | [ ] | [ ] | [ ] |
+| 2 | Retrait du factice | [x] | [ ] | [ ] |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
 | 5 | Import / export | [ ] | [ ] | [ ] |
