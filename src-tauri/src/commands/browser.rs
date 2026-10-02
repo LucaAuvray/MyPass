@@ -83,8 +83,7 @@ pub fn ensure_native_messaging_manifest() {
             // repo's path — its manifest has no "key", so Chrome derives this
             // ID from the folder path (changes if the repo moves).
             "chrome-extension://cdfcdponhpejgnglmjapmgimbmfpacgj/"
-        ],
-        "allowed_extensions": ["keepassxc-browser@keepassxc.org"]
+        ]
     });
     let _ = std::fs::write(dir.join("mypass_browser_manifest.json"), manifest.to_string());
 }

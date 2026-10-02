@@ -188,6 +188,15 @@ Découvertes en route :
 **Fini quand :** plus de `MOCK_PASSKEYS` ni de route `/passkeys` ; lint, clippy et tests verts ;
 un coffre contenant des champs `KPEX_PASSKEY_*` s'ouvre et se resauvegarde sans perte.
 
+**Résultat (2026-10-02) :** livré (plan `docs/superpowers/plans/2026-10-02-remove-fake.md`).
+Passkeys retirées (test `passkey_fields_survive_update_and_save` dans `mypass-core`), mock réservé à
+`npm run dev` (absent de `dist/` en desktop comme en PWA ; hors runtime : `NO_BACKEND`), plus
+d'`allow(dead_code)` global (clippy `src-tauri` : 11 → 8), « Mettre à jour » ouvre l'entrée,
+Firefox et `extension/` retirés (clé déplacée dans
+`C:\Users\lucaa\Documents\Projet\MyPass-hors-depot\extension-dev-key.pem`).
+Constat : le mode « barre latérale repliée » est inatteignable (rien n'appelle `toggleSidebar`) :
+ajouter un bouton ou supprimer ce mode, à décider.
+
 ## 3 — TOTP
 
 **Objectif :** voir et copier les codes 2FA dans MyPass, et laisser l'extension les remplir.
@@ -304,7 +313,7 @@ redémarre en 0.1.1.
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
 | 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
-| 2 | Retrait du factice | [x] | [x] | [ ] |
+| 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
 | 5 | Import / export | [ ] | [ ] | [ ] |

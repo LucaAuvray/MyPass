@@ -10,9 +10,9 @@
 | **Frontend** | React 19 + Vite 6 + TypeScript |
 | **Styling** | Tailwind CSS v4 + shadcn/ui (Base UI, Nova theme) |
 | **State** | Zustand + TanStack Query v5 |
-| **Backend** | Rust — crypto, KDBX, import/export, TOTP, Passkeys |
+| **Backend** | Rust — crypto, KDBX, import/export, TOTP |
 | **Protocol** | NaCl box encryption (KeePassXC-Browser compatible) |
-| **Extension** | Manifest V3 browser extension (Chrome, Firefox, Edge) |
+| **Extension** | Manifest V3 browser extension (Chrome, Edge) |
 | **PWA** | Workbox service worker, offline-first |
 
 ## Features
@@ -23,7 +23,6 @@
 - 🔍 **⌘K search** — instant command palette
 - 🎲 **Password generator** — CSPRNG passwords & passphrases with strength evaluation
 - ⏱ **TOTP 2FA** — SHA1/SHA256/SHA512 support
-- 🔒 **Passkeys** — FIDO2/WebAuthn credential management
 - 📥 **Import** — CSV, 1Password (1PUX), Bitwarden, Google, Apple, Proton Pass
 - 📤 **Export** — CSV, JSON, XML, HTML
 - 🛡 **Security dashboard** — weak/reused/old password detection, HIBP k-anonymity
@@ -62,7 +61,7 @@ mypass/
 │   ├── stores/           # Zustand stores (app, database, entries)
 │   ├── lib/              # Utilities (tauri, crypto, password-strength)
 │   ├── types/            # TypeScript types (entry, group, database, import)
-│   ├── views/            # Page views (AllItems, Security, Passkeys, Browser)
+│   ├── views/            # Page views (AllItems, Security, Browser)
 │   └── i18n/             # Translations (en, fr)
 ├── src-tauri/            # Rust backend
 │   └── src/
