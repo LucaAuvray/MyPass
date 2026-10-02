@@ -148,8 +148,12 @@ Découvertes en route :
   restart mypass-server`, lire le nouveau jeton dans `journalctl -u mypass-server` (en root).
 - Le service worker PWA était aussi inclus dans la build desktop : une ancienne install le gardait
   dans `%LOCALAPPDATA%\com.mypass.app\EBWebView\Default\Service Worker` et servait l'interface de
-  juillet (avec le mock). Les builds desktop livrent maintenant un `sw.js` auto-destructeur ; sur
-  ce PC, il a fallu supprimer ce dossier à la main (app fermée).
+  juillet (avec le mock). Le premier correctif (`sw.js` auto-destructeur) n'a pas suffi : le 2ᵉ PC
+  a encore affiché la maquette, et la panne a été reproduite sur un profil WebView2 empoisonné
+  (3 lancements, ancien index toujours servi). Correctif final (`17d46d6`) : le desktop est servi
+  depuis `https://tauri.localhost` (`useHttpsScheme`), hors de portée de l'ancien SW lié à
+  `http://`, et n'enregistre plus aucun SW. Coût : le délai de verrouillage auto et la langue
+  (localStorage) reviennent une fois à leur valeur par défaut.
 - Le `.msi` servi sous `/download/` est à jour ; celui de juillet est dans
   `/root/MyPass_0.1.0_x64_en-US.msi.bak-2026-10-02`.
 - Mineurs reportés : échec d'écriture de `sync.json` après récupération → écran bloqué jusqu'au
