@@ -1,0 +1,166 @@
+/* ============================================================
+   MyPass theme tokens (reskin of KeePassXC-Browser)
+   Palette: warm neutral + blue #2563EB + violet #7C3AED
+   Variable names kept (--kpxc-*) so the existing JS/CSS keep working.
+   ============================================================ */
+
+:root,
+:host {
+    --kpxc-autocomplete-footer-color: #f5f3f0;
+    --kpxc-autocomplete-menu-border: 1px solid #e7e5e4;
+    --kpxc-background-color: #ffffff;
+    --kpxc-box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+    --kpxc-box-shadow-strong: 0 24px 40px -8px rgb(0 0 0 / 0.35), 0 8px 12px -6px rgb(0 0 0 / 0.25);
+    --kpxc-card-background-color: #ffffff;
+    --kpxc-card-border-color: #e7e5e4;
+    --kpxc-card-header-color: #fafaf9;
+    --kpxc-checkbox-color: #2563eb;
+    --kpxc-checkbox-background-color: #ffffff;
+    --kpxc-container-border: 1px solid #e7e5e4;
+    --kpxc-input-active-border-color: #2563eb;
+    --kpxc-input-background-color: #ffffff;
+    --kpxc-input-border: 1px solid #e7e5e4;
+    --kpxc-input-border-color: #e7e5e4;
+    --kpxc-input-main-border-color: #e7e5e4;
+    --kpxc-link-color: #2563eb;
+    --kpxc-link-hover-color: #7c3aed;
+    --kpxc-scrollbar-background: transparent;
+    --kpxc-scrollbar-thumb: #d6d3d1;
+    --kpxc-sidebar-background-color: #1c1917;
+    --kpxc-table-border-color: #e7e5e4;
+    --kpxc-table-hover-color: #f5f3f0;
+    --kpxc-table-odd-color: #fafaf9;
+    --kpxc-text-color: #1c1917;
+    --kpxc-lighter-text-color: rgba(28, 25, 23, 0.82);
+    --kpxc-light-text-color: #78716c;
+
+    /* MyPass brand accents (used by mypass-theme.css) */
+    --mypass-primary: #2563eb;
+    --mypass-primary-hover: #1d4ed8;
+    --mypass-accent: #7c3aed;
+    --mypass-danger: #dc2626;
+    --mypass-warning: #f59e0b;
+    --mypass-success: #10b981;
+    --mypass-radius: 0.625rem;
+    --mypass-radius-sm: 0.5rem;
+    --mypass-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root,
+    :host {
+        --kpxc-autocomplete-footer-color: #292524;
+        --kpxc-autocomplete-menu-border: 1px solid #292524;
+        --kpxc-background-color: #1c1917;
+        --kpxc-box-shadow: 0 24px 40px -8px rgb(0 0 0 / 0.5), 0 8px 12px -6px rgb(0 0 0 / 0.4);
+        --kpxc-box-shadow-strong: 0 24px 48px -8px rgb(0 0 0 / 0.7), 0 8px 12px -6px rgb(0 0 0 / 0.6);
+        --kpxc-card-background-color: #1c1917;
+        --kpxc-card-border-color: #292524;
+        --kpxc-card-header-color: #0c0a09;
+        --kpxc-checkbox-color: #3b82f6;
+        --kpxc-checkbox-background-color: #1c1917;
+        --kpxc-container-border: 1px solid #292524;
+        --kpxc-input-active-border-color: #3b82f6;
+        --kpxc-input-background-color: #0c0a09;
+        --kpxc-input-border: 1px solid #292524;
+        --kpxc-input-border-color: #292524;
+        --kpxc-input-main-border-color: #292524;
+        --kpxc-link-color: #60a5fa;
+        --kpxc-link-hover-color: #a78bfa;
+        --kpxc-scrollbar-background: transparent;
+        --kpxc-scrollbar-thumb: #44403c;
+        --kpxc-sidebar-background-color: #0c0a09;
+        --kpxc-table-border-color: #292524;
+        --kpxc-table-hover-color: #292524;
+        --kpxc-table-odd-color: #0c0a09;
+        --kpxc-text-color: #f5f3f0;
+        --kpxc-lighter-text-color: rgba(245, 243, 240, 0.82);
+        --kpxc-light-text-color: #a8a29e;
+
+        --mypass-primary: #3b82f6;
+        --mypass-primary-hover: #60a5fa;
+        --mypass-accent: #8b5cf6;
+        --mypass-danger: #ef4444;
+        --mypass-warning: #f59e0b;
+        --mypass-success: #34d399;
+        --mypass-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    }
+}
+
+/* Manual light switching */
+[data-bs-theme='light'] {
+    --kpxc-autocomplete-footer-color: #f5f3f0;
+    --kpxc-autocomplete-menu-border: 1px solid #e7e5e4;
+    --kpxc-background-color: #ffffff;
+    --kpxc-box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+    --kpxc-box-shadow-strong: 0 24px 40px -8px rgb(0 0 0 / 0.35), 0 8px 12px -6px rgb(0 0 0 / 0.25);
+    --kpxc-card-background-color: #ffffff;
+    --kpxc-card-border-color: #e7e5e4;
+    --kpxc-card-header-color: #fafaf9;
+    --kpxc-checkbox-color: #2563eb;
+    --kpxc-checkbox-background-color: #ffffff;
+    --kpxc-container-border: 1px solid #e7e5e4;
+    --kpxc-input-active-border-color: #2563eb;
+    --kpxc-input-background-color: #ffffff;
+    --kpxc-input-border: 1px solid #e7e5e4;
+    --kpxc-input-border-color: #e7e5e4;
+    --kpxc-input-main-border-color: #e7e5e4;
+    --kpxc-link-color: #2563eb;
+    --kpxc-link-hover-color: #7c3aed;
+    --kpxc-scrollbar-background: transparent;
+    --kpxc-scrollbar-thumb: #d6d3d1;
+    --kpxc-sidebar-background-color: #1c1917;
+    --kpxc-table-border-color: #e7e5e4;
+    --kpxc-table-hover-color: #f5f3f0;
+    --kpxc-table-odd-color: #fafaf9;
+    --kpxc-text-color: #1c1917;
+    --kpxc-lighter-text-color: rgba(28, 25, 23, 0.82);
+    --kpxc-light-text-color: #78716c;
+
+    --mypass-primary: #2563eb;
+    --mypass-primary-hover: #1d4ed8;
+    --mypass-accent: #7c3aed;
+    --mypass-danger: #dc2626;
+    --mypass-warning: #f59e0b;
+    --mypass-success: #10b981;
+    --mypass-gradient: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+/* Manual dark switching */
+[data-bs-theme='dark'] {
+    --kpxc-autocomplete-footer-color: #292524;
+    --kpxc-autocomplete-menu-border: 1px solid #292524;
+    --kpxc-background-color: #1c1917;
+    --kpxc-box-shadow: 0 24px 40px -8px rgb(0 0 0 / 0.5), 0 8px 12px -6px rgb(0 0 0 / 0.4);
+    --kpxc-box-shadow-strong: 0 24px 48px -8px rgb(0 0 0 / 0.7), 0 8px 12px -6px rgb(0 0 0 / 0.6);
+    --kpxc-card-background-color: #1c1917;
+    --kpxc-card-border-color: #292524;
+    --kpxc-card-header-color: #0c0a09;
+    --kpxc-checkbox-color: #3b82f6;
+    --kpxc-checkbox-background-color: #1c1917;
+    --kpxc-container-border: 1px solid #292524;
+    --kpxc-input-active-border-color: #3b82f6;
+    --kpxc-input-background-color: #0c0a09;
+    --kpxc-input-border: 1px solid #292524;
+    --kpxc-input-border-color: #292524;
+    --kpxc-input-main-border-color: #292524;
+    --kpxc-link-color: #60a5fa;
+    --kpxc-link-hover-color: #a78bfa;
+    --kpxc-scrollbar-background: transparent;
+    --kpxc-scrollbar-thumb: #44403c;
+    --kpxc-sidebar-background-color: #0c0a09;
+    --kpxc-table-border-color: #292524;
+    --kpxc-table-hover-color: #292524;
+    --kpxc-table-odd-color: #0c0a09;
+    --kpxc-text-color: #f5f3f0;
+    --kpxc-lighter-text-color: rgba(245, 243, 240, 0.82);
+    --kpxc-light-text-color: #a8a29e;
+
+    --mypass-primary: #3b82f6;
+    --mypass-primary-hover: #60a5fa;
+    --mypass-accent: #8b5cf6;
+    --mypass-danger: #ef4444;
+    --mypass-warning: #f59e0b;
+    --mypass-success: #34d399;
+    --mypass-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+}

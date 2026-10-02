@@ -1,0 +1,22 @@
+node_modules/
+dist/
+src-tauri/target/
+.superpowers/
+*.kdbx
+keepassxc/
+keepassxc-browser/*
+!keepassxc-browser/keepassxc-browser/
+.playwright-mcp/
+Google Passwords*.csv
+keepassxc-browser/.git-upstream/
+*.tsbuildinfo
+crates/mypass-core/target/
+crates/mypass-wasm/target/
+crates/mypass-core/Cargo.lock
+server/target/
+crates/mypass-wasm/pkg/
+
+# secrets / build
+extension/dev-key.pem
+server/target/
+*.pem

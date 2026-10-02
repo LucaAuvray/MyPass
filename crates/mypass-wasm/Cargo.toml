@@ -1,0 +1,21 @@
+[package]
+name = "mypass-wasm"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "MyPass web — bindings wasm du coffre (réutilise mypass-core)"
+
+[lib]
+# cdylib pour wasm-pack, rlib pour que `cargo test` natif fonctionne
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+mypass-core = { path = "../mypass-core" }
+wasm-bindgen = "0.2"
+serde = "1"
+serde_json = "1"
+
+# wasm-opt (binaryen) désactivé : téléchargement flaky sous Windows et le gain
+# de taille est sans intérêt pour une PWA servie en LAN/VPN.
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false

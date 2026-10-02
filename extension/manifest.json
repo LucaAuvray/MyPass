@@ -1,0 +1,119 @@
+{
+  "manifest_version": 3,
+  "name": "MyPass Browser",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAuTtFPvc2E4LdGOYdWq6gfJeCrcLTzIAbvaU1zllJXSg5YfDxugadVd7GYJCHhmQJbsnlMX4iCBLNW7DmKysEwzIrvzXoWkePwxLGlaH1qQzQu5AG75hlqrDrrG0f6YMPYk9aU1ZUMdOFV9IUi/YfcHfJywLWEFxqlzBM3qcL//jEErpVisuWu904J11f2lgtqNixdmo+PnSSJ+iwQRkF1FjyW0NqhCGLwUkTimGdRSSFQW0kQwcAxE41pFFCYyTpjP+EU7BnXpfnvoUj+n2HOWOfBw5IoIYu1LilFrnXaKA4ojLIV+ij9OkNOFL47BB3rZtrkgR0Fc/si1sMRa2AEwIDAQAB",
+  "version": "1.0.0",
+  "version_name": "1.0.0",
+  "minimum_chrome_version": "124",
+  "description": "MyPass browser extension — auto-fill passwords and manage passkeys securely.",
+  "author": "MyPass Team",
+  "icons": {
+    "16": "icons/mypass_16x16.png",
+    "48": "icons/mypass_48x48.png",
+    "64": "icons/mypass_64x64.png",
+    "96": "icons/mypass_96x96.png",
+    "128": "icons/mypass_128x128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/mypass_16x16.png",
+      "32": "icons/mypass_32x32.png",
+      "64": "icons/mypass_64x64.png"
+    },
+    "default_title": "MyPass",
+    "default_popup": "popups/popup.html"
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+  "background": {
+    "service_worker": "background/background_service.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["file:///*.xml*"],
+      "js": [
+        "common/browser-polyfill.min.js",
+        "common/global.js",
+        "common/sites.js",
+        "content/ui.js",
+        "content/banner.js",
+        "content/autocomplete.js",
+        "content/credential-autocomplete.js",
+        "content/custom-fields-banner.js",
+        "content/fields.js",
+        "content/fill.js",
+        "content/form.js",
+        "content/icon.js",
+        "content/icon-handler.js",
+        "content/keepassxc-browser.js",
+        "content/observer-helper.js",
+        "content/pwgen.js",
+        "content/totp-autocomplete.js",
+        "content/totp-field.js",
+        "content/username-field.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "exclude_matches": ["*://*/*.xml*", "file:///*.xml*"],
+      "js": [
+        "content/passkeys-inject.js",
+        "content/passkeys-utils.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "commands": {
+    "fill_username_password": {
+      "description": "Fill username and password",
+      "suggested_key": { "default": "Alt+Shift+U", "mac": "MacCtrl+Shift+U" }
+    },
+    "fill_password": {
+      "description": "Fill password only",
+      "suggested_key": { "default": "Alt+Shift+P", "mac": "MacCtrl+Shift+P" }
+    },
+    "fill_totp": {
+      "description": "Fill TOTP",
+      "suggested_key": { "default": "Alt+Shift+O", "mac": "MacCtrl+Shift+O" }
+    },
+    "show_password_generator": {
+      "description": "Show password generator",
+      "suggested_key": { "default": "Alt+Shift+G", "mac": "MacCtrl+Shift+G" }
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/*.svg",
+        "css/*.css",
+        "content/passkeys.js"
+      ],
+      "matches": ["https://*/*", "http://*/*"]
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "clipboardWrite",
+    "contextMenus",
+    "cookies",
+    "nativeMessaging",
+    "notifications",
+    "offscreen",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "webRequest",
+    "webRequestAuthProvider"
+  ],
+  "host_permissions": ["<all_urls>", "https://*/*", "http://*/*"],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'"
+  },
+  "default_locale": "en"
+}

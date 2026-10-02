@@ -1,0 +1,168 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================
+   MyPass Design System — Theme Tokens
+   Based on warm neutral + blue + violet palette
+   ============================================ */
+
+@theme {
+  /* === Typography === */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* === Light Mode Palette === */
+  --color-background: #FAFAF9;
+  --color-foreground: #1C1917;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1C1917;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #1C1917;
+  --color-primary: #2563EB;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #F5F3F0;
+  --color-secondary-foreground: #44403C;
+  --color-muted: #F5F3F0;
+  --color-muted-foreground: #78716C;
+  --color-accent: #7C3AED;
+  --color-accent-foreground: #FFFFFF;
+  --color-destructive: #DC2626;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #E7E5E4;
+  --color-input: #E7E5E4;
+  --color-ring: #2563EB;
+
+  /* === Radius === */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius: var(--radius-md);
+
+  /* === Shadows === */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+
+  /* === Sidebar === */
+  --color-sidebar: #FAFAF9;
+  --color-sidebar-foreground: #44403C;
+  --color-sidebar-primary: #2563EB;
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: #F5F3F0;
+  --color-sidebar-accent-foreground: #1C1917;
+  --color-sidebar-border: #E7E5E4;
+  --color-sidebar-ring: #2563EB;
+
+  /* === Chart === */
+  --color-chart-1: #2563EB;
+  --color-chart-2: #7C3AED;
+  --color-chart-3: #F59E0B;
+  --color-chart-4: #10B981;
+  --color-chart-5: #EF4444;
+}
+
+/* ============================================
+   Dark Mode
+   ============================================ */
+
+.dark {
+  --color-background: #0C0A09;
+  --color-foreground: #F5F3F0;
+  --color-card: #1C1917;
+  --color-card-foreground: #F5F3F0;
+  --color-popover: #1C1917;
+  --color-popover-foreground: #F5F3F0;
+  --color-primary: #3B82F6;
+  --color-primary-foreground: #0C0A09;
+  --color-secondary: #292524;
+  --color-secondary-foreground: #D6D3D1;
+  --color-muted: #292524;
+  --color-muted-foreground: #A8A29E;
+  --color-accent: #8B5CF6;
+  --color-accent-foreground: #FFFFFF;
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-border: #292524;
+  --color-input: #292524;
+  --color-ring: #3B82F6;
+
+  --color-sidebar: #0C0A09;
+  --color-sidebar-foreground: #D6D3D1;
+  --color-sidebar-primary: #3B82F6;
+  --color-sidebar-primary-foreground: #0C0A09;
+  --color-sidebar-accent: #292524;
+  --color-sidebar-accent-foreground: #F5F3F0;
+  --color-sidebar-border: #292524;
+  --color-sidebar-ring: #3B82F6;
+
+  --color-chart-1: #3B82F6;
+  --color-chart-2: #8B5CF6;
+  --color-chart-3: #FBBF24;
+  --color-chart-4: #34D399;
+  --color-chart-5: #F87171;
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Glass morphism cards */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(231, 229, 228, 0.5);
+  }
+
+  .dark .glass-card {
+    background: rgba(28, 25, 23, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(41, 37, 36, 0.5);
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-muted-foreground);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-secondary-foreground);
+  }
+
+  /* Selection */
+  ::selection {
+    background-color: var(--color-primary);
+    color: var(--color-primary-foreground);
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicepkg/vscode-css-system/refs/heads/main/schemas/tauri-v2.json",
+  "productName": "MyPass",
+  "version": "0.1.0",
+  "identifier": "com.mypass.app",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "MyPass",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 400,
+        "minHeight": 500,
+        "resizable": true,
+        "fullscreen": false,
+        "center": true,
+        "decorations": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "msi",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["kdbx"],
+        "name": "KeePass Database",
+        "description": "KeePass KDBX Database File"
+      }
+    ]
+  },
+  "plugins": {}
+}

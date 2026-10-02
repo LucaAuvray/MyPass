@@ -1,0 +1,29 @@
+[package]
+name = "mypass-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+description = "MyPass core — KDBX4 format (crypto, KDF, reader/writer, XML)"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+uuid = { version = "1", features = ["v4"] }
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+sha2 = "0.10"
+rand = "0.8"
+quick-xml = { version = "0.37", features = ["serialize"] }
+# otpauth: TOTP::new() takes issuer/account_name with this feature (required by
+# our call signature). gen_secret is NOT enabled: it pulls rand 0.9 -> getrandom
+# 0.3, which needs a wasm32 backend cfg this crate doesn't set up, and we don't
+# use totp-rs's own secret generation (generate_totp_secret hand-rolls base32
+# using mypass-core's own rand 0.8 dependency instead).
+totp-rs = { version = "5", features = ["otpauth"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+# wasm32: uuid needs getrandom's js backend (features union with the base declaration)
+uuid = { version = "1", features = ["v4", "js"] }
+# wasm32: horloge via Date.now() (SystemTime panique à l'exécution wasm)
+js-sys = "0.3"

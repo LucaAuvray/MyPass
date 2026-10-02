@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>MyPass — test autofill identité/carte</title>
+<style>body{font-family:sans-serif;max-width:640px;margin:2rem auto}fieldset{margin-bottom:2rem;padding:1rem}label{display:block;margin-top:.5rem}input,select{width:100%;padding:.4rem}</style>
+</head>
+<body>
+<h1>Formulaires de test MyPass</h1>
+
+<fieldset>
+<legend>Paiement (attributs autocomplete standard)</legend>
+<form>
+  <label>Titulaire <input autocomplete="cc-name" name="ccname"></label>
+  <label>Numéro de carte <input autocomplete="cc-number" name="cardnumber" inputmode="numeric"></label>
+  <label>Mois <select autocomplete="cc-exp-month" name="ccmonth"><option value=""></option><option value="1">01</option><option value="2">02</option><option value="3">03</option><option value="7">07</option><option value="12">12</option></select></label>
+  <label>Année <select autocomplete="cc-exp-year" name="ccyear"><option value=""></option><option>2026</option><option>2027</option><option>2028</option><option>2029</option></select></label>
+  <label>CVC <input autocomplete="cc-csc" name="cvc" inputmode="numeric" maxlength="4"></label>
+</form>
+</fieldset>
+
+<fieldset>
+<legend>Inscription (sans autocomplete — heuristiques FR)</legend>
+<form>
+  <label>Prénom <input name="prenom"></label>
+  <label>Nom <input name="nom"></label>
+  <label>Email <input name="courriel" type="email"></label>
+  <label>Téléphone <input name="telephone" type="tel"></label>
+  <label>Adresse <input name="adresse"></label>
+  <label>Code postal <input name="code_postal"></label>
+  <label>Ville <input name="ville"></label>
+</form>
+</fieldset>
+</body>
+</html>

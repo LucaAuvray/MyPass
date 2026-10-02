@@ -1,0 +1,39 @@
+{
+  "name": "MyPass",
+  "short_name": "MyPass",
+  "description": "Modern password manager — secure, open source, beautiful.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAF9",
+  "theme_color": "#2563EB",
+  "orientation": "any",
+  "categories": ["security", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "New Password",
+      "url": "/new",
+      "description": "Create a new password entry"
+    },
+    {
+      "name": "Search",
+      "url": "/search",
+      "description": "Search your vault"
+    }
+  ],
+  "related_applications": []
+}

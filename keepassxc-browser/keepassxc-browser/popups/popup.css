@@ -1,0 +1,289 @@
+body {
+    background-color: var(--kpxc-background-color) !important;
+    color: var(--kpxc-text-color) !important;
+    display: flex;
+    font-size: 14px !important;
+    padding: 14px 16px;
+    width: 460px;
+}
+
+code {
+    color: var(--mypass-danger) !important;
+    font-size: 13px !important;
+    background-color: rgb(220 38 38 / 0.08);
+    padding: 0.12em 0.4em;
+    border-radius: 0.375rem;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    max-width: 460px;
+    width: 100%;
+}
+
+/* MyPass brand header */
+.mypass-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--kpxc-card-border-color);
+}
+
+.mypass-brand-logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+}
+
+.mypass-brand-name {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--kpxc-text-color);
+}
+
+.loader {
+    animation: spin 0.8s linear infinite;
+    border: 3px solid var(--kpxc-card-border-color);
+    border-radius: 50%;
+    border-top: 3px solid var(--mypass-primary);
+    float: left;
+    height: 1.4em;
+    margin-right: 1em;
+    width: 1.4em;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.list-group {
+    font-size: .9em !important;
+    margin-bottom: 1rem !important;
+}
+
+.list-group-item {
+    padding: 5px 10px !important;
+}
+
+.list-group-item+.list-group-item:first-child {
+    border-top-width: 1px !important;
+    border-top-left-radius: .25rem;
+    border-top-right-radius: .25rem;
+}
+
+.list-group-item:hover {
+    cursor: pointer
+}
+
+.settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--kpxc-card-border-color);
+    font-size: 90%;
+    text-align: left;
+}
+
+/* Toolbar action buttons → quiet icon buttons */
+#settings .btn {
+    background-color: transparent !important;
+    border: 1px solid var(--kpxc-card-border-color) !important;
+    color: var(--kpxc-light-text-color) !important;
+    box-shadow: none !important;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+}
+
+#settings .btn:hover {
+    background-color: var(--kpxc-table-hover-color) !important;
+    color: var(--kpxc-text-color) !important;
+    filter: none !important;
+}
+
+/* Dark theme: border/icon were nearly invisible against the dark card background */
+@media (prefers-color-scheme: dark) {
+    #settings .btn {
+        background-color: rgb(245 243 240 / 0.06) !important;
+        border-color: rgb(245 243 240 / 0.18) !important;
+        color: var(--kpxc-text-color) !important;
+    }
+}
+[data-bs-theme='dark'] #settings .btn {
+    background-color: rgb(245 243 240 / 0.06) !important;
+    border-color: rgb(245 243 240 / 0.18) !important;
+    color: var(--kpxc-text-color) !important;
+}
+
+#lock-database-button:hover {
+    background-color: rgb(220 38 38 / 0.1) !important;
+    border-color: rgb(220 38 38 / 0.35) !important;
+    color: var(--mypass-danger) !important;
+}
+
+.settings label {
+    display: block;
+}
+
+.settings label input {
+    vertical-align: middle;
+}
+
+.settings .description {
+    margin-top: 3px;
+    font-size: 80%;
+    color: #787878;
+}
+
+.small {
+    margin-top: 3px;
+    margin-left: 12px;
+    font-size: 80%;
+    color: #787878;
+}
+
+.action-buttons-area {
+    display: flex;
+    justify-content: flex-start;
+    gap: 6px;
+}
+
+.lock-button-area {
+    display: flex;
+    justify-content: flex-end;
+}
+
+#list {
+    padding-left: 0px;
+}
+
+#login-list {
+    overflow-y: auto;
+    max-height: 380px;
+}
+
+#child {
+    border-top: 0px;
+}
+
+#popup-alerts {
+    margin-top: 10px;
+    text-align: start;
+}
+
+#filter-block,
+#not-configured,
+#need-reconfigure,
+#configured-not-associated,
+#configured-and-associated,
+#error-encountered,
+#database-not-opened,
+#username-field-detected,
+#update-available,
+#getting-started-guide,
+#troubleshooting-guide {
+    display: none;
+}
+
+#options-button {
+    height: 31px;
+    width: 2.5rem;
+}
+
+#choose-custom-login-fields-button {
+    background-image: url('chrome-extension://__MSG_@@extension_id__/icons/custom_login_fields.svg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 70%;
+    height: 31px;
+    width: 2.5rem;
+}
+
+#choose-custom-login-fields-button-moz {
+    background-image: url('moz-extension://__MSG_@@extension_id__/icons/custom_login_fields.svg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 70%;
+    height: 31px;
+    width: 2.5rem;
+}
+
+#choose-custom-login-fields-button-safari {
+    background-image: url('safari-web-extension://__MSG_@@extension_id__/icons/custom_login_fields.svg');
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 70%;
+    height: 31px;
+    width: 2.5rem;
+}
+
+#lock-database-button {
+    display: none;
+    width: 2.5rem;
+}
+
+#login-filter {
+    outline: none;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    margin-bottom: 5px;
+    padding: 2px 10px;
+    width: 100%;
+}
+
+.container p {
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+}
+
+.container hr {
+    border: 0;
+    border-top: 1px solid var(--kpxc-card-border-color);
+    opacity: 1;
+    margin: 12px 0;
+}
+
+.right-align {
+    text-align: right;
+}
+
+#left-margin {
+    margin-left: 1em;
+}
+
+@media (prefers-color-scheme: dark), (prefers-color-scheme: light) {
+    body {
+        background: var(--kpxc-background-color) !important;
+        color: var(--kpxc-text-color) !important;
+    }
+
+    input, input[type="checkbox"] {
+        background-color: var(--kpxc-input-background-color) !important;
+        border: var(--kpxc-input-border);
+        border-color: var(--kpxc-input-border-color);
+    }
+
+    .list-group-item {
+        background-color: var(--kpxc-input-background-color) !important;
+        color: var(--kpxc-text-color) !important;
+    }
+
+    .list-group-item:hover {
+        background-color: var(--kpxc-table-hover-color) !important;
+    }
+
+    span.bg-success {
+        background-color: var(--kpxc-table-hover-color) !important;
+        color: var(--kpxc-text-color) !important;
+    }
+
+    #login-filter {
+        color: var(--kpxc-text-color) !important;
+    }
+}
