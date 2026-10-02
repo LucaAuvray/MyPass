@@ -209,106 +209,11 @@ export function createMockInvoke(): TauriInvokeFn {
       case "disable_windows_ssh_agent_service":
         return undefined as T;
 
-      case "import_csv":
-      case "import_google":
-      case "import_apple": {
-        const content = (args?.content as string) ?? "";
-        const lines = content.split("\n").filter((l) => l.trim());
-        if (lines.length < 2) {
-          return { imported: 0, skipped: 0, duplicates: 0, errors: ["Fichier vide"] } as T;
-        }
-        // Skip header
-        const dataLines = lines.slice(1);
-        let imported = 0;
-        for (const line of dataLines) {
-          const cols = parseCsvLine(line);
-          if (cols.length < 4) continue;
-          const title = cols[0]?.trim() || "Untitled";
-          const url = cols[1]?.trim() || "";
-          const username = cols[2]?.trim() || "";
-          const password = cols[3]?.trim() || "";
-          if (!title && !username) continue;
-          mockStore.entries.push({
-            uuid: `mock-import-${Date.now()}-${imported}`,
-            group: "root",
-            title,
-            username,
-            url,
-            password,
-            notes: cols[4]?.trim() ?? "",
-            icon: 0,
-            tags: [],
-            customFields: {},
-            created: new Date().toISOString(),
-            modified: new Date().toISOString(),
-          });
-          imported++;
-        }
-        return { imported, skipped: 0, duplicates: 0, errors: [] } as T;
-      }
-
-      case "import_1password":
-      case "import_bitwarden":
-      case "import_protonpass": {
-        const content = (args?.content as string) ?? "";
-        if (!content.trim()) {
-          return { imported: 0, skipped: 0, duplicates: 0, errors: ["Fichier vide"] } as T;
-        }
-        try {
-          const data = JSON.parse(content);
-          const items: Array<Record<string, unknown>> =
-            data?.items ?? [];
-          let imported = 0;
-          for (const item of items) {
-            const title = (item.name as string) ?? (item.title as string) ?? "Untitled";
-            const login = (item.login as Record<string, unknown>) ?? {};
-            const username = (login.username as string) ?? (item.username as string) ?? "";
-            const password = (login.password as string) ?? (item.password as string) ?? "";
-            const uris = login.uris as Array<{ uri?: string }> | undefined;
-            const url = uris?.[0]?.uri ?? (item.url as string) ?? "";
-            mockStore.entries.push({
-              uuid: `mock-import-${Date.now()}-${imported}`,
-              group: "root",
-              title: String(title),
-              username: String(username),
-              url: String(url),
-              password: String(password),
-              notes: "",
-              icon: 0,
-              tags: [],
-              customFields: {},
-              created: new Date().toISOString(),
-              modified: new Date().toISOString(),
-            });
-            imported++;
-          }
-          return { imported, skipped: 0, duplicates: 0, errors: [] } as T;
-        } catch {
-          return { imported: 0, skipped: 0, duplicates: 0, errors: ["JSON invalide"] } as T;
-        }
-      }
-
-      case "preview_csv_import": {
-        const content = (args?.content as string) ?? "";
-        const lines = content.split("\n").filter((l) => l.trim());
-        if (lines.length < 2) return [] as T;
-        const dataLines = lines.slice(1);
-        const preview = [];
-        for (const line of dataLines.slice(0, 20)) {
-          const cols = parseCsvLine(line);
-          if (cols.length < 4) continue;
-          preview.push({
-            title: cols[0]?.trim() || "Untitled",
-            username: cols[2]?.trim() || "",
-            url: cols[1]?.trim() || "",
-            group: "Imported",
-            hasPassword: !!(cols[3]?.trim()),
-            hasTotp: false,
-            isDuplicate: false,
-          });
-        }
-        return preview as T;
-      }
+      case "parse_import":
+        return [
+          { group: "Perso", title: "Mock import", username: "mock", password: "mock-pw", url: "https://mock.example", notes: "", tags: [], totp: "", customFields: {} },
+          { group: "", title: "GitHub", username: "dev", password: "mock-pw-2", url: "https://github.com", notes: "", tags: [], totp: "", customFields: {} },
+        ] as T;
 
       case "import_entries": {
         const entries = (args?.entries as Array<Record<string, unknown>>) ?? [];
@@ -330,22 +235,11 @@ export function createMockInvoke(): TauriInvokeFn {
           });
           imported++;
         }
-        return { imported, skipped: 0, duplicates: 0, errors: [] } as T;
+        return { imported, updated: 0, skipped: 0 } as T;
       }
 
-      case "get_entries_for_dedup":
-        return mockStore.entries.map((e) => ({
-          uuid: e.uuid,
-          title: e.title,
-          username: e.username,
-          password: e.password,
-          url: e.url,
-          notes: e.notes ?? "",
-          tags: e.tags ?? [],
-          customFields: e.customFields ?? {},
-          created: e.created ?? "",
-          modified: e.modified ?? "",
-        })) as T;
+      case "export_entries":
+        return { saved: true } as T;
 
       case "get_sync_config":
         return { serverUrl: "", enabled: false, hasToken: false } as T;
@@ -360,23 +254,4 @@ export function createMockInvoke(): TauriInvokeFn {
         return null as T;
     }
   };
-}
-
-/** Simple CSV line parser that handles quoted fields. */
-function parseCsvLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  for (const ch of line) {
-    if (ch === '"') {
-      inQuotes = !inQuotes;
-    } else if (ch === "," && !inQuotes) {
-      result.push(current);
-      current = "";
-    } else {
-      current += ch;
-    }
-  }
-  result.push(current);
-  return result;
 }

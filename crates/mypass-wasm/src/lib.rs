@@ -166,6 +166,32 @@ pub fn move_entry(entry_uuid: &str, group_uuid: &str) -> Result<(), String> {
 }
 
 // ============================================================================
+// Import / export (formats in mypass_core::ops::transfer, same as desktop)
+// ============================================================================
+
+/// File content (MyPass JSON or CSV) → JSON array of ImportedEntry.
+#[wasm_bindgen]
+pub fn parse_import(content: &str) -> Result<String, String> {
+    json(&mypass_core::ops::transfer::parse_import(content)?)
+}
+
+/// JSON array of ResolvedImport → JSON ImportResult.
+#[wasm_bindgen]
+pub fn import_entries(entries_json: &str) -> Result<String, String> {
+    let entries: Vec<mypass_core::ops::transfer::ResolvedImport> =
+        serde_json::from_str(entries_json).map_err(|e| e.to_string())?;
+    with_kf_mut(|kf| json(&mypass_core::ops::transfer::apply_import(kf, entries)?))
+}
+
+/// `"json"` | `"csv"` + JSON array of uuids (empty = all) → file content.
+#[wasm_bindgen]
+pub fn export_entries(format: &str, uuids_json: &str) -> Result<String, String> {
+    let format = mypass_core::ops::transfer::ExportFormat::parse(format)?;
+    let uuids: Vec<String> = serde_json::from_str(uuids_json).map_err(|e| e.to_string())?;
+    with_kf(|kf| mypass_core::ops::transfer::export(kf, format, &uuids))
+}
+
+// ============================================================================
 // Fusion. Boucle de sync 4c : GET → merge_remote (`changed` = le distant
 // avait du neuf → rafraîchir l'UI et sauvegarder localement). La décision de
 // PUT ne vient PAS de ce `changed` : comme sync.rs côté desktop (fusion

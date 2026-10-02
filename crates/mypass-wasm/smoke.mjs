@@ -7,6 +7,7 @@ import init, {
   create_vault, open_vault, close_vault, is_unlocked, save_vault,
   create_entry, get_entries, merge_remote,
   generate_totp_secret, generate_totp_code, generate_password,
+  export_entries, parse_import, import_entries,
 } from "./pkg/mypass_wasm.js";
 
 await init({ module_or_path: readFileSync(new URL("./pkg/mypass_wasm_bg.wasm", import.meta.url)) });
@@ -44,6 +45,16 @@ check(
   generate_password(JSON.stringify({ length: 20, uppercase: true, lowercase: true, digits: true, symbols: true })).length === 20,
   "générateur de mot de passe",
 );
+
+// Import / export : export JSON → parse_import → import_entries (doublons voulus ici)
+const before = JSON.parse(get_entries(null)).length;
+const parsed = JSON.parse(parse_import(export_entries("json", "[]")));
+check(parsed.length === before, `export JSON relu (${parsed.length} entrée(s))`);
+const imported = JSON.parse(import_entries(JSON.stringify(parsed)));
+check(imported.imported === before && JSON.parse(get_entries(null)).length === 2 * before, "import_entries écrit les entrées");
+let csvError = "";
+try { parse_import("foo,bar\n1,2"); } catch (e) { csvError = String(e); }
+check(csvError.includes("CSV_NO_HEADER"), `CSV sans en-tête reconnu refusé (${csvError})`);
 
 close_vault();
 if (failed) { console.error("SMOKE FAILED"); process.exit(1); }

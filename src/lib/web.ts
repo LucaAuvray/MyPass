@@ -164,6 +164,17 @@ function schedulePush(): void {
   void queuedPush().catch(markFailed);
 }
 
+/** The PWA's "save as": a browser download of in-memory content. */
+function downloadFile(content: string, fileName: string, type: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  a.click();
+  // Revoked later: iOS Safari drops the download if the URL dies right away.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
 /** Cycle complet : pull + merge, puis push si des mutations locales attendent. */
 async function syncNow(): Promise<SyncStatus> {
   const wasm = await loadWasm();
@@ -345,6 +356,22 @@ export function createWebInvoke(): TauriInvokeFn {
         return false as T;
       case "get_ssh_agent_status":
         return { enabled: false, listening: false, serviceRunning: false } as T;
+
+      case "parse_import":
+        return JSON.parse(wasm.parse_import(String(args?.content ?? ""))) as T;
+
+      case "import_entries": {
+        const result = JSON.parse(wasm.import_entries(JSON.stringify(args?.entries ?? [])));
+        schedulePush();
+        return result as T;
+      }
+
+      case "export_entries": {
+        const format = String(args?.format);
+        const content = wasm.export_entries(format, JSON.stringify(args?.uuids ?? []));
+        downloadFile(content, String(args?.fileName), format === "csv" ? "text/csv" : "application/json");
+        return { saved: true } as T;
+      }
 
       default:
         throw new Error(`Commande indisponible en mode web: ${cmd}`);
