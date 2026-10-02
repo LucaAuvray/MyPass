@@ -12,6 +12,12 @@ export interface DatabaseMeta {
   historyMaxSize: number;
 }
 
+/** Where the desktop keeps this PC's single vault (decided by Rust). */
+export interface VaultLocation {
+  path: string;
+  exists: boolean;
+}
+
 export interface DatabaseInfo {
   filePath: string;
   meta: DatabaseMeta;

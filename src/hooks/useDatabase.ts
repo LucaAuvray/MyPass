@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { tauriCommand } from "@/lib/tauri";
+import { isWebMode, tauriCommand } from "@/lib/tauri";
 import { useAppStore } from "@/stores/appStore";
 import i18n from "@/i18n/config";
-import type { DatabaseInfo } from "@/types/database";
+import type { DatabaseInfo, VaultLocation } from "@/types/database";
 
 const DB_INFO_KEY = ["database", "info"];
+const DB_LOCATION_KEY = ["database", "location"];
 
 export function useDatabase() {
   const queryClient = useQueryClient();
@@ -20,27 +21,34 @@ export function useDatabase() {
     enabled: !isLocked,
   });
 
+  // Desktop only: in web mode the vault lives on the server.
+  const vaultLocation = useQuery({
+    queryKey: DB_LOCATION_KEY,
+    queryFn: () => tauriCommand<VaultLocation>("get_vault_location"),
+    enabled: !isWebMode(),
+  });
+
+  const onOpened = (data: DatabaseInfo) => {
+    queryClient.setQueryData(DB_INFO_KEY, data);
+    unlock();
+  };
+
   const openMutation = useMutation({
-    mutationFn: (params: { path: string; password: string; keyfilePath?: string }) =>
+    mutationFn: (params: { password: string; keyfilePath?: string }) =>
       tauriCommand<DatabaseInfo>("open_database", params),
-    onSuccess: (data) => {
-      queryClient.setQueryData(DB_INFO_KEY, data);
-      unlock();
-    },
+    onSuccess: onOpened,
   });
 
   const createMutation = useMutation({
-    mutationFn: (params: {
-      path: string;
-      password: string;
-      name: string;
-      encryption?: string;
-      keyfilePath?: string;
-    }) => tauriCommand<DatabaseInfo>("create_database", params),
-    onSuccess: (data) => {
-      queryClient.setQueryData(DB_INFO_KEY, data);
-      unlock();
-    },
+    mutationFn: (params: { password: string; name: string; encryption?: string; keyfilePath?: string }) =>
+      tauriCommand<DatabaseInfo>("create_database", params),
+    onSuccess: onOpened,
+  });
+
+  const fetchMutation = useMutation({
+    mutationFn: (params: { serverUrl: string; token: string; password: string }) =>
+      tauriCommand<DatabaseInfo>("fetch_vault_from_server", params),
+    onSuccess: onOpened,
   });
 
   const saveMutation = useMutation({
@@ -63,14 +71,18 @@ export function useDatabase() {
 
   return {
     dbInfo,
+    vaultLocation,
     openDatabase: openMutation.mutateAsync,
     createDatabase: createMutation.mutateAsync,
+    fetchFromServer: fetchMutation.mutateAsync,
     saveDatabase: saveMutation.mutateAsync,
     lockDatabase: lockMutation.mutateAsync,
     isOpening: openMutation.isPending,
     isCreating: createMutation.isPending,
+    isFetching: fetchMutation.isPending,
     isSaving: saveMutation.isPending,
     openError: openMutation.error?.message,
     createError: createMutation.error?.message,
+    fetchError: fetchMutation.error?.message,
   };
 }

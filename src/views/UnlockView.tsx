@@ -14,7 +14,6 @@ export default function UnlockView() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [mode, setMode] = useState<"unlock" | "create">("unlock");
-  const dbPath = "mypass-vault.kdbx";
   const [dbName, setDbName] = useState("");
   const web = isWebMode();
   const [token, setToken] = useState("");
@@ -31,7 +30,7 @@ export default function UnlockView() {
     if (web && token) setWebToken(token);
     if (!password) return;
     if (mode === "unlock") {
-      await openDatabase({ path: dbPath, password });
+      await openDatabase({ password });
       void syncNowAndRefresh(queryClient).catch(() => {});
     }
   };
@@ -40,7 +39,7 @@ export default function UnlockView() {
     e.preventDefault();
     if (web && token) setWebToken(token);
     if (!password || !dbName) return;
-    await createDatabase({ path: dbPath, password, name: dbName, encryption: "aes256" });
+    await createDatabase({ password, name: dbName, encryption: "aes256" });
     void syncNowAndRefresh(queryClient).catch(() => {});
   };
 

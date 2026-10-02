@@ -79,6 +79,7 @@ async function getInvoke(): Promise<TauriInvokeFn> {
 
 const mockStore = {
   isOpen: false,
+  vaultExists: false,
   entries: [] as Entry[],
   groups: [] as Group[],
   browserIntegrationEnabled: false,
@@ -104,9 +105,14 @@ function createMockInvoke(): TauriInvokeFn {
           modified: new Date().toISOString(),
         } as T;
 
+      case "get_vault_location":
+        return { path: "mock-vault.kdbx", exists: mockStore.vaultExists } as T;
+
       case "create_database":
       case "open_database":
+      case "fetch_vault_from_server":
         mockStore.isOpen = true;
+        mockStore.vaultExists = true;
         // Mock some entries for demo
         if (mockStore.entries.length === 0) {
           mockStore.entries = [
@@ -460,5 +466,11 @@ function parseCsvLine(line: string): string[] {
 
 export async function tauriCommand<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   const invoke = await getInvoke();
-  return invoke<T>(command, args);
+  try {
+    return await invoke<T>(command, args);
+  } catch (e) {
+    // Tauri rejects with the command's raw error (a string): give every
+    // caller a real Error so `.message` works on desktop as in web mode.
+    throw e instanceof Error ? e : new Error(String(e));
+  }
 }
