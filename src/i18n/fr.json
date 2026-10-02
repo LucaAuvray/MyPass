@@ -39,7 +39,8 @@
       "SERVER_UNREACHABLE": "Serveur injoignable — vérifiez l'URL et votre connexion",
       "TOKEN_REFUSED": "Token du serveur refusé",
       "NO_REMOTE_VAULT": "Aucun coffre à cette adresse — vérifiez l'URL",
-      "SERVER_ERROR": "Réponse inattendue du serveur"
+      "SERVER_ERROR": "Réponse inattendue du serveur",
+      "NO_BACKEND": "Backend MyPass introuvable — réinstallez l'application"
     }
   },
   "nav": {

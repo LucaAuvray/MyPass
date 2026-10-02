@@ -39,7 +39,8 @@
       "SERVER_UNREACHABLE": "Server unreachable — check the URL and your connection",
       "TOKEN_REFUSED": "Server token refused",
       "NO_REMOTE_VAULT": "No vault at this address — check the URL",
-      "SERVER_ERROR": "Unexpected server response"
+      "SERVER_ERROR": "Unexpected server response",
+      "NO_BACKEND": "MyPass backend not found — reinstall the app"
     }
   },
   "nav": {

@@ -53,8 +53,3 @@ export async function generatePassphrase(config: PassphraseConfig): Promise<stri
 export async function evaluateStrength(password: string): Promise<StrengthResult> {
   return tauriCommand<StrengthResult>("evaluate_strength", { password });
 }
-
-/** Check if a password appears in known breaches (HIBP k-anonymity) */
-export async function checkHibp(prefix: string): Promise<string[]> {
-  return tauriCommand<string[]>("check_hibp", { prefix });
-}
