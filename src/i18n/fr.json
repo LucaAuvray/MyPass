@@ -24,7 +24,23 @@
     "vaultName": "Mon coffre",
     "switchToCreate": "Créer un nouveau coffre",
     "switchToUnlock": "Ouvrir un coffre existant",
-    "serverToken": "Token du serveur"
+    "serverToken": "Token du serveur",
+    "noVaultTitle": "Aucun coffre sur ce PC",
+    "fetchFromServer": "Récupérer mon coffre depuis le serveur",
+    "fetchTitle": "Récupérez votre coffre depuis votre serveur de synchronisation",
+    "fetch": "Récupérer et déverrouiller",
+    "serverUrl": "URL du serveur",
+    "back": "Retour",
+    "errors": {
+      "NO_VAULT": "Aucun coffre trouvé sur ce PC",
+      "VAULT_EXISTS": "Un coffre existe déjà sur ce PC",
+      "NOT_A_VAULT": "Le serveur n'a pas renvoyé de coffre KeePass — vérifiez l'URL",
+      "WRONG_PASSWORD": "Mot de passe maître incorrect",
+      "SERVER_UNREACHABLE": "Serveur injoignable — vérifiez l'URL et votre connexion",
+      "TOKEN_REFUSED": "Token du serveur refusé",
+      "NO_REMOTE_VAULT": "Aucun coffre sur le serveur",
+      "SERVER_ERROR": "Réponse inattendue du serveur"
+    }
   },
   "nav": {
     "allItems": "Tous les éléments",

@@ -24,7 +24,23 @@
     "vaultName": "My Vault",
     "switchToCreate": "Create a new vault",
     "switchToUnlock": "Open existing vault",
-    "serverToken": "Server token"
+    "serverToken": "Server token",
+    "noVaultTitle": "No vault on this PC yet",
+    "fetchFromServer": "Get my vault from the server",
+    "fetchTitle": "Get your vault from your sync server",
+    "fetch": "Download and unlock",
+    "serverUrl": "Server URL",
+    "back": "Back",
+    "errors": {
+      "NO_VAULT": "No vault found on this PC",
+      "VAULT_EXISTS": "A vault already exists on this PC",
+      "NOT_A_VAULT": "The server did not return a KeePass vault — check the URL",
+      "WRONG_PASSWORD": "Wrong master password",
+      "SERVER_UNREACHABLE": "Server unreachable — check the URL and your connection",
+      "TOKEN_REFUSED": "Server token refused",
+      "NO_REMOTE_VAULT": "No vault on the server yet",
+      "SERVER_ERROR": "Unexpected server response"
+    }
   },
   "nav": {
     "allItems": "All Items",
