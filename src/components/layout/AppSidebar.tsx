@@ -163,8 +163,8 @@ export function AppSidebar({ className, groups = [], onNavigate }: AppSidebarPro
         {sidebarCollapsed && (
           <nav className="flex flex-1 flex-col items-center gap-3 pt-4">
             <CollapsedIcon icon={Plus} label={t("nav.newPassword")} onClick={() => setShowNewEntry(true)} />
-            <CollapsedIcon icon={FolderOpen} label={t("nav.allItems")} />
-            <CollapsedIcon icon={Shield} label={t("nav.security")} />
+            <CollapsedIcon icon={FolderOpen} label={t("nav.allItems")} onClick={() => { navigate("/"); setKindFilter(null); selectEntry(null); }} />
+            <CollapsedIcon icon={Shield} label={t("nav.security")} onClick={() => navigate("/security")} />
             <LanguageSwitcher />
             <div className="mt-auto">
               <CollapsedIcon icon={Lock} label={t("nav.lock")} onClick={lock} />

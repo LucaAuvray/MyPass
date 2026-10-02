@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,11 @@ function ActionItem({ icon, title, description }: { icon: React.ReactNode; title
 }
 function PasswordList({ entries, showStrength }: { entries: { uuid: string; title: string; username: string; strength: ReturnType<typeof estimateStrength> }[]; showStrength?: boolean }) {
   const { t } = useTranslation();
-  return <Card><CardContent className="divide-y divide-border p-0">{entries.map((e) => <div key={e.uuid} className="flex items-center justify-between px-4 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{e.title}</p><p className="truncate text-xs text-muted-foreground">{e.username}</p></div>{showStrength && <StrengthBadge score={e.strength.score} label={e.strength.label} />}<Button variant="ghost" size="sm" className="ml-2 h-7 text-xs">{t("common.update")}</Button></div>)}</CardContent></Card>;
+  const navigate = useNavigate();
+  const selectEntry = useEntriesStore((s) => s.selectEntry);
+  const setKindFilter = useEntriesStore((s) => s.setKindFilter);
+  // setKindFilter clears the selection, so it runs before selectEntry.
+  const open = (uuid: string) => { setKindFilter(null); selectEntry(uuid); navigate("/"); };
+  return <Card><CardContent className="divide-y divide-border p-0">{entries.map((e) => <div key={e.uuid} className="flex items-center justify-between px-4 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{e.title}</p><p className="truncate text-xs text-muted-foreground">{e.username}</p></div>{showStrength && <StrengthBadge score={e.strength.score} label={e.strength.label} />}<Button variant="ghost" size="sm" className="ml-2 h-7 text-xs" onClick={() => open(e.uuid)}>{t("common.update")}</Button></div>)}</CardContent></Card>;
 }
 function findReused<T extends { password: string; uuid: string }>(entries: T[]): T[] { const s = new Map<string, string>(); const r = new Map<string, boolean>(); for (const e of entries) { if (!e.password || e.password.length < 4) continue; if (s.has(e.password)) r.set(e.password, true); else s.set(e.password, e.uuid); } return entries.filter((e) => r.has(e.password)); }
