@@ -137,6 +137,24 @@ l'app avec un certificat reconnu (voir sous-projet 7).
 **Fini quand :** le `.msi` est installé sur les deux PC ; une entrée créée sur le fixe apparaît
 sur le portable et le téléphone en ≤ 60 s ; un mauvais mot de passe affiche une erreur.
 
+**Résultat (2026-10-02) :** livré sur la branche `chantier-restant` (plan
+`docs/superpowers/plans/2026-10-02-desktop-two-pcs.md`, revue indépendante + corrections).
+E2E validé sur ce PC + téléphone : récupération du vrai coffre (octets identiques à `vault.v7`),
+erreurs jeton / mot de passe, création sur PC → téléphone (v8) et suppression téléphone → PC (v9)
+sans clic. **Reste : installer et récupérer le coffre sur le deuxième PC.**
+Découvertes en route :
+- Le jeton serveur était perdu : rotation faite (ancien hash dans
+  `/var/lib/mypass/token.hash.bak-2026-10-02`). Procédure : renommer `token.hash`, `systemctl
+  restart mypass-server`, lire le nouveau jeton dans `journalctl -u mypass-server` (en root).
+- Le service worker PWA était aussi inclus dans la build desktop : une ancienne install le gardait
+  dans `%LOCALAPPDATA%\com.mypass.app\EBWebView\Default\Service Worker` et servait l'interface de
+  juillet (avec le mock). Les builds desktop livrent maintenant un `sw.js` auto-destructeur ; sur
+  ce PC, il a fallu supprimer ce dossier à la main (app fermée).
+- Le `.msi` servi sous `/download/` est à jour ; celui de juillet est dans
+  `/root/MyPass_0.1.0_x64_en-US.msi.bak-2026-10-02`.
+- Mineurs reportés : échec d'écriture de `sync.json` après récupération → écran bloqué jusqu'au
+  redémarrage ; `SERVER_ERROR` sans code HTTP ; ancienne erreur réaffichée après « Retour ».
+
 ## 2 — Retrait du factice et du code mort
 
 **Objectif :** plus aucune donnée inventée ni bouton inerte dans l'app réelle.
@@ -279,7 +297,7 @@ redémarre en 0.1.1.
 | # | Sous-projet | Spec | Plan | Fait |
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
-| 1 | Desktop sur 2 PC | [x] | [ ] | [ ] |
+| 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
 | 2 | Retrait du factice | [ ] | [ ] | [ ] |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
