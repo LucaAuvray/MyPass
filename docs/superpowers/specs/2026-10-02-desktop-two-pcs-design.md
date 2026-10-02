@@ -83,6 +83,23 @@ config. Le front enchaîne ensuite comme après un déverrouillage (`unlock()` +
 `new Error(String(e))`. Un seul point de passage : tous les appelants (déverrouillage, export,
 sync…) reçoivent une `Error` avec un `message`. Le mode web lève déjà des `Error`, inchangé.
 
+**Codes d'erreur** (convention existante, cf. `PASSPHRASE_REQUIRED` dans `ssh/keys.rs`) : les
+commandes de coffre renvoient un code stable que l'écran de déverrouillage traduit via
+`unlock.errors.<CODE>` (EN + FR), et affichent le message brut pour tout autre texte.
+
+| Code | Cas |
+|---|---|
+| `NO_VAULT` | `open_database` : aucun fichier à l'emplacement du coffre |
+| `VAULT_EXISTS` | création ou récupération alors qu'un coffre existe déjà |
+| `NOT_A_VAULT` | octets sans signature KDBX (ex. page HTML d'une mauvaise URL) |
+| `WRONG_PASSWORD` | signature KDBX valide mais déchiffrement en échec |
+| `SERVER_UNREACHABLE` | erreur réseau / délai dépassé (30 s) |
+| `TOKEN_REFUSED` | HTTP 401 |
+| `NO_REMOTE_VAULT` | HTTP 404 |
+| `SERVER_ERROR` | tout autre statut HTTP ≠ 200 |
+
+Les messages des étapes 3-4 de la section 3 correspondent respectivement à ces codes.
+
 ### 5. Écran de déverrouillage (desktop)
 
 Au montage, `get_vault_location` détermine le mode :
