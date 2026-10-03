@@ -303,6 +303,41 @@ export function createWebInvoke(): TauriInvokeFn {
         return dup as T;
       }
 
+      // --- dossiers (parité IPC : JSON wasm tel quel) ---
+      case "get_groups":
+        return JSON.parse(wasm.get_groups()) as T;
+
+      case "create_group": {
+        const created = JSON.parse(
+          wasm.create_group(String(args?.name ?? ""), (args?.parentUuid as string) ?? null),
+        );
+        schedulePush();
+        return created as T;
+      }
+
+      case "update_group": {
+        const updated = JSON.parse(
+          wasm.update_group(
+            String(args?.uuid),
+            (args?.name as string) ?? null,
+            (args?.iconId as string) ?? null,
+            (args?.isExpanded as boolean) ?? null,
+          ),
+        );
+        schedulePush();
+        return updated as T;
+      }
+
+      case "delete_group":
+        wasm.delete_group(String(args?.uuid));
+        schedulePush();
+        return undefined as T;
+
+      case "move_entry":
+        wasm.move_entry(String(args?.entryUuid), String(args?.groupUuid));
+        schedulePush();
+        return undefined as T;
+
       // --- générateur / TOTP (purs) ---
       case "generate_password":
         return wasm.generate_password(JSON.stringify(args?.config ?? {})) as T;

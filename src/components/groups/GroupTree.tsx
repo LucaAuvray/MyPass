@@ -79,7 +79,7 @@ function GroupTreeItem({
   const [expanded, setExpanded] = useState(group.isExpanded);
   const hasChildren = group.children && group.children.length > 0;
   const isSelected = selectedGroupId === group.uuid;
-  const entryCount = group.entries ? group.entries.length : 0;
+  const entryCount = group.entryCount;
 
   return (
     <div>

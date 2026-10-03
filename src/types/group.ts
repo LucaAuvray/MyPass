@@ -1,18 +1,12 @@
+/** A folder as `get_groups` returns it — mirrors mypass-core's GroupInfo. */
 export interface Group {
   uuid: string;
   name: string;
-  parent?: string;
-  icon: number;
+  icon: string | null;
   children: Group[];
-  entries: string[];
+  /** Entries of this folder and of all its subfolders. */
+  entryCount: number;
   isExpanded: boolean;
-  created: string;
-  modified: string;
-  notes?: string;
-  browserSettings?: GroupBrowserSettings;
-}
-
-export interface GroupBrowserSettings {
-  excludeFromBrowser: boolean;
-  allowAutoType: boolean;
+  created: string | null;
+  modified: string | null;
 }

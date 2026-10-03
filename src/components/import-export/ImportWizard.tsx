@@ -84,6 +84,7 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
       setIgnored(parsedCountRef.current - resolution.resolvedEntries.length + res.skipped);
       setStep("done");
       queryClient.invalidateQueries({ queryKey: ["entries"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] }); // the import creates folders
     } catch (err: unknown) {
       setError(describe(err, "import.importFailed"));
       setStep("pick");

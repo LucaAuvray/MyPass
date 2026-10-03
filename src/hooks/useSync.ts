@@ -21,5 +21,6 @@ export function useSyncStatus() {
 export async function syncNowAndRefresh(qc: QueryClient): Promise<SyncStatus> {
   const status = await tauriCommand<SyncStatus>("sync_now");
   await qc.invalidateQueries({ queryKey: ["entries"] });
+  await qc.invalidateQueries({ queryKey: ["groups"] });
   return status;
 }

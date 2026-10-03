@@ -6,12 +6,39 @@
 import type { Entry } from "@/stores/entriesStore";
 import type { Group } from "@/types/group";
 import type { TauriInvokeFn } from "./tauri";
+import { findGroup } from "./groups";
+
+const folder = (uuid: string, name: string, children: Group[] = []): Group => ({
+  uuid, name, icon: null, children, entryCount: 0, isExpanded: true, created: null, modified: null,
+});
+
+/** A copy of the tree with entryCount recomputed from the mock entries. */
+function countedTree(g: Group): Group {
+  const children = g.children.map(countedTree);
+  const own = mockStore.entries.filter((e) => e.group_uuid === g.uuid).length;
+  return { ...g, children, entryCount: own + children.reduce((n, c) => n + c.entryCount, 0) };
+}
+
+function parentOf(g: Group, uuid: string): Group | null {
+  if (g.children.some((c) => c.uuid === uuid)) return g;
+  for (const c of g.children) {
+    const p = parentOf(c, uuid);
+    if (p) return p;
+  }
+  return null;
+}
+
+function mockName(name: unknown): string {
+  const n = String(name ?? "").trim();
+  if (!n) throw new Error("GROUP_NAME_REQUIRED");
+  return n;
+}
 
 const mockStore = {
   isOpen: false,
   vaultExists: false,
   entries: [] as Entry[],
-  groups: [] as Group[],
+  root: folder("root", "Root", [folder("mock-g1", "Perso")]),
   browserIntegrationEnabled: false,
   sshAgentEnabled: false,
 };
@@ -46,10 +73,10 @@ export function createMockInvoke(): TauriInvokeFn {
         // Mock some entries for demo
         if (mockStore.entries.length === 0) {
           mockStore.entries = [
-            { uuid: "mock-1", group: "root", title: "Google", username: "user@gmail.com", url: "https://google.com", password: "mock-pass-1", notes: "", icon: 0, tags: ["email"], customFields: {}, totp: "otpauth://totp/Google?secret=JBSWY3DPEHPK3PXP", created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-2", group: "root", title: "GitHub", username: "dev", url: "https://github.com", password: "mock-pass-2", notes: "Code repository", icon: 0, tags: ["dev"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-3", group: "root", title: "Twitter", username: "@handle", url: "https://twitter.com", password: "mock-pass-3", notes: "", icon: 0, tags: ["social"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-4", group: "root", title: "Amazon", username: "user@example.com", url: "https://amazon.com", password: "weak", notes: "Shopping", icon: 0, tags: ["shopping"], customFields: {}, totp: "", created: "2024-01-15T00:00:00Z", modified: "2024-01-15T00:00:00Z" },
+            { uuid: "mock-1", group_uuid: "mock-g1", title: "Google", username: "user@gmail.com", url: "https://google.com", password: "mock-pass-1", notes: "", icon: 0, tags: ["email"], customFields: {}, totp: "otpauth://totp/Google?secret=JBSWY3DPEHPK3PXP", created: new Date().toISOString(), modified: new Date().toISOString() },
+            { uuid: "mock-2", group_uuid: "mock-g1", title: "GitHub", username: "dev", url: "https://github.com", password: "mock-pass-2", notes: "Code repository", icon: 0, tags: ["dev"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
+            { uuid: "mock-3", group_uuid: "root", title: "Twitter", username: "@handle", url: "https://twitter.com", password: "mock-pass-3", notes: "", icon: 0, tags: ["social"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
+            { uuid: "mock-4", group_uuid: "root", title: "Amazon", username: "user@example.com", url: "https://amazon.com", password: "weak", notes: "Shopping", icon: 0, tags: ["shopping"], customFields: {}, totp: "", created: "2024-01-15T00:00:00Z", modified: "2024-01-15T00:00:00Z" },
           ];
         }
         return {
@@ -81,7 +108,7 @@ export function createMockInvoke(): TauriInvokeFn {
         const entry = args?.entry as Record<string, unknown>;
         const newEntry: Entry = {
           uuid: `mock-${Date.now()}`,
-          group: (entry?.groupUuid as string) ?? "root",
+          group_uuid: (entry?.groupUuid as string) ?? "root",
           title: (entry?.title as string) ?? "New Entry",
           username: (entry?.username as string) ?? "",
           url: (entry?.url as string) ?? "",
@@ -130,9 +157,39 @@ export function createMockInvoke(): TauriInvokeFn {
       }
 
       case "get_groups":
-        return [
-          { uuid: "root", name: "Root", icon: 0, children: [], entries: [], isExpanded: true, created: "", modified: "" },
-        ] as T;
+        return [countedTree(mockStore.root)] as T;
+
+      case "create_group": {
+        const parent = findGroup(mockStore.root, (args?.parentUuid as string) ?? "root");
+        if (!parent) throw new Error("Group not found");
+        const created = folder(`mock-g-${Date.now()}`, mockName(args?.name));
+        parent.children.push(created);
+        return created as T;
+      }
+
+      case "update_group": {
+        const group = findGroup(mockStore.root, String(args?.uuid));
+        if (!group) throw new Error("Group not found");
+        if (args?.name !== undefined) group.name = mockName(args.name);
+        return group as T;
+      }
+
+      case "delete_group": {
+        // Like the core: entries and subfolders move up to the parent.
+        const uuid = String(args?.uuid);
+        const parent = parentOf(mockStore.root, uuid);
+        if (!parent) throw new Error("Group not found");
+        const [gone] = parent.children.splice(parent.children.findIndex((c) => c.uuid === uuid), 1);
+        parent.children.push(...gone.children);
+        for (const e of mockStore.entries) if (e.group_uuid === uuid) e.group_uuid = parent.uuid;
+        return undefined as T;
+      }
+
+      case "move_entry": {
+        const entry = mockStore.entries.find((e) => e.uuid === args?.entryUuid);
+        if (entry) entry.group_uuid = String(args?.groupUuid);
+        return undefined as T;
+      }
 
       case "generate_password":
         return "M0ck-P4ssw0rd-G3n3r4t3d!" as T;
@@ -221,7 +278,7 @@ export function createMockInvoke(): TauriInvokeFn {
         for (const entry of entries) {
           mockStore.entries.push({
             uuid: `mock-import-${Date.now()}-${imported}`,
-            group: "root",
+            group_uuid: "root",
             title: (entry.title as string) ?? "Untitled",
             username: (entry.username as string) ?? "",
             url: (entry.url as string) ?? "",

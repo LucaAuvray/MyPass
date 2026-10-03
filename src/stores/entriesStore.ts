@@ -3,7 +3,8 @@ import type { ItemKind } from "@/lib/items";
 
 export interface Entry {
   uuid: string;
-  group: string;
+  /** Uuid of the folder holding the entry (the root for unfiled entries). */
+  group_uuid: string;
   title: string;
   url: string;
   username: string;
@@ -23,6 +24,8 @@ interface EntriesState {
   selectedEntryId: string | null;
   searchQuery: string;
   kindFilter: ItemKind | null;
+  /** Selected folder; exclusive with kindFilter. */
+  groupFilter: string | null;
 
   setEntries: (entries: Entry[]) => void;
   addEntry: (entry: Entry) => void;
@@ -31,6 +34,7 @@ interface EntriesState {
   selectEntry: (uuid: string | null) => void;
   setSearchQuery: (query: string) => void;
   setKindFilter: (kind: ItemKind | null) => void;
+  setGroupFilter: (uuid: string | null) => void;
 }
 
 export const useEntriesStore = create<EntriesState>((set) => ({
@@ -38,6 +42,7 @@ export const useEntriesStore = create<EntriesState>((set) => ({
   selectedEntryId: null,
   searchQuery: "",
   kindFilter: null,
+  groupFilter: null,
 
   setEntries: (entries) => set({ entries }),
   addEntry: (entry) => set((s) => ({ entries: [...s.entries, entry] })),
@@ -49,5 +54,6 @@ export const useEntriesStore = create<EntriesState>((set) => ({
     set((s) => ({ entries: s.entries.filter((e) => e.uuid !== uuid) })),
   selectEntry: (uuid) => set({ selectedEntryId: uuid }),
   setSearchQuery: (query) => set({ searchQuery: query }),
-  setKindFilter: (kind) => set({ kindFilter: kind, selectedEntryId: null }),
+  setKindFilter: (kind) => set({ kindFilter: kind, groupFilter: null, selectedEntryId: null }),
+  setGroupFilter: (uuid) => set({ groupFilter: uuid, kindFilter: null, selectedEntryId: null }),
 }));
