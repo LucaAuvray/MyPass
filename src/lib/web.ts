@@ -313,18 +313,8 @@ export function createWebInvoke(): TauriInvokeFn {
       case "evaluate_strength":
         return JSON.parse(wasm.evaluate_strength(String(args?.password ?? ""))) as T;
 
-      case "generate_totp_code":
-        return JSON.parse(
-          wasm.generate_totp_code(
-            String(args?.secret ?? ""),
-            (args?.algorithm as string) ?? undefined,
-            (args?.digits as number) ?? undefined,
-            (args?.period as number) ?? undefined,
-          ),
-        ) as T;
-
-      case "generate_totp_secret":
-        return wasm.generate_totp_secret() as T;
+      case "get_totp_code":
+        return JSON.parse(wasm.get_totp_code(String(args?.uuid))) as T;
 
       // --- sync ---
       case "get_sync_config":

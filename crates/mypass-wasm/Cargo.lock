@@ -453,6 +453,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "totp-rs",
+ "url",
  "uuid",
 ]
 

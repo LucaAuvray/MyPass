@@ -46,10 +46,10 @@ export function createMockInvoke(): TauriInvokeFn {
         // Mock some entries for demo
         if (mockStore.entries.length === 0) {
           mockStore.entries = [
-            { uuid: "mock-1", group: "root", title: "Google", username: "user@gmail.com", url: "https://google.com", password: "mock-pass-1", notes: "", icon: 0, tags: ["email"], customFields: {}, created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-2", group: "root", title: "GitHub", username: "dev", url: "https://github.com", password: "mock-pass-2", notes: "Code repository", icon: 0, tags: ["dev"], customFields: {}, created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-3", group: "root", title: "Twitter", username: "@handle", url: "https://twitter.com", password: "mock-pass-3", notes: "", icon: 0, tags: ["social"], customFields: {}, created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-4", group: "root", title: "Amazon", username: "user@example.com", url: "https://amazon.com", password: "weak", notes: "Shopping", icon: 0, tags: ["shopping"], customFields: {}, created: "2024-01-15T00:00:00Z", modified: "2024-01-15T00:00:00Z" },
+            { uuid: "mock-1", group: "root", title: "Google", username: "user@gmail.com", url: "https://google.com", password: "mock-pass-1", notes: "", icon: 0, tags: ["email"], customFields: {}, totp: "otpauth://totp/Google?secret=JBSWY3DPEHPK3PXP", created: new Date().toISOString(), modified: new Date().toISOString() },
+            { uuid: "mock-2", group: "root", title: "GitHub", username: "dev", url: "https://github.com", password: "mock-pass-2", notes: "Code repository", icon: 0, tags: ["dev"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
+            { uuid: "mock-3", group: "root", title: "Twitter", username: "@handle", url: "https://twitter.com", password: "mock-pass-3", notes: "", icon: 0, tags: ["social"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
+            { uuid: "mock-4", group: "root", title: "Amazon", username: "user@example.com", url: "https://amazon.com", password: "weak", notes: "Shopping", icon: 0, tags: ["shopping"], customFields: {}, totp: "", created: "2024-01-15T00:00:00Z", modified: "2024-01-15T00:00:00Z" },
           ];
         }
         return {
@@ -90,6 +90,7 @@ export function createMockInvoke(): TauriInvokeFn {
           icon: 0,
           tags: (entry?.tags as string[]) ?? [],
           customFields: (entry?.customFields as Record<string, string>) ?? {},
+          totp: (entry?.totp as string) ?? "",
           created: new Date().toISOString(),
           modified: new Date().toISOString(),
         };
@@ -149,11 +150,10 @@ export function createMockInvoke(): TauriInvokeFn {
           crackTimeDisplay: "10 years",
         } as T;
 
-      case "generate_totp_code":
-        return { code: "123456", secondsRemaining: 25 } as T;
-
-      case "generate_totp_secret":
-        return "JBSWY3DPEHPK3PXP" as T;
+      case "get_totp_code": {
+        const s = Math.floor(Date.now() / 1000);
+        return { code: "123456", period: 30, secondsRemaining: 30 - (s % 30) } as T;
+      }
 
       case "parse_ssh_key": {
         if (String(args?.content ?? "").includes("ENCRYPTED") && !args?.passphrase)
@@ -230,6 +230,7 @@ export function createMockInvoke(): TauriInvokeFn {
             icon: 0,
             tags: (entry.tags as string[]) ?? [],
             customFields: (entry.customFields as Record<string, string>) ?? {},
+            totp: (entry.totp as string) ?? "",
             created: new Date().toISOString(),
             modified: new Date().toISOString(),
           });

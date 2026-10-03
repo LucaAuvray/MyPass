@@ -63,8 +63,7 @@ pub fn run() {
             commands::generator::generate_passphrase,
             commands::generator::evaluate_strength,
             // TOTP
-            commands::totp::generate_totp_code,
-            commands::totp::generate_totp_secret,
+            commands::totp::get_totp_code,
             // Import/Export
             commands::import_export::parse_import,
             commands::import_export::import_entries,

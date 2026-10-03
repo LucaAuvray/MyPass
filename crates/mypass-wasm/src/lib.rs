@@ -238,24 +238,12 @@ pub fn evaluate_strength(password: &str) -> Result<String, String> {
     json(&mypass_core::generator::evaluate_strength(password.to_string())?)
 }
 
+/// Current 2FA code of an entry: `{code, period, secondsRemaining}`.
 #[wasm_bindgen]
-pub fn generate_totp_code(
-    secret: &str,
-    algorithm: Option<String>,
-    digits: Option<u32>,
-    period: Option<u32>,
-) -> Result<String, String> {
-    json(&mypass_core::totp::generate_totp_code(
-        secret.to_string(),
-        algorithm,
-        digits.map(|d| d as usize),
-        period,
-    )?)
-}
-
-#[wasm_bindgen]
-pub fn generate_totp_secret() -> Result<String, String> {
-    mypass_core::totp::generate_totp_secret()
+pub fn get_totp_code(uuid: &str) -> Result<String, String> {
+    with_kf(|kf| {
+        json(&mypass_core::ops::entries::get_totp_code(kf, uuid, mypass_core::time::unix_now())?)
+    })
 }
 
 #[cfg(test)]
@@ -423,12 +411,6 @@ mod tests {
         let strength: serde_json::Value =
             serde_json::from_str(&evaluate_strength(&pw).unwrap()).unwrap();
         assert!(strength["score"].is_number());
-
-        let secret = generate_totp_secret().unwrap();
-        let code: serde_json::Value =
-            serde_json::from_str(&generate_totp_code(&secret, None, None, None).unwrap())
-                .unwrap();
-        assert_eq!(code["code"].as_str().unwrap().len(), 6);
     }
 
     #[test]

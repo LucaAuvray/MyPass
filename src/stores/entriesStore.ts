@@ -12,6 +12,8 @@ export interface Entry {
   icon: number | string;
   tags: string[];
   customFields: Record<string, string>;
+  /** 2FA `otpauth://` link, or "". */
+  totp: string;
   created: string;
   modified: string;
 }

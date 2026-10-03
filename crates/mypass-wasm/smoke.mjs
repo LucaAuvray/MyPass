@@ -6,7 +6,7 @@ import { readFileSync } from "node:fs";
 import init, {
   create_vault, open_vault, close_vault, is_unlocked, save_vault,
   create_entry, get_entries, merge_remote,
-  generate_totp_secret, generate_totp_code, generate_password,
+  get_totp_code, generate_password,
   export_entries, parse_import, import_entries,
 } from "./pkg/mypass_wasm.js";
 
@@ -39,8 +39,11 @@ const outcome = JSON.parse(merge_remote(saved));
 check(outcome.changed === false, "fusion no-op avec sa propre sauvegarde");
 
 // Outils (RNG + horloge TOTP)
-const code = JSON.parse(generate_totp_code(generate_totp_secret(), undefined, undefined, undefined));
-check(/^\d{6}$/.test(code.code), `code TOTP généré (${code.code})`);
+const twoFa = JSON.parse(create_entry(JSON.stringify({ title: "2FA", username: "u", password: "p", totp: "JBSWY3DPEHPK3PXP" })));
+const totp = JSON.parse(get_totp_code(twoFa.uuid));
+check(/^\d{6}$/.test(totp.code) && totp.period === 30 && totp.secondsRemaining >= 1 && totp.secondsRemaining <= 30,
+  `code TOTP d'une entrée (${totp.code}, ${totp.secondsRemaining}s)`);
+check(twoFa.totp === "otpauth://totp/2FA?secret=JBSWY3DPEHPK3PXP", "lien 2FA renvoyé par create_entry");
 check(
   generate_password(JSON.stringify({ length: 20, uppercase: true, lowercase: true, digits: true, symbols: true })).length === 20,
   "générateur de mot de passe",

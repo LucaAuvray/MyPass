@@ -14,11 +14,9 @@ argon2 = "0.5"
 sha2 = "0.10"
 rand = "0.8"
 quick-xml = { version = "0.37", features = ["serialize"] }
-# otpauth: TOTP::new() takes issuer/account_name with this feature (required by
-# our call signature). gen_secret is NOT enabled: it pulls rand 0.9 -> getrandom
-# 0.3, which needs a wasm32 backend cfg this crate doesn't set up, and we don't
-# use totp-rs's own secret generation (generate_totp_secret hand-rolls base32
-# using mypass-core's own rand 0.8 dependency instead).
+# otpauth: TOTP::from_url_unchecked reads the otpauth:// links stored in `otp`.
+# gen_secret is NOT enabled: it pulls rand 0.9 -> getrandom 0.3, which needs a
+# wasm32 backend cfg this crate doesn't set up (secrets come from the sites anyway).
 totp-rs = { version = "5", features = ["otpauth"] }
 # Already in the tree through totp-rs (otpauth): cleans pasted 2FA links.
 url = "2"
