@@ -13,6 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useEntries } from "@/hooks/useEntries";
+import { useEntriesStore } from "@/stores/entriesStore";
 import { tauriCommand } from "@/lib/tauri";
 import { MYPASS_TYPE_KEY } from "@/lib/items";
 import { FileKey, Sparkles } from "lucide-react";
@@ -33,6 +34,7 @@ interface SshKeyFormProps {
 export function SshKeyForm({ open, onOpenChange }: SshKeyFormProps) {
   const { t } = useTranslation();
   const { createEntry } = useEntries();
+  const groupFilter = useEntriesStore((s) => s.groupFilter);
   const fileRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
@@ -105,6 +107,7 @@ export function SshKeyForm({ open, onOpenChange }: SshKeyFormProps) {
         username: "",
         password: "",
         notes,
+        groupUuid: groupFilter ?? undefined, // created in the selected folder
         customFields: {
           [MYPASS_TYPE_KEY]: "ssh_key",
           SSH_PrivateKey: key.privateKey,

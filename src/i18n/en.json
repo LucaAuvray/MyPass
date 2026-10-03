@@ -63,10 +63,22 @@
     "sync": "Sync"
   },
   "groups": {
-    "newGroup": "New Group",
-    "addSubgroup": "Add Subgroup",
+    "title": "Folders",
+    "newGroup": "New folder",
+    "addSubgroup": "Add subfolder",
     "rename": "Rename",
-    "delete": "Delete"
+    "renameTitle": "Rename folder",
+    "delete": "Delete",
+    "deleteTitle": "Delete folder “{{name}}”?",
+    "deleteDescription": "Its entries and subfolders will move up to the parent folder.",
+    "name": "Name",
+    "create": "Create",
+    "save": "Save",
+    "move": "Move",
+    "noFolder": "No folder",
+    "errors": {
+      "GROUP_NAME_REQUIRED": "A folder name is required"
+    }
   },
   "entries": {
     "empty": "No passwords yet",

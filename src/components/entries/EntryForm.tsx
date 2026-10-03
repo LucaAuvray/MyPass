@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { useEntries } from "@/hooks/useEntries";
+import { useEntriesStore } from "@/stores/entriesStore";
 import { RefreshCw } from "lucide-react";
 import { usePasswordGenerator } from "@/hooks/usePasswordGenerator";
 
@@ -34,7 +35,6 @@ const makeEntrySchema = (t: (key: string) => string) =>
     url: z.string().optional(),
     notes: z.string().optional(),
     tags: z.string().optional(),
-    groupUuid: z.string().optional(),
     totp: z.string().optional(),
   });
 
@@ -49,6 +49,7 @@ interface EntryFormProps {
 export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
   const { t } = useTranslation();
   const { createEntry, updateEntry } = useEntries();
+  const groupFilter = useEntriesStore((s) => s.groupFilter);
   const { generatePassword } = usePasswordGenerator();
   const isEditing = !!editEntry;
   const entrySchema = useMemo(() => makeEntrySchema(t), [t]);
@@ -108,7 +109,7 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
           url: data.url,
           notes: data.notes,
           tags: data.tags ? data.tags.split(",").map((t: string) => t.trim()) : [],
-          groupUuid: data.groupUuid,
+          groupUuid: groupFilter ?? undefined, // created in the selected folder
           totp: data.totp || undefined,
         });
       }

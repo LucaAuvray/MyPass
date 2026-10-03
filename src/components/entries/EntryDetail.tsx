@@ -19,7 +19,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Globe, User, Lock, KeyRound, Clock, Pencil, Trash2, ExternalLink, Eye, EyeOff, Contact, CreditCard, FileText, Terminal, ShieldCheck } from "lucide-react";
+import { Globe, User, Lock, KeyRound, Clock, Pencil, Trash2, ExternalLink, Eye, EyeOff, Contact, CreditCard, FileText, Terminal, ShieldCheck, Folder, FolderInput, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useGroups } from "@/hooks/useGroups";
+import { findGroup, flattenGroups } from "@/lib/groups";
 import { useTotpCode, formatTotp } from "@/hooks/useTotpCode";
 import { cn } from "@/lib/utils";
 import { itemKind, IDENTITY_FIELDS, CARD_FIELDS, DOCUMENT_FIELDS, SSH_FIELDS, SECRET_FIELDS } from "@/lib/items";
@@ -39,6 +47,7 @@ export function EntryDetail({ className }: EntryDetailProps) {
   const { revealed: showPassword, toggle: togglePassword } = useReveal();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const { root, moveEntry } = useGroups();
 
   const entry = entries.find((e) => e.uuid === selectedEntryId);
 
@@ -51,6 +60,9 @@ export function EntryDetail({ className }: EntryDetailProps) {
   }
 
   const kind = itemKind(entry);
+  const folder = root && entry.group_uuid !== root.uuid ? findGroup(root, entry.group_uuid) : null;
+  // "No folder" (the root) first, then every folder in tree order.
+  const destinations = root ? [{ uuid: root.uuid, name: t("groups.noFolder"), depth: 0 }, ...flattenGroups(root)] : [];
 
   const handleDelete = async () => {
     await deleteEntry(entry.uuid);
@@ -72,6 +84,12 @@ export function EntryDetail({ className }: EntryDetailProps) {
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-bold text-foreground">{entry.title}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">{kind === "login" ? entry.url : t(`items.${kind}`)}</p>
+          {folder && (
+            <p className="mt-0.5 flex items-center gap-1 text-xs text-muted-foreground">
+              <Folder className="size-3 shrink-0" />
+              <span className="truncate">{folder.name}</span>
+            </p>
+          )}
           {entry.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {entry.tags.map((tag) => (
@@ -83,6 +101,29 @@ export function EntryDetail({ className }: EntryDetailProps) {
           )}
         </div>
         <div className="flex gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button variant="ghost" size="icon" className="size-8" title={t("groups.move")} aria-label={t("groups.move")}>
+                  <FolderInput className="size-4" />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="max-h-80 w-56 overflow-y-auto">
+              {destinations.map((d) => (
+                <DropdownMenuItem
+                  key={d.uuid}
+                  style={{ paddingLeft: `${6 + d.depth * 12}px` }}
+                  onClick={() => {
+                    if (d.uuid !== entry.group_uuid) void moveEntry({ entryUuid: entry.uuid, groupUuid: d.uuid });
+                  }}
+                >
+                  <span className="truncate">{d.name}</span>
+                  {d.uuid === entry.group_uuid && <Check className="ml-auto size-3.5" />}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button variant="ghost" size="icon" className="size-8" onClick={() => setEditOpen(true)}>
             <Pencil className="size-4" />
           </Button>

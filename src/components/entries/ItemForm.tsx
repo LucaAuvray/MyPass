@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEntries } from "@/hooks/useEntries";
+import { useEntriesStore } from "@/stores/entriesStore";
 import {
   type ItemKind,
   IDENTITY_FIELDS,
@@ -51,6 +52,7 @@ const KIND_FIELDS: Record<Exclude<ItemKind, "login">, readonly string[]> = {
 export function ItemForm({ kind, open, onOpenChange, editEntry }: ItemFormProps) {
   const { t } = useTranslation();
   const { createEntry, updateEntry } = useEntries();
+  const groupFilter = useEntriesStore((s) => s.groupFilter);
   const isEditing = !!editEntry;
   const fields = KIND_FIELDS[kind];
 
@@ -79,6 +81,7 @@ export function ItemForm({ kind, open, onOpenChange, editEntry }: ItemFormProps)
         username: "",
         password: "",
         notes: data.notes,
+        groupUuid: groupFilter ?? undefined, // created in the selected folder
         customFields: Object.fromEntries(Object.entries(customFields).filter(([, v]) => v !== "")),
       });
     }

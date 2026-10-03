@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useEntriesStore } from "@/stores/entriesStore";
 import { itemKind } from "@/lib/items";
+import { findGroup, groupAndDescendants } from "@/lib/groups";
+import { useGroups } from "@/hooks/useGroups";
 import { EntryCard } from "./EntryCard";
 import { ItemForm } from "./ItemForm";
 import { SshKeyForm } from "./SshKeyForm";
@@ -28,11 +30,24 @@ export function EntryList({ onCreateClick }: EntryListProps) {
   const selectedEntryId = useEntriesStore((s) => s.selectedEntryId);
   const selectEntry = useEntriesStore((s) => s.selectEntry);
   const kindFilter = useEntriesStore((s) => s.kindFilter);
+  const groupFilter = useEntriesStore((s) => s.groupFilter);
+  const setGroupFilter = useEntriesStore((s) => s.setGroupFilter);
+  const { root } = useGroups();
   const [showItemForm, setShowItemForm] = useState(false);
 
-  const byKind = kindFilter
-    ? entries.filter((e) => itemKind(e) === kindFilter)
-    : entries;
+  // A folder deleted here or by a sync (or one of another vault) must not leave an empty list.
+  const folderMissing = !!groupFilter && !!root && !findGroup(root, groupFilter);
+  useEffect(() => {
+    if (folderMissing) setGroupFilter(null);
+  }, [folderMissing, setGroupFilter]);
+
+  // Folder and kind filters are exclusive (the store clears one when the other is set).
+  const inFolder = groupFilter && root ? groupAndDescendants(root, groupFilter) : null;
+  const byKind = inFolder
+    ? entries.filter((e) => inFolder.has(e.group_uuid))
+    : kindFilter
+      ? entries.filter((e) => itemKind(e) === kindFilter)
+      : entries;
 
   const filtered = searchQuery
     ? byKind.filter(

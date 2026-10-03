@@ -63,10 +63,22 @@
     "sync": "Synchronisation"
   },
   "groups": {
-    "newGroup": "Nouveau groupe",
-    "addSubgroup": "Ajouter un sous-groupe",
+    "title": "Dossiers",
+    "newGroup": "Nouveau dossier",
+    "addSubgroup": "Ajouter un sous-dossier",
     "rename": "Renommer",
-    "delete": "Supprimer"
+    "renameTitle": "Renommer le dossier",
+    "delete": "Supprimer",
+    "deleteTitle": "Supprimer le dossier « {{name}} » ?",
+    "deleteDescription": "Ses entrées et sous-dossiers remonteront dans le dossier parent.",
+    "name": "Nom",
+    "create": "Créer",
+    "save": "Enregistrer",
+    "move": "Déplacer",
+    "noFolder": "Aucun dossier",
+    "errors": {
+      "GROUP_NAME_REQUIRED": "Le nom du dossier est obligatoire"
+    }
   },
   "entries": {
     "empty": "Aucun mot de passe",

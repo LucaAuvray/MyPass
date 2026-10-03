@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useAppStore } from "@/stores/appStore";
 import { useDatabase } from "@/hooks/useDatabase";
 import { useEntriesStore } from "@/stores/entriesStore";
-import { GroupTree } from "@/components/groups/GroupTree";
+import { GroupsSection } from "@/components/groups/GroupsSection";
 import { SearchDialog } from "@/components/layout/SearchDialog";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { Lock, FolderOpen, Settings, Shield, KeyRound, Plus, Upload, Download, Search, Contact, CreditCard, FileText, Terminal, RefreshCw } from "lucide-react";
@@ -21,18 +21,16 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ImportWizard } from "@/components/import-export/ImportWizard";
 import { ExportDialog } from "@/components/import-export/ExportDialog";
-import type { Group } from "@/types/group";
 import type { ItemKind } from "@/lib/items";
 import logo from "@/assets/logo.png";
 
 interface AppSidebarProps {
   className?: string;
-  groups?: Group[];
   /** Appelé quand un item de navigation est cliqué (fermeture du drawer mobile) */
   onNavigate?: () => void;
 }
 
-export function AppSidebar({ className, groups = [], onNavigate }: AppSidebarProps) {
+export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +43,7 @@ export function AppSidebar({ className, groups = [], onNavigate }: AppSidebarPro
   const selectEntry = useEntriesStore((s) => s.selectEntry);
   const kindFilter = useEntriesStore((s) => s.kindFilter);
   const setKindFilter = useEntriesStore((s) => s.setKindFilter);
+  const groupFilter = useEntriesStore((s) => s.groupFilter);
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [newItemKind, setNewItemKind] = useState<Exclude<ItemKind, "login"> | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -111,30 +110,29 @@ export function AppSidebar({ className, groups = [], onNavigate }: AppSidebarPro
               </DropdownMenu>
             </div>
 
-            {/* Groups */}
-            <div className="mt-3 flex-1 overflow-y-auto px-2">
-              <GroupTree
-                groups={groups}
-                selectedGroupId={null}
-                onSelectGroup={() => {}}
-              />
+            {/* Folders and nav scroll together: on a short window the nav would
+                otherwise squeeze the folder tree to nothing. */}
+            <div className="mt-3 min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+              <div className="px-2 pb-2">
+                <GroupsSection onNavigate={onNavigate} />
+              </div>
+
+              <Separator className="mx-3" />
+
+              {/* Bottom nav — onClick délégué : tout item cliqué notifie onNavigate */}
+              <nav className="flex flex-col gap-0.5 p-2" onClick={onNavigate}>
+                <SidebarItem icon={FolderOpen} label={t("nav.allItems")} active={location.pathname === "/" && !kindFilter && !groupFilter} onClick={() => { navigate("/"); setKindFilter(null); selectEntry(null); }} />
+                <SidebarItem icon={Contact} label={t("nav.identities")} active={location.pathname === "/" && kindFilter === "identity"} onClick={() => { navigate("/"); setKindFilter("identity"); }} />
+                <SidebarItem icon={CreditCard} label={t("nav.cards")} active={location.pathname === "/" && kindFilter === "card"} onClick={() => { navigate("/"); setKindFilter("card"); }} />
+                <SidebarItem icon={FileText} label={t("nav.documents")} active={location.pathname === "/" && kindFilter === "document"} onClick={() => { navigate("/"); setKindFilter("document"); }} />
+                <SidebarItem icon={Terminal} label={t("nav.sshKeys")} active={location.pathname === "/" && kindFilter === "ssh_key"} onClick={() => { navigate("/"); setKindFilter("ssh_key"); }} />
+                <SidebarItem icon={Terminal} label={t("nav.sshAgent")} active={location.pathname === "/ssh-agent"} onClick={() => navigate("/ssh-agent")} />
+                <SidebarItem icon={Shield} label={t("nav.security")} active={location.pathname === "/security"} onClick={() => navigate("/security")} />
+                <SidebarItem icon={RefreshCw} label={t("nav.sync")} active={location.pathname === "/sync"} onClick={() => navigate("/sync")} />
+                <SidebarItem icon={Search} label={t("nav.search")} shortcut="⌘K" active={false} onClick={() => setSearchOpen(true)} />
+                <SidebarItem icon={Settings} label={t("nav.settings")} active={location.pathname === "/browser"} onClick={() => navigate("/browser")} />
+              </nav>
             </div>
-
-            <Separator className="mx-3" />
-
-            {/* Bottom nav — onClick délégué : tout item cliqué notifie onNavigate */}
-            <nav className="flex flex-col gap-0.5 p-2" onClick={onNavigate}>
-              <SidebarItem icon={FolderOpen} label={t("nav.allItems")} active={location.pathname === "/" && !kindFilter} onClick={() => { navigate("/"); setKindFilter(null); selectEntry(null); }} />
-              <SidebarItem icon={Contact} label={t("nav.identities")} active={location.pathname === "/" && kindFilter === "identity"} onClick={() => { navigate("/"); setKindFilter("identity"); }} />
-              <SidebarItem icon={CreditCard} label={t("nav.cards")} active={location.pathname === "/" && kindFilter === "card"} onClick={() => { navigate("/"); setKindFilter("card"); }} />
-              <SidebarItem icon={FileText} label={t("nav.documents")} active={location.pathname === "/" && kindFilter === "document"} onClick={() => { navigate("/"); setKindFilter("document"); }} />
-              <SidebarItem icon={Terminal} label={t("nav.sshKeys")} active={location.pathname === "/" && kindFilter === "ssh_key"} onClick={() => { navigate("/"); setKindFilter("ssh_key"); }} />
-              <SidebarItem icon={Terminal} label={t("nav.sshAgent")} active={location.pathname === "/ssh-agent"} onClick={() => navigate("/ssh-agent")} />
-              <SidebarItem icon={Shield} label={t("nav.security")} active={location.pathname === "/security"} onClick={() => navigate("/security")} />
-              <SidebarItem icon={RefreshCw} label={t("nav.sync")} active={location.pathname === "/sync"} onClick={() => navigate("/sync")} />
-              <SidebarItem icon={Search} label={t("nav.search")} shortcut="⌘K" active={false} onClick={() => setSearchOpen(true)} />
-              <SidebarItem icon={Settings} label={t("nav.settings")} active={location.pathname === "/browser"} onClick={() => navigate("/browser")} />
-            </nav>
 
             {/* Import / Export */}
             <div className="flex gap-1 p-2">

@@ -4,6 +4,8 @@ import { tauriCommand } from "@/lib/tauri";
 import { useEntriesStore, type Entry } from "@/stores/entriesStore";
 
 const ENTRIES_KEY = ["entries"] as const;
+// Folder counts change when an entry is added or removed.
+const GROUPS_KEY = ["groups"] as const;
 
 export function useEntries(groupUuid?: string) {
   const queryClient = useQueryClient();
@@ -37,6 +39,7 @@ export function useEntries(groupUuid?: string) {
     }) => tauriCommand<Entry>("create_entry", { entry: params }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENTRIES_KEY });
+      queryClient.invalidateQueries({ queryKey: GROUPS_KEY });
     },
   });
 
@@ -52,6 +55,7 @@ export function useEntries(groupUuid?: string) {
     mutationFn: (uuid: string) => tauriCommand<void>("delete_entry", { uuid }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENTRIES_KEY });
+      queryClient.invalidateQueries({ queryKey: GROUPS_KEY });
     },
   });
 
