@@ -74,6 +74,12 @@ pub fn create(kf: &mut KeePassFile, new: NewEntry) -> Result<EntryInfo, String> 
         &new.password,
         &new.url.unwrap_or_default(),
     );
+    if let Some(notes) = &new.notes {
+        set_string_field(&mut new_entry, "Notes", notes);
+    }
+    if let Some(tags) = new.tags.as_ref().filter(|t| !t.is_empty()) {
+        new_entry.tags = Some(tags.join(","));
+    }
 
     if let Some(fields) = &new.custom_fields {
         apply_custom_fields(&mut new_entry, fields);
@@ -509,6 +515,27 @@ mod tests {
         delete(&mut kf, &created.uuid).unwrap();
         assert_eq!(list(&kf, None).unwrap().len(), 1);
         assert_eq!(kf.root.deleted_objects.items.len(), 1);
+    }
+
+    #[test]
+    fn create_entry_keeps_notes_and_tags() {
+        let mut kf = xml::KeePassFile::new("Test Vault");
+        let created = create(
+            &mut kf,
+            NewEntry {
+                group_uuid: None,
+                title: "Site".to_string(),
+                username: "u".to_string(),
+                password: "p".to_string(),
+                url: None,
+                notes: Some("ligne 1\nligne 2".to_string()),
+                tags: Some(vec!["perso".to_string(), "web".to_string()]),
+                custom_fields: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(created.notes, "ligne 1\nligne 2");
+        assert_eq!(created.tags, vec!["perso", "web"]);
     }
 
     /// MyPass has no passkey feature, but a vault from KeePassXC may carry
