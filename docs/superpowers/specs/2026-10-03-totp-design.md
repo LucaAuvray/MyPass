@@ -38,7 +38,7 @@ un champ 2FA.
 |---|---|
 | Où se calcule le code | En Rust, à partir de l'uuid de l'entrée. Un seul lecteur de lien (`totp-rs`) pour l'UI, la PWA et l'extension. |
 | Saisie | Un champ texte « Clé 2FA » : clé base32 nue ou lien `otpauth://`. Pas de QR, pas de caméra, pas de migration Google Authenticator. |
-| Stockage | Format KeePassXC : champ `otp` protégé = lien `otpauth://`. L'ancien format KeePass2 (`TOTP Seed` + `TOTP Settings`) est lu, et converti en `otp` au premier enregistrement de l'entrée. |
+| Stockage | Format KeePassXC : champ `otp` protégé = lien `otpauth://`. L'ancien format KeePass2 (`TOTP Seed` + `TOTP Settings`) est lu, et converti en `otp` quand la clé 2FA est modifiée. |
 | Clé invalide | Refusée à l'enregistrement (`TOTP_INVALID`), jamais stockée. |
 | Affichage | Dans la fiche d'une entrée identifiant seulement (pas dans la liste). |
 | Commandes mortes | `generate_totp_code(secret…)`, `generate_totp_secret` et le base32 fait main sont supprimés : aucune UI ne s'en sert, et le secret vient toujours du site. |
@@ -73,7 +73,7 @@ un champ 2FA.
 - `EntryInfo` gagne `totp: String` = `entry_otp_uri(entry)` ou `""` (pour préremplir le
   formulaire). `has_totp` reste (utilisé par le dédoublonnage).
 - `NewEntry` et `UpdateEntry` gagnent `totp: Option<String>` :
-  - `None` → rien ne change ;
+  - `None`, ou le lien actuel renvoyé tel quel par le formulaire → rien ne change (une 2FA illisible, Steam ou KeeOtp, ne bloque pas les autres modifications et n'est pas réécrite) ;
   - `Some("")` (après trim) → suppression de `otp`, `TOTP Seed` et `TOTP Settings` ;
   - sinon → `totp::normalize(valeur, titre)`, vérifié par `code_at` (sinon erreur `TOTP_INVALID`
     et l'entrée n'est pas modifiée), écrit dans `otp` protégé ; `TOTP Seed` et `TOTP Settings`
@@ -155,6 +155,6 @@ nouveau warning, `npm run lint`, `npm run build`, `npm run build:web`, `npm run 
   de 2FA. Ajoutable plus tard si un vrai coffre en contient.
 - **Secret visible dans le formulaire** : la clé arrive au front pour la modification, comme le mot
   de passe aujourd'hui ; pas de nouvelle exposition.
-- **Conversion de l'ancien format** : enregistrer une entrée `TOTP Seed` la passe en `otp` ; un
+- **Conversion de l'ancien format** : changer la clé 2FA d'une entrée `TOTP Seed` la passe en `otp` ; un
   vieux KeePass2 sans support `otp` ne verrait plus la 2FA. Acceptable : le coffre est lu par
   MyPass et KeePassXC, qui lisent `otp`.

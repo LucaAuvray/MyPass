@@ -113,8 +113,14 @@ pub fn create(kf: &mut KeePassFile, new: NewEntry) -> Result<EntryInfo, String> 
 pub fn update(kf: &mut KeePassFile, uuid: &str, update: UpdateEntry) -> Result<EntryInfo, String> {
     let entry = find_entry_mut(&mut kf.root.group, uuid)?;
     // Validated before anything is touched: a refused key leaves the entry as it was.
+    // The link sent back untouched by the form counts as no change, so a 2FA we
+    // cannot read (Steam, KeeOtp…) neither blocks other edits nor gets rewritten.
     let title = update.title.clone().unwrap_or_else(|| entry.title().to_string());
-    let totp = update.totp.as_deref().map(|v| resolve_totp(v, &title)).transpose()?;
+    let current = crate::totp::entry_otp_uri(entry);
+    let totp = match update.totp.as_deref() {
+        Some(v) if current.as_deref() == Some(v.trim()) => None,
+        other => other.map(|v| resolve_totp(v, &title)).transpose()?,
+    };
 
     if let Some(title) = &update.title {
         set_string_field(entry, "Title", title);
@@ -718,5 +724,28 @@ mod tests {
         let mut kf = xml::KeePassFile::new("t");
         assert_eq!(create(&mut kf, new_site("!!!")).err().as_deref(), Some("TOTP_INVALID"));
         assert!(kf.root.group.entries.is_empty());
+    }
+
+    #[test]
+    fn untouched_unreadable_2fa_does_not_block_other_edits() {
+        let link = "otpauth://totp/GitHub:me?secret=JBSWY3DPEHPK3PXP&issuer=GitHub%20Inc";
+        let (mut kf, uuid) = site_with(&[("otp", link)]);
+        let mut upd = set_totp(Some(link));
+        upd.password = Some("new-pass".to_string());
+        update(&mut kf, &uuid, upd).unwrap();
+        assert_eq!(field(&kf, &uuid, "otp").unwrap().0, link);
+        assert_eq!(field(&kf, &uuid, "Password").unwrap().0, "new-pass");
+    }
+
+    #[test]
+    fn untouched_legacy_steam_2fa_is_kept() {
+        let (mut kf, uuid) = site_with(&[("TOTP Seed", "JBSWY3DPEHPK3PXP"), ("TOTP Settings", "30;S")]);
+        let prefilled = get(&kf, &uuid).unwrap().totp;
+        let mut upd = set_totp(Some(&prefilled));
+        upd.title = Some("Steam".to_string());
+        update(&mut kf, &uuid, upd).unwrap();
+        assert_eq!(field(&kf, &uuid, "TOTP Seed").unwrap().0, "JBSWY3DPEHPK3PXP");
+        assert_eq!(field(&kf, &uuid, "TOTP Settings").unwrap().0, "30;S");
+        assert_eq!(field(&kf, &uuid, "otp"), None);
     }
 }

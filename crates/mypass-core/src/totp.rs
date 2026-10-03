@@ -31,6 +31,8 @@ pub fn entry_otp_uri(entry: &Entry) -> Option<String> {
 /// anything that would not give a real code is `TOTP_INVALID`, never a panic.
 pub fn code_at(uri: &str, now: u64) -> Result<TotpCode, String> {
     let invalid = || "TOTP_INVALID".to_string();
+    // totp-rs unwraps the host: a host-less link ("otpauth:///x") would panic.
+    url::Url::parse(uri).ok().filter(|u| u.host_str().is_some()).ok_or_else(invalid)?;
     let totp = TOTP::from_url_unchecked(uri).map_err(|_| invalid())?;
     if totp.secret.is_empty() || !(6..=8).contains(&totp.digits) || totp.step == 0 {
         return Err(invalid());
@@ -54,7 +56,8 @@ pub fn normalize(value: &str, title: &str) -> String {
     if v.get(..10).is_some_and(|p| p.eq_ignore_ascii_case("otpauth://")) {
         return clean_link_secret(v).unwrap_or_else(|| v.to_string());
     }
-    format!("otpauth://totp/{}?secret={}", percent_encode(title), clean_secret(v))
+    // Encoded: a stray `&`, `#` or `?` must make the key invalid, not cut it.
+    format!("otpauth://totp/{}?secret={}", percent_encode(title), percent_encode(&clean_secret(v)))
 }
 
 fn clean_secret(s: &str) -> String {
@@ -138,6 +141,8 @@ mod tests {
             "otpauth://totp/A",
             "otpauth://hotp/A?secret=JBSWY3DPEHPK3PXP",
             "otpauth://totp/A?secret=JBSW!",
+            "otpauth:///A?secret=JBSWY3DPEHPK3PXP",
+            "otpauth:A?secret=JBSWY3DPEHPK3PXP",
             "pas un lien",
         ] {
             assert_eq!(code_at(uri, 59).err().as_deref(), Some("TOTP_INVALID"), "{uri}");
@@ -166,5 +171,12 @@ mod tests {
         assert_eq!(entry_otp_uri(&entry(&[("otp", "")])), None);
         assert_eq!(code_for_entry(&entry(&[]), 59).err().as_deref(), Some("TOTP_NONE"));
         assert_eq!(code_for_entry(&legacy, 1111111109).unwrap().code, "97912772"); // SHA1, 8 digits, period 60
+    }
+
+    #[test]
+    fn bare_keys_with_non_base32_characters_are_invalid() {
+        for key in ["key=JBSWY3DPEHPK3PXP&step=30", "JBSWY3DP#EHPK3PXP", "JBSWY3DP?EHPK3PXP", "JBSWY3DP%41EHPK3PXP"] {
+            assert_eq!(code_at(&normalize(key, "t"), 59).err().as_deref(), Some("TOTP_INVALID"), "{key}");
+        }
     }
 }
