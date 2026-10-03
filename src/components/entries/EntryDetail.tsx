@@ -19,7 +19,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Globe, User, Lock, KeyRound, Clock, Pencil, Trash2, ExternalLink, Eye, EyeOff, Contact, CreditCard, FileText, Terminal } from "lucide-react";
+import { Globe, User, Lock, KeyRound, Clock, Pencil, Trash2, ExternalLink, Eye, EyeOff, Contact, CreditCard, FileText, Terminal, ShieldCheck } from "lucide-react";
+import { useTotpCode, formatTotp } from "@/hooks/useTotpCode";
 import { cn } from "@/lib/utils";
 import { itemKind, IDENTITY_FIELDS, CARD_FIELDS, DOCUMENT_FIELDS, SSH_FIELDS, SECRET_FIELDS } from "@/lib/items";
 import { EntryForm } from "./EntryForm";
@@ -141,6 +142,8 @@ export function EntryDetail({ className }: EntryDetailProps) {
               }
             />
 
+            {entry.totp && <TotpRow uuid={entry.uuid} />}
+
             {/* URL */}
             {entry.url && (
               <FieldRow
@@ -228,6 +231,36 @@ function ItemFields({ kind, customFields }: { kind: "identity" | "card" | "docum
         );
       })}
     </>
+  );
+}
+
+function TotpRow({ uuid }: { uuid: string }) {
+  const { t } = useTranslation();
+  const { data, error } = useTotpCode(uuid);
+
+  if (error) {
+    const msg = error.message === "TOTP_INVALID" ? t("entries.errors.TOTP_INVALID") : error.message;
+    return <FieldRow icon={<ShieldCheck className="size-4" />} label={t("entries.totpCode")} value={msg} />;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <FieldRow
+        icon={<ShieldCheck className="size-4" />}
+        label={t("entries.totpCode")}
+        value={data ? formatTotp(data.code) : "••• •••"}
+        mono
+        actions={data && <CopyButton text={data.code} />}
+      />
+      {data && (
+        <div className="ml-7 h-1 overflow-hidden rounded-full bg-secondary">
+          <div
+            className={cn("h-full transition-[width] duration-1000 ease-linear", data.secondsRemaining <= 5 ? "bg-destructive" : "bg-primary")}
+            style={{ width: `${(data.secondsRemaining / data.period) * 100}%` }}
+          />
+        </div>
+      )}
+    </div>
   );
 }
 

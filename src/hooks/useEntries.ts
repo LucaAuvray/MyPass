@@ -33,6 +33,7 @@ export function useEntries(groupUuid?: string) {
       notes?: string;
       tags?: string[];
       customFields?: Record<string, string>;
+      totp?: string;
     }) => tauriCommand<Entry>("create_entry", { entry: params }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ENTRIES_KEY });

@@ -101,6 +101,12 @@
     "passwordMin": "Le mot de passe doit contenir au moins 4 caractères",
     "passwordPlaceholder": "Générez ou saisissez un mot de passe",
     "notesPlaceholder": "Notes optionnelles...",
+    "totpCode": "Code 2FA",
+    "totpKey": "Clé 2FA",
+    "totpKeyPlaceholder": "JBSW Y3DP… ou otpauth://…",
+    "errors": {
+      "TOTP_INVALID": "Clé 2FA invalide"
+    },
     "modified": "Modifié le {{date}}",
     "deleteTitle": "Supprimer cette entrée ?",
     "deleteDescription": "Cette action est irréversible.",

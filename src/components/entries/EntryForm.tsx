@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +35,7 @@ const makeEntrySchema = (t: (key: string) => string) =>
     notes: z.string().optional(),
     tags: z.string().optional(),
     groupUuid: z.string().optional(),
+    totp: z.string().optional(),
   });
 
 type EntryFormValues = z.infer<ReturnType<typeof makeEntrySchema>>;
@@ -42,7 +43,7 @@ type EntryFormValues = z.infer<ReturnType<typeof makeEntrySchema>>;
 interface EntryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editEntry?: { uuid: string; title: string; username: string; password: string; url: string; notes: string };
+  editEntry?: { uuid: string; title: string; username: string; password: string; url: string; notes: string; totp: string };
 }
 
 export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
@@ -52,17 +53,27 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
   const isEditing = !!editEntry;
   const entrySchema = useMemo(() => makeEntrySchema(t), [t]);
 
+  const defaults = (): EntryFormValues => ({
+    title: editEntry?.title ?? "",
+    username: editEntry?.username ?? "",
+    password: editEntry?.password ?? "",
+    url: editEntry?.url ?? "",
+    notes: editEntry?.notes ?? "",
+    tags: "",
+    totp: editEntry?.totp ?? "",
+  });
+
   const form = useForm<EntryFormValues>({
     resolver: zodResolver(entrySchema),
-    defaultValues: {
-      title: editEntry?.title ?? "",
-      username: editEntry?.username ?? "",
-      password: editEntry?.password ?? "",
-      url: editEntry?.url ?? "",
-      notes: editEntry?.notes ?? "",
-      tags: "",
-    },
+    defaultValues: defaults(),
   });
+
+  // react-hook-form keeps its first defaults: without this, editing another
+  // entry would show (and save over it) the values of the first one opened.
+  useEffect(() => {
+    if (open) form.reset(defaults());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, editEntry?.uuid]);
 
   const handleGeneratePassword = async () => {
     const pwd = await generatePassword({
@@ -78,25 +89,35 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
   };
 
   const onSubmit = async (data: EntryFormValues) => {
-    if (isEditing && editEntry) {
-      const { tags, ...rest } = data;
-      await updateEntry({
-        uuid: editEntry.uuid,
-        update: {
-          ...rest,
-          tags: tags ? tags.split(",").map((t: string) => t.trim()) : undefined,
-        },
-      });
-    } else {
-      await createEntry({
-        title: data.title,
-        username: data.username,
-        password: data.password,
-        url: data.url,
-        notes: data.notes,
-        tags: data.tags ? data.tags.split(",").map((t: string) => t.trim()) : [],
-        groupUuid: data.groupUuid,
-      });
+    try {
+      if (isEditing && editEntry) {
+        const { tags, totp, ...rest } = data;
+        await updateEntry({
+          uuid: editEntry.uuid,
+          update: {
+            ...rest,
+            tags: tags ? tags.split(",").map((t: string) => t.trim()) : undefined,
+            totp: totp ?? "",
+          },
+        });
+      } else {
+        await createEntry({
+          title: data.title,
+          username: data.username,
+          password: data.password,
+          url: data.url,
+          notes: data.notes,
+          tags: data.tags ? data.tags.split(",").map((t: string) => t.trim()) : [],
+          groupUuid: data.groupUuid,
+          totp: data.totp || undefined,
+        });
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message === "TOTP_INVALID") {
+        form.setError("totp", { message: t("entries.errors.TOTP_INVALID") });
+        return;
+      }
+      throw err;
     }
     form.reset();
     onOpenChange(false);
@@ -143,6 +164,21 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
         <div className="space-y-1.5">
           <Label htmlFor="url">{t("entries.url")}</Label>
           <Input id="url" {...form.register("url")} placeholder="https://example.com" />
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="totp">{t("entries.totpKey")}</Label>
+          <Input
+            id="totp"
+            className="font-mono"
+            autoComplete="off"
+            spellCheck={false}
+            placeholder={t("entries.totpKeyPlaceholder")}
+            {...form.register("totp")}
+          />
+          {form.formState.errors.totp && (
+            <p className="text-xs text-destructive">{form.formState.errors.totp.message}</p>
+          )}
         </div>
 
         <div className="space-y-1.5">

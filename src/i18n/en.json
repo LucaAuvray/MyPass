@@ -101,6 +101,12 @@
     "passwordMin": "Password must be at least 4 characters",
     "passwordPlaceholder": "Generate or enter a password",
     "notesPlaceholder": "Optional notes...",
+    "totpCode": "2FA code",
+    "totpKey": "2FA key",
+    "totpKeyPlaceholder": "JBSW Y3DP… or otpauth://…",
+    "errors": {
+      "TOTP_INVALID": "Invalid 2FA key"
+    },
     "modified": "Modified {{date}}",
     "deleteTitle": "Delete this entry?",
     "deleteDescription": "This action cannot be undone.",
