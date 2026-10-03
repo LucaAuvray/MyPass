@@ -4,12 +4,13 @@ use super::entries;
 use crate::xml::{self, Group, KeePassFile};
 
 #[derive(serde::Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
 pub struct GroupInfo {
     pub uuid: String,
     pub name: String,
-    pub parent_uuid: Option<String>,
     pub icon: Option<String>,
     pub children: Vec<GroupInfo>,
+    /// Entries of this group and of all its subgroups.
     pub entry_count: usize,
     pub is_expanded: bool,
     pub created: Option<String>,
@@ -25,7 +26,7 @@ pub fn create(
     name: &str,
     parent_uuid: Option<&str>,
 ) -> Result<GroupInfo, String> {
-    let new_group = Group::new(name);
+    let new_group = Group::new(valid_name(name)?);
 
     let parent = if let Some(guid) = parent_uuid {
         entries::find_group_mut(&mut kf.root.group, guid)?
@@ -46,8 +47,13 @@ pub fn update(
     icon_id: Option<String>,
     is_expanded: Option<bool>,
 ) -> Result<GroupInfo, String> {
+    let name = name.as_deref().map(valid_name).transpose()?.map(str::to_string);
     let group = entries::find_group_mut(&mut kf.root.group, uuid)?;
 
+    // Name and icon are synced (LWW on the group's LMT); expanding is local UI state.
+    if name.is_some() || icon_id.is_some() {
+        group.times.touch();
+    }
     if let Some(n) = name {
         group.name = n;
     }
@@ -61,25 +67,25 @@ pub fn update(
     Ok(group_to_info(group))
 }
 
+/// Deletes the folder only: its entries and subgroups move up to its parent.
 pub fn delete(kf: &mut KeePassFile, uuid: &str) -> Result<(), String> {
-    // Cannot delete root
     if kf.root.group.uuid == uuid {
         return Err("Cannot delete the root group".to_string());
     }
 
-    // La fusion ne supprime jamais un groupe (v1) : sans tombstone pour
-    // chaque entrée du sous-arbre, elles ressusciteraient au prochain merge.
+    // The moved content must look moved to the merge on the other devices.
     let target = entries::find_group_mut(&mut kf.root.group, uuid)?;
-    let mut tombstone_uuids: Vec<String> =
-        entries::collect_entries(target).into_iter().map(|e| e.uuid).collect();
-    tombstone_uuids.push(uuid.to_string());
+    let now = xml::Times::now().last_modification_time;
+    for entry in &mut target.entries {
+        entry.times.touch();
+        entry.times.location_changed = now.clone();
+    }
+    for group in &mut target.groups {
+        group.times.location_changed = now.clone();
+    }
 
-    remove_group(&mut kf.root.group, uuid)?;
-
-    kf.root
-        .deleted_objects
-        .items
-        .extend(tombstone_uuids.iter().map(|u| xml::DeletedObject::now(u)));
+    dissolve(&mut kf.root.group, uuid);
+    kf.root.deleted_objects.items.push(xml::DeletedObject::now(uuid));
 
     Ok(())
 }
@@ -91,41 +97,49 @@ pub fn move_entry(kf: &mut KeePassFile, entry_uuid: &str, group_uuid: &str) -> R
     entries::find_group(&kf.root.group, group_uuid)?;
     entries::remove_entry_from_group(&mut kf.root.group, entry_uuid)?;
     moved.times.touch(); // folder move must become visible to the merge
+    moved.times.location_changed = moved.times.last_modification_time.clone();
     entries::find_group_mut(&mut kf.root.group, group_uuid)?
         .entries
         .push(moved);
     Ok(())
 }
 
+/// Removes the group `uuid` found anywhere under `parent` and appends its
+/// entries and subgroups to its own parent. Touches nothing: callers decide.
+pub(crate) fn dissolve(parent: &mut Group, uuid: &str) -> bool {
+    if let Some(i) = parent.groups.iter().position(|g| g.uuid == uuid) {
+        let gone = parent.groups.remove(i);
+        parent.entries.extend(gone.entries);
+        parent.groups.extend(gone.groups);
+        return true;
+    }
+    parent.groups.iter_mut().any(|g| dissolve(g, uuid))
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
 
+fn valid_name(name: &str) -> Result<&str, String> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err("GROUP_NAME_REQUIRED".to_string());
+    }
+    Ok(name)
+}
+
 fn group_to_info(group: &Group) -> GroupInfo {
+    let children: Vec<GroupInfo> = group.groups.iter().map(group_to_info).collect();
     GroupInfo {
         uuid: group.uuid.clone(),
         name: group.name.clone(),
-        parent_uuid: None, // Would need to track parent during traversal
         icon: group.icon_id.clone(),
-        children: group.groups.iter().map(group_to_info).collect(),
-        entry_count: group.entries.len(),
+        entry_count: group.entries.len() + children.iter().map(|c| c.entry_count).sum::<usize>(),
+        children,
         is_expanded: group.is_expanded.as_deref() == Some("True"),
         created: group.times.creation_time.clone(),
         modified: group.times.last_modification_time.clone(),
     }
-}
-
-fn remove_group(parent: &mut Group, uuid: &str) -> Result<(), String> {
-    if parent.groups.iter().any(|g| g.uuid == uuid) {
-        parent.groups.retain(|g| g.uuid != uuid);
-        return Ok(());
-    }
-    for child in &mut parent.groups {
-        if remove_group(child, uuid).is_ok() {
-            return Ok(());
-        }
-    }
-    Err(format!("Group not found: {uuid}"))
 }
 
 #[cfg(test)]
@@ -144,78 +158,102 @@ mod tests {
         assert!(updated.is_expanded);
     }
 
-    #[test]
-    fn delete_group_tombstones_subtree_entries_and_group() {
-        let mut kf = xml::KeePassFile::new("Test Vault");
-        let sub = create(&mut kf, "Work", None).unwrap();
+    const OLD: &str = "2020-01-01T00:00:00Z";
 
+    #[test]
+    fn blank_names_are_refused() {
+        let mut kf = xml::KeePassFile::new("Test Vault");
+        assert_eq!(create(&mut kf, "   ", None).err().as_deref(), Some("GROUP_NAME_REQUIRED"));
+        let g = create(&mut kf, "  Perso ", None).unwrap();
+        assert_eq!(g.name, "Perso");
+        assert_eq!(
+            update(&mut kf, &g.uuid, Some(" ".into()), None, None).err().as_deref(),
+            Some("GROUP_NAME_REQUIRED")
+        );
+        assert_eq!(entries::find_group(&kf.root.group, &g.uuid).unwrap().name, "Perso");
+    }
+
+    #[test]
+    fn rename_advances_group_lmt_but_expanding_does_not() {
+        let mut kf = xml::KeePassFile::new("Test Vault");
+        let g = create(&mut kf, "Work", None).unwrap();
+        entries::find_group_mut(&mut kf.root.group, &g.uuid).unwrap().times.last_modification_time =
+            Some(OLD.into());
+        let lmt = |kf: &KeePassFile| {
+            entries::find_group(&kf.root.group, &g.uuid).unwrap().times.last_modification_time.clone().unwrap()
+        };
+
+        update(&mut kf, &g.uuid, None, None, Some(false)).unwrap();
+        assert_eq!(lmt(&kf), OLD);
+
+        update(&mut kf, &g.uuid, Some("Job".into()), None, None).unwrap();
+        assert!(lmt(&kf).as_str() > OLD);
+    }
+
+    #[test]
+    fn delete_moves_entries_and_subgroups_to_the_parent() {
+        let mut kf = xml::KeePassFile::new("Test Vault");
+        let parent = create(&mut kf, "Parent", None).unwrap();
+        let child = create(&mut kf, "Child", Some(&parent.uuid)).unwrap();
+        let grand = create(&mut kf, "Grand", Some(&child.uuid)).unwrap();
         let entry_uuid = {
-            let target = entries::find_group_mut(&mut kf.root.group, &sub.uuid).unwrap();
-            let entry = xml::Entry::new("Site", "user", "pass", "https://x.io");
-            let uuid = entry.uuid.clone();
-            target.entries.push(entry);
+            let g = entries::find_group_mut(&mut kf.root.group, &child.uuid).unwrap();
+            let mut e = xml::Entry::new("Site", "user", "pass", "https://x.io");
+            e.times.last_modification_time = Some(OLD.into());
+            e.times.location_changed = Some(OLD.into());
+            let uuid = e.uuid.clone();
+            g.entries.push(e);
+            g.groups[0].times.location_changed = Some(OLD.into());
             uuid
         };
 
-        delete(&mut kf, &sub.uuid).unwrap();
+        delete(&mut kf, &child.uuid).unwrap();
 
-        assert!(entries::find_group(&kf.root.group, &sub.uuid).is_err());
-        let tombstoned: Vec<&String> =
-            kf.root.deleted_objects.items.iter().map(|d| &d.uuid).collect();
-        assert!(tombstoned.contains(&&entry_uuid));
-        assert!(tombstoned.contains(&&sub.uuid));
-        assert_eq!(kf.root.deleted_objects.items.len(), 2);
+        assert!(entries::find_group(&kf.root.group, &child.uuid).is_err());
+        let p = entries::find_group(&kf.root.group, &parent.uuid).unwrap();
+        assert_eq!(p.entries.len(), 1);
+        assert_eq!(p.entries[0].uuid, entry_uuid);
+        assert!(p.entries[0].times.last_modification_time.as_deref().unwrap() > OLD);
+        assert!(p.entries[0].times.location_changed.as_deref().unwrap() > OLD);
+        assert_eq!(p.groups.len(), 1);
+        assert_eq!(p.groups[0].uuid, grand.uuid);
+        assert!(p.groups[0].times.location_changed.as_deref().unwrap() > OLD);
+        let tombstoned: Vec<&str> = kf.root.deleted_objects.items.iter().map(|d| d.uuid.as_str()).collect();
+        assert_eq!(tombstoned, vec![child.uuid.as_str()]);
     }
 
     #[test]
-    fn update_group_at_depth_two_targets_the_right_group() {
+    fn delete_top_level_group_moves_content_to_root() {
         let mut kf = xml::KeePassFile::new("Test Vault");
-        let g1 = create(&mut kf, "Parent", None).unwrap();
-        let g2 = create(&mut kf, "Child", Some(&g1.uuid)).unwrap();
+        let work = create(&mut kf, "Work", None).unwrap();
+        entries::find_group_mut(&mut kf.root.group, &work.uuid)
+            .unwrap()
+            .entries
+            .push(xml::Entry::new("Site", "user", "pass", "https://x.io"));
 
-        let updated = update(&mut kf, &g2.uuid, Some("Renamed".to_string()), None, None).unwrap();
+        delete(&mut kf, &work.uuid).unwrap();
 
-        assert_eq!(updated.uuid, g2.uuid);
-        assert_eq!(updated.name, "Renamed");
-        let parent = entries::find_group(&kf.root.group, &g1.uuid).unwrap();
-        assert_eq!(parent.name, "Parent");
-        let child = entries::find_group(&kf.root.group, &g2.uuid).unwrap();
-        assert_eq!(child.name, "Renamed");
+        assert_eq!(kf.root.group.entries.len(), 1);
+        assert!(kf.root.group.groups.is_empty());
     }
 
     #[test]
-    fn delete_group_at_depth_two_tombstones_only_its_subtree() {
+    fn entry_count_includes_subgroups_and_json_is_camel_case() {
         let mut kf = xml::KeePassFile::new("Test Vault");
-        let g1 = create(&mut kf, "Parent", None).unwrap();
-        let g2 = create(&mut kf, "Child", Some(&g1.uuid)).unwrap();
+        let parent = create(&mut kf, "Parent", None).unwrap();
+        let child = create(&mut kf, "Child", Some(&parent.uuid)).unwrap();
+        for (group, n) in [(&parent.uuid, 1), (&child.uuid, 2)] {
+            let g = entries::find_group_mut(&mut kf.root.group, group).unwrap();
+            for _ in 0..n {
+                g.entries.push(xml::Entry::new("Site", "user", "pass", "https://x.io"));
+            }
+        }
 
-        let e1_uuid = {
-            let parent = entries::find_group_mut(&mut kf.root.group, &g1.uuid).unwrap();
-            let e1 = xml::Entry::new("Parent Site", "user", "pass", "https://x.io");
-            let uuid = e1.uuid.clone();
-            parent.entries.push(e1);
-            uuid
-        };
-        let e2_uuid = {
-            let child = entries::find_group_mut(&mut kf.root.group, &g2.uuid).unwrap();
-            let e2 = xml::Entry::new("Child Site", "user", "pass", "https://x.io");
-            let uuid = e2.uuid.clone();
-            child.entries.push(e2);
-            uuid
-        };
-
-        delete(&mut kf, &g2.uuid).unwrap();
-
-        assert!(entries::find_group(&kf.root.group, &g2.uuid).is_err());
-        assert!(entries::find_group(&kf.root.group, &g1.uuid).is_ok());
-        assert!(entries::find_entry(&kf.root.group, &e1_uuid).is_ok());
-
-        let tombstoned: Vec<&String> =
-            kf.root.deleted_objects.items.iter().map(|d| &d.uuid).collect();
-        assert_eq!(kf.root.deleted_objects.items.len(), 2);
-        assert!(tombstoned.contains(&&e2_uuid));
-        assert!(tombstoned.contains(&&g2.uuid));
-        assert!(!tombstoned.contains(&&e1_uuid));
+        let info = &list(&kf)[0].children[0];
+        assert_eq!(info.entry_count, 3);
+        let v = serde_json::to_value(info).unwrap();
+        assert!(v.get("entryCount").is_some() && v.get("isExpanded").is_some());
+        assert!(v.get("parentUuid").is_none() && v.get("parent_uuid").is_none());
     }
 
     #[test]
@@ -232,6 +270,7 @@ mod tests {
 
         let mut entry = xml::Entry::new("Site", "user", "pass", "https://x.io");
         entry.times.last_modification_time = Some("2020-01-01T00:00:00Z".to_string());
+        entry.times.location_changed = Some("2020-01-01T00:00:00Z".to_string());
         let entry_uuid = entry.uuid.clone();
         kf.root.group.entries.push(entry);
 
@@ -243,6 +282,7 @@ mod tests {
             moved.times.last_modification_time.as_deref().unwrap() > "2020-01-01T00:00:00Z",
             "move_entry doit avancer le LMT (visibilité du move au merge)"
         );
+        assert!(moved.times.location_changed.as_deref().unwrap() > "2020-01-01T00:00:00Z");
     }
 
     #[test]

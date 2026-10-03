@@ -52,7 +52,6 @@ pub struct UpdateEntry {
     pub url: Option<String>,
     pub notes: Option<String>,
     pub tags: Option<Vec<String>>,
-    pub group_uuid: Option<String>,
     #[serde(default)]
     pub custom_fields: Option<HashMap<String, String>>,
     /// `None` keeps the 2FA, `""` removes it, anything else replaces it.
@@ -145,11 +144,6 @@ pub fn update(kf: &mut KeePassFile, uuid: &str, update: UpdateEntry) -> Result<E
     }
     if let Some(link) = &totp {
         write_totp(entry, link);
-    }
-
-    // Move to different group if requested
-    if let Some(_new_group_uuid) = &update.group_uuid {
-        // Remove from current group... complex, skip for now
     }
 
     entry.times.touch();
@@ -554,7 +548,6 @@ mod tests {
                 url: None,
                 notes: None,
                 tags: None,
-                group_uuid: None,
                 custom_fields: None,
                 totp: None,
             },
@@ -608,7 +601,7 @@ mod tests {
         fields.insert("Note".to_string(), "x".to_string());
         update(&mut kf, &uuid, UpdateEntry {
             title: Some("GitHub perso".to_string()), username: None, password: None, url: None,
-            notes: None, tags: None, group_uuid: None, custom_fields: Some(fields), totp: None,
+            notes: None, tags: None, custom_fields: Some(fields), totp: None,
         }).unwrap();
 
         let bytes = crate::writer::write_database_bytes(
@@ -648,7 +641,7 @@ mod tests {
     fn set_totp(totp: Option<&str>) -> UpdateEntry {
         UpdateEntry {
             title: None, username: None, password: None, url: None, notes: None, tags: None,
-            group_uuid: None, custom_fields: None, totp: totp.map(String::from),
+            custom_fields: None, totp: totp.map(String::from),
         }
     }
 
