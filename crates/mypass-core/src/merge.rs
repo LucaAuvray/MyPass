@@ -14,11 +14,19 @@ pub struct MergeOutcome {
     pub entries_updated: usize,
     pub entries_deleted: usize,
     pub groups_added: usize,
+    pub groups_updated: usize,
+    pub groups_deleted: usize,
 }
 
 impl MergeOutcome {
     pub fn changed(&self) -> bool {
-        self.entries_added + self.entries_updated + self.entries_deleted + self.groups_added > 0
+        self.entries_added
+            + self.entries_updated
+            + self.entries_deleted
+            + self.groups_added
+            + self.groups_updated
+            + self.groups_deleted
+            > 0
     }
 }
 
@@ -70,41 +78,93 @@ fn tombstone<'a>(kf: &'a KeePassFile, uuid: &str) -> Option<&'a str> {
         .max()
 }
 
-/// Ajoute les groupes de `remote` inconnus de `local` (coquilles vides,
-/// les entrées arrivent par la passe entrées). Parent introuvable → racine.
-/// // ponytail: les groupes ne sont jamais supprimés par la fusion en v1 —
-/// // seules leurs entrées le sont ; un groupe vidé reste (suppression de
-/// // groupe = cas rare, à traiter si le besoin réel apparaît).
-fn add_missing_groups(
+fn glmt(g: &Group) -> &str {
+    g.times.last_modification_time.as_deref().unwrap_or("")
+}
+
+/// Sous-groupes de `group` (lui exclu), à toute profondeur.
+fn subgroups<'a>(group: &'a Group, out: &mut Vec<&'a Group>) {
+    for g in &group.groups {
+        out.push(g);
+        subgroups(g, out);
+    }
+}
+
+/// Parcourt l'arbre distant (racine exclue) avec, pour chaque groupe, son
+/// parent local effectif. Groupe connu : nom, icône et notes du plus récent.
+/// Groupe inconnu : ajouté vide (les entrées arrivent par la passe entrées),
+/// sauf s'il a été supprimé ici après sa dernière modification — il n'est
+/// alors pas recréé et ses sous-groupes vont au parent survivant le plus proche.
+/// ponytail: folder position is not merged (no UI moves folders); a folder deleted on one
+/// device and renamed on another before sync survives, its subfolders may then sit in
+/// different places per device.
+fn merge_groups(
     local_root: &mut Group,
+    local_dead: &[DeletedObject],
     remote_group: &Group,
-    remote_parent_uuid: &str,
+    local_parent: &str,
     outcome: &mut MergeOutcome,
 ) {
-    if find_group_mut(local_root, &remote_group.uuid).is_none() {
-        let mut shell = remote_group.clone();
-        shell.groups = vec![];
-        shell.entries = vec![];
-        let parent = find_group_mut(local_root, remote_parent_uuid);
-        let target = match parent {
-            Some(p) => p,
-            None => local_root,
-        };
-        target.groups.push(shell);
-        outcome.groups_added += 1;
-    }
     for child in &remote_group.groups {
-        add_missing_groups(local_root, child, &remote_group.uuid, outcome);
+        let deleted_here = || {
+            local_dead.iter().any(|d| d.uuid == child.uuid && d.deletion_time.as_str() >= glmt(child))
+        };
+        let next_parent = match find_group_mut(local_root, &child.uuid) {
+            Some(known) => {
+                if glmt(child) > glmt(known) {
+                    known.name = child.name.clone();
+                    known.icon_id = child.icon_id.clone();
+                    known.notes = child.notes.clone();
+                    known.times = child.times.clone();
+                    outcome.groups_updated += 1;
+                }
+                child.uuid.as_str()
+            }
+            None if deleted_here() => local_parent,
+            None => {
+                let mut shell = child.clone();
+                shell.groups = vec![];
+                shell.entries = vec![];
+                match find_group_mut(local_root, local_parent) {
+                    Some(parent) => parent.groups.push(shell),
+                    None => local_root.groups.push(shell),
+                }
+                outcome.groups_added += 1;
+                child.uuid.as_str()
+            }
+        };
+        merge_groups(local_root, local_dead, child, next_parent, outcome);
     }
+}
+
+/// Range l'entrée `uuid` dans le groupe `target` si elle est ailleurs
+/// (rien si `target` n'existe pas ici).
+fn relocate_entry(root: &mut Group, uuid: &str, target: &str) {
+    let already_there = find_group_mut(root, target).map(|g| g.entries.iter().any(|e| e.uuid == uuid));
+    if already_there != Some(false) {
+        return;
+    }
+    let Some(entry) = find_entry_mut(root, uuid).map(|e| e.clone()) else { return };
+    remove_entry(root, uuid);
+    find_group_mut(root, target).expect("checked above").entries.push(entry);
 }
 
 pub fn merge(local: &mut KeePassFile, remote: &KeePassFile) -> MergeOutcome {
     let mut outcome = MergeOutcome::default();
+    let local_root_uuid = local.root.group.uuid.clone();
+    // Le parent distant d'une entrée, vu d'ici (la racine distante = la nôtre).
+    let local_parent = |remote_parent: &str| {
+        if remote_parent == remote.root.group.uuid { local_root_uuid.clone() } else { remote_parent.to_string() }
+    };
 
-    // 1. Groupes inconnus (avant les entrées, pour qu'elles aient leur parent).
-    for child in &remote.root.group.groups {
-        add_missing_groups(&mut local.root.group, child, &remote.root.group.uuid, &mut outcome);
-    }
+    // 1. Groupes (avant les entrées, pour qu'elles aient leur parent).
+    merge_groups(
+        &mut local.root.group,
+        &local.root.deleted_objects.items,
+        &remote.root.group,
+        &local_root_uuid,
+        &mut outcome,
+    );
 
     // 2. Entrées du remote : mise à jour LWW ou ajout.
     let mut remote_entries = Vec::new();
@@ -123,6 +183,8 @@ pub fn merge(local: &mut KeePassFile, remote: &KeePassFile) -> MergeOutcome {
                         .push(loser);
                     *local_entry = winner;
                     outcome.entries_updated += 1;
+                    // La version gagnante apporte aussi son dossier.
+                    relocate_entry(&mut local.root.group, &remote_entry.uuid, &local_parent(parent_uuid));
                 }
                 // égalité ou local plus récent → local conservé tel quel
             }
@@ -164,7 +226,27 @@ pub fn merge(local: &mut KeePassFile, remote: &KeePassFile) -> MergeOutcome {
         }
     }
 
-    // 4. Union des tombstones (max deletion_time par uuid) — sans compter
+    // 4. Dossiers supprimés là-bas après leur dernière modification ici :
+    //    retirés, leur contenu restant remonte au parent (rien n'est perdu).
+    let mut remote_groups = Vec::new();
+    subgroups(&remote.root.group, &mut remote_groups);
+    let remote_group_uuids: std::collections::HashSet<&str> =
+        remote_groups.iter().map(|g| g.uuid.as_str()).collect();
+    let mut local_groups = Vec::new();
+    subgroups(&local.root.group, &mut local_groups);
+    let doomed: Vec<String> = local_groups
+        .iter()
+        .filter(|g| !remote_group_uuids.contains(g.uuid.as_str()))
+        .filter(|g| tombstone(remote, &g.uuid).is_some_and(|t| t >= glmt(g)))
+        .map(|g| g.uuid.clone())
+        .collect();
+    for uuid in &doomed {
+        if crate::ops::groups::dissolve(&mut local.root.group, uuid) {
+            outcome.groups_deleted += 1;
+        }
+    }
+
+    // 5. Union des tombstones (max deletion_time par uuid) — sans compter
     //    comme changement : c'est du métadonnées de propagation.
     for d in &remote.root.deleted_objects.items {
         let existing = local
@@ -321,5 +403,165 @@ mod tests {
         ]);
         assert!(merge(&mut local, &remote).changed());
         assert!(!merge(&mut local, &remote).changed(), "2e merge = no-op");
+    }
+
+    const T10: &str = "2026-07-10T10:00:00Z";
+    const T11: &str = "2026-07-10T11:00:00Z";
+    const T12: &str = "2026-07-10T12:00:00Z";
+
+    fn folder(uuid: &str, name: &str, lmt: &str) -> Group {
+        let mut g = Group::new(name);
+        g.uuid = uuid.to_string();
+        g.times.last_modification_time = Some(lmt.to_string());
+        g
+    }
+
+    fn entry(uuid: &str, lmt: &str) -> Entry {
+        let mut e = Entry::new(uuid, "user", "pass", "");
+        e.uuid = uuid.to_string();
+        e.times.last_modification_time = Some(lmt.to_string());
+        e
+    }
+
+    fn tomb(uuid: &str, t: &str) -> DeletedObject {
+        DeletedObject { uuid: uuid.to_string(), deletion_time: t.to_string() }
+    }
+
+    fn group_uuids(g: &Group) -> Vec<&str> {
+        g.groups.iter().map(|g| g.uuid.as_str()).collect()
+    }
+
+    fn entry_uuids(g: &Group) -> Vec<&str> {
+        g.entries.iter().map(|e| e.uuid.as_str()).collect()
+    }
+
+    #[test]
+    fn newer_remote_folder_name_wins() {
+        let mut local = vault_with(&[]);
+        local.root.group.groups.push(folder("g1", "Old", T10));
+        let mut remote = vault_with(&[]);
+        remote.root.group.groups.push(folder("g1", "New", T11));
+        let out = merge(&mut local, &remote);
+        assert_eq!(local.root.group.groups[0].name, "New");
+        assert_eq!(out.groups_updated, 1);
+        assert!(out.changed());
+    }
+
+    #[test]
+    fn older_remote_folder_name_is_ignored() {
+        let mut local = vault_with(&[]);
+        local.root.group.groups.push(folder("g1", "Mine", T11));
+        let mut remote = vault_with(&[]);
+        remote.root.group.groups.push(folder("g1", "Theirs", T10));
+        let out = merge(&mut local, &remote);
+        assert_eq!(local.root.group.groups[0].name, "Mine");
+        assert_eq!(out.groups_updated, 0);
+        assert!(!out.changed());
+    }
+
+    #[test]
+    fn remote_folder_deletion_moves_local_content_to_parent() {
+        let mut local = vault_with(&[]);
+        let mut g1 = folder("g1", "Perso", T10);
+        g1.entries.push(entry("u1", T10));
+        g1.groups.push(folder("g2", "Banque", T10));
+        local.root.group.groups.push(g1);
+        let mut remote = vault_with(&[]);
+        remote.root.group.entries.push(entry("u1", T11));
+        remote.root.group.groups.push(folder("g2", "Banque", T10));
+        remote.root.deleted_objects.items.push(tomb("g1", T11));
+        let out = merge(&mut local, &remote);
+        assert_eq!(group_uuids(&local.root.group), vec!["g2"]);
+        assert_eq!(entry_uuids(&local.root.group), vec!["u1"]);
+        assert_eq!(out.groups_deleted, 1);
+    }
+
+    #[test]
+    fn entry_added_elsewhere_in_a_deleted_folder_survives() {
+        let mut local = vault_with(&[]);
+        let mut g1 = folder("g1", "Perso", T10);
+        g1.entries.push(entry("u5", T12));
+        local.root.group.groups.push(g1);
+        let mut remote = vault_with(&[]);
+        remote.root.deleted_objects.items.push(tomb("g1", T11));
+        let out = merge(&mut local, &remote);
+        assert!(group_uuids(&local.root.group).is_empty());
+        assert_eq!(entry_uuids(&local.root.group), vec!["u5"]);
+        assert_eq!((out.entries_deleted, out.groups_deleted), (0, 1));
+        assert!(out.changed(), "a folder deletion alone must be pushed");
+    }
+
+    #[test]
+    fn locally_deleted_folder_is_not_recreated() {
+        let mut local = vault_with(&[]);
+        local.root.deleted_objects.items.push(tomb("g1", T11));
+        let mut remote = vault_with(&[]);
+        let mut g1 = folder("g1", "Perso", T10);
+        g1.groups.push(folder("g3", "Sub", T10));
+        remote.root.group.groups.push(g1);
+        let out = merge(&mut local, &remote);
+        assert_eq!(group_uuids(&local.root.group), vec!["g3"]);
+        assert_eq!(out.groups_added, 1);
+    }
+
+    #[test]
+    fn folder_renamed_after_its_deletion_survives() {
+        // Deleted here, renamed later over there: the rename wins.
+        let mut local = vault_with(&[]);
+        local.root.deleted_objects.items.push(tomb("g1", T11));
+        let mut remote = vault_with(&[]);
+        remote.root.group.groups.push(folder("g1", "Renamed", T12));
+        let out = merge(&mut local, &remote);
+        assert_eq!(group_uuids(&local.root.group), vec!["g1"]);
+        assert_eq!(out.groups_added, 1);
+
+        // Renamed here after it was deleted over there: kept.
+        let mut local = vault_with(&[]);
+        local.root.group.groups.push(folder("g1", "Renamed", T12));
+        let mut remote = vault_with(&[]);
+        remote.root.deleted_objects.items.push(tomb("g1", T11));
+        let out = merge(&mut local, &remote);
+        assert_eq!(group_uuids(&local.root.group), vec!["g1"]);
+        assert_eq!(out.groups_deleted, 0);
+    }
+
+    #[test]
+    fn newer_remote_entry_brings_its_folder() {
+        let mut local = vault_with(&[]);
+        local.root.group.entries.push(entry("u1", T10));
+        let mut g1 = folder("g1", "Perso", T10);
+        g1.entries.push(entry("u2", T10));
+        local.root.group.groups.push(g1);
+        let mut remote = vault_with(&[]);
+        remote.root.group.entries.push(entry("u2", T11));
+        let mut g1 = folder("g1", "Perso", T10);
+        g1.entries.push(entry("u1", T11));
+        remote.root.group.groups.push(g1);
+        let out = merge(&mut local, &remote);
+        assert_eq!(entry_uuids(&local.root.group.groups[0]), vec!["u1"]);
+        assert_eq!(entry_uuids(&local.root.group), vec!["u2"]);
+        assert_eq!(out.entries_updated, 2);
+    }
+
+    #[test]
+    fn merge_with_folder_changes_is_idempotent() {
+        let mut local = vault_with(&[("u2", "b", T10)]);
+        let mut g2 = folder("g2", "Old2", T10);
+        g2.entries.push(entry("u1", T10));
+        local.root.group.groups.push(folder("g1", "Old", T10));
+        local.root.group.groups.push(g2);
+        let mut remote = vault_with(&[]);
+        remote.root.group.entries.push(entry("u1", T11));
+        let mut g1 = folder("g1", "New", T11);
+        g1.entries.push(entry("u2", T11));
+        remote.root.group.groups.push(g1);
+        remote.root.deleted_objects.items.push(tomb("g2", T11));
+
+        assert!(merge(&mut local, &remote).changed());
+        assert_eq!(group_uuids(&local.root.group), vec!["g1"]);
+        assert_eq!(local.root.group.groups[0].name, "New");
+        assert_eq!(entry_uuids(&local.root.group.groups[0]), vec!["u2"]);
+        assert_eq!(entry_uuids(&local.root.group), vec!["u1"]);
+        assert!(!merge(&mut local, &remote).changed(), "2nd merge = no-op");
     }
 }
