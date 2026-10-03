@@ -162,21 +162,36 @@ pub fn handle_get_logins(
     url: &str,
 ) -> Result<Vec<serde_json::Value>, String> {
     let entries = collect_all_entries(&db.root.group);
+    let now = crate::kdbx::time::unix_now();
     let matching: Vec<serde_json::Value> = entries
         .iter()
         .filter(|e| url_matches(e, url))
         .map(|e| {
-            serde_json::json!({
+            let mut login = serde_json::json!({
                 "uuid": e.uuid,
                 "login": e.username(),
                 "name": e.title(),
                 "password": e.password(),
                 "url": e.url(),
-            })
+            });
+            // Like KeePassXC: a non-empty `totp` is what makes the extension
+            // ask get-totp for a fresh code when it fills a 2FA field.
+            if let Ok(code) = crate::kdbx::totp::code_for_entry(e, now) {
+                login["totp"] = serde_json::Value::String(code.code);
+            }
+            login
         })
         .collect();
 
     Ok(matching)
+}
+
+/// Current 2FA code of an entry for the extension's get-totp, or `""`.
+pub fn handle_get_totp(db: &crate::kdbx::xml::KeePassFile, uuid: &str) -> String {
+    crate::kdbx::ops::entries::find_entry(&db.root.group, uuid)
+        .and_then(|e| crate::kdbx::totp::code_for_entry(e, crate::kdbx::time::unix_now()))
+        .map(|c| c.code)
+        .unwrap_or_default()
 }
 
 /// Identités et cartes exposées au navigateur pour le remplissage de
@@ -348,5 +363,36 @@ mod tests {
         assert_eq!(card["fields"]["CC_Number"], "4242424242424242");
         // Aucun document ne doit fuiter
         assert!(result.iter().all(|v| v["type"] != "document"));
+    }
+
+    fn two_logins() -> (KeePassFile, String, String) {
+        let mut kf = KeePassFile::new("test");
+        let mut a = Entry::new("A", "u", "p", "https://a.io");
+        set_string_field_protected(&mut a, "otp", "otpauth://totp/A?secret=JBSWY3DPEHPK3PXP");
+        let b = Entry::new("B", "u", "p", "https://a.io");
+        let (ua, ub) = (a.uuid.clone(), b.uuid.clone());
+        kf.root.group.entries.extend([a, b]);
+        (kf, ua, ub)
+    }
+
+    fn six_digits(s: &str) -> bool {
+        s.len() == 6 && s.chars().all(|c| c.is_ascii_digit())
+    }
+
+    #[test]
+    fn get_logins_sends_totp_only_for_entries_with_2fa() {
+        let (kf, _, _) = two_logins();
+        let logins = handle_get_logins(&kf, "https://a.io").unwrap();
+        let by = |n: &str| logins.iter().find(|l| l["name"] == n).unwrap().clone();
+        assert!(six_digits(by("A")["totp"].as_str().unwrap()));
+        assert!(by("B").get("totp").is_none());
+    }
+
+    #[test]
+    fn get_totp_returns_code_or_empty() {
+        let (kf, ua, ub) = two_logins();
+        assert!(six_digits(&handle_get_totp(&kf, &ua)));
+        assert_eq!(handle_get_totp(&kf, &ub), "");
+        assert_eq!(handle_get_totp(&kf, "nope"), "");
     }
 }

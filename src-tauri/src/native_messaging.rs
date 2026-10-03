@@ -684,24 +684,41 @@ fn handle_set_login(req: &NativeRequest, session: &SessionState, db_state: &Arc<
     }
 }
 
-fn handle_get_totp(req: &NativeRequest, session: &SessionState, _db_state: &Arc<Mutex<DbState>>) -> NativeResponse {
+fn handle_get_totp(req: &NativeRequest, session: &SessionState, db_state: &Arc<Mutex<DbState>>) -> NativeResponse {
     let inner = match decrypt_message(req, session) {
         Ok(msg) => msg,
         Err(e) => return error_response(req, 1, &format!("Decrypt error: {e}")),
     };
 
-    let _uuid = inner.get("uuid").and_then(|v| v.as_str()).unwrap_or("");
+    let uuid = inner.get("uuid").and_then(|v| v.as_str()).unwrap_or("");
 
-    // TODO: Implement TOTP retrieval from entry
+    let db = match db_state.lock() {
+        Ok(db) => db,
+        Err(_) => return error_response(req, 3, "Database lock error"),
+    };
+
+    let kf = match db.keepass_file.as_ref() {
+        Some(kf) => kf,
+        None => return error_response(req, 2, "No open database"),
+    };
+
+    // "" when the entry has no usable 2FA: the extension then reports no TOTP found.
+    let totp = browser::handle_get_totp(kf, uuid);
+
     NativeResponse {
         action: Some("get-totp".to_string()),
         message: None,
         nonce: None,
         client_id: Some(req.client_id.clone()),
-        error: Some("TOTP not yet implemented".to_string()),
-        error_code: Some("8".to_string()),
+        error: None,
+        error_code: None,
         version: None,
-        extra: HashMap::new(),
+        extra: {
+            let mut map = HashMap::new();
+            map.insert("success".to_string(), serde_json::Value::String("true".to_string()));
+            map.insert("totp".to_string(), serde_json::Value::String(totp));
+            map
+        },
     }
 }
 
