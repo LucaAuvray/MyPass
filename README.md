@@ -22,7 +22,7 @@
 - 🎨 **Modern UI** — glass-morphism, dark/light mode, responsive
 - 🔍 **⌘K search** — instant command palette
 - 🎲 **Password generator** — CSPRNG passwords & passphrases with strength evaluation
-- ⏱ **TOTP 2FA** — SHA1/SHA256/SHA512 support
+- ⏱ **TOTP 2FA** — codes with countdown and copy, 2FA key (or `otpauth://` link) in the entry form, browser extension fill; SHA1/SHA256/SHA512
 - 📥 **Import** — CSV (Google, Apple, KeePassXC, Bitwarden…) and MyPass JSON, with duplicate detection
 - 📤 **Export** — MyPass JSON (lossless) and CSV
 - 🛡 **Security dashboard** — weak/reused/old password detection, HIBP k-anonymity

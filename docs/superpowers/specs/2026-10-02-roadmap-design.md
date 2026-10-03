@@ -215,6 +215,15 @@ le secret au front.
 **Fini quand :** pour un secret de test, MyPass affiche le même code que Google Authenticator
 ou KeePassXC, sur desktop et PWA ; l'extension Chrome remplit un champ 2FA.
 
+**Résultat (2026-10-03) :** livré (spec `docs/superpowers/specs/2026-10-03-totp-design.md`, plan
+`docs/superpowers/plans/2026-10-03-totp.md`). Le code est calculé en Rust à partir de l'uuid
+(`get_totp_code`, desktop + wasm) depuis le champ `otp` ou l'ancien `TOTP Seed` + `TOTP Settings` ;
+vecteurs RFC 6238 et clés de 80 bits testés. Fiche : code, barre de temps, copie ; formulaire :
+« Clé 2FA » (clé ou lien `otpauth://`, clé invalide refusée). Extension : `get-logins` envoie
+`totp`, `get-totp` répond. E2E desktop + PWA : codes identiques à un calcul HMAC indépendant.
+Corrigé au passage : le formulaire d'édition gardait les valeurs de la première entrée ouverte.
+Reste : vérifier le remplissage par l'extension sur un vrai site après installation du `.msi`.
+
 ## 4 — Groupes
 
 **Objectif :** ranger les entrées en dossiers, partout.
@@ -324,7 +333,7 @@ redémarre en 0.1.1.
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
 | 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
 | 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
-| 3 | TOTP | [ ] | [ ] | [ ] |
+| 3 | TOTP | [x] | [x] | [x] 2026-10-03 |
 | 4 | Groupes | [ ] | [ ] | [ ] |
 | 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
 | 6 | Durcissement | [ ] | [ ] | [ ] |
