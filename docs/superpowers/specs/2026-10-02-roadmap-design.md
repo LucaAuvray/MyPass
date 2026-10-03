@@ -253,6 +253,16 @@ retirés du README, sauf besoin exprimé.
 
 **Fini quand :** export puis réimport dans un coffre vide sans perte de champ, sur desktop et PWA.
 
+**Résultat (2026-10-03) :** livré (plan `docs/superpowers/plans/2026-10-02-import-export.md`). Formats
+dans `mypass-core/src/ops/transfer.rs` (JSON MyPass complet, CSV lu par en-têtes : Google, Apple,
+KeePassXC, Bitwarden), partagés desktop + wasm ; 21 tests Rust dont les allers-retours JSON/CSV.
+Desktop : « Enregistrer sous » ouvert côté Rust ; PWA : téléchargement. 11 anciennes commandes
+supprimées. E2E PWA sur deux serveurs locaux : export réimporté dans un coffre vide = identique ;
+réimport du même fichier = 0 ajoutée. E2E desktop : export JSON écrit via le dialogue (annulation
+vérifiée par lecture : mémoire du PC à bout). Trouvés en route et corrigés : doublons jamais
+détectés pour cartes / identités / documents / clés SSH (correspondance par titre) ; notes et tags
+perdus à la création de toute entrée (`ops::entries::create`).
+
 ## 6 — Durcissement
 
 **Objectif :** qu'un gestionnaire de mots de passe ait les protections qu'il annonce.
@@ -316,7 +326,7 @@ redémarre en 0.1.1.
 | 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
 | 3 | TOTP | [ ] | [ ] | [ ] |
 | 4 | Groupes | [ ] | [ ] | [ ] |
-| 5 | Import / export | [x] | [x] | [ ] |
+| 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
 | 6 | Durcissement | [ ] | [ ] | [ ] |
 | 7 | Mise à jour auto | [ ] | [ ] | [ ] |
 | 8 | Docs | — | — | [ ] |
