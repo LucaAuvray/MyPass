@@ -246,20 +246,27 @@ pub fn apply_import(kf: &mut KeePassFile, entries: Vec<ResolvedImport>) -> Resul
     Ok(result)
 }
 
+/// Only non-empty values are written: an empty value in the file never erases
+/// what a vault entry has (a Google CSV cannot carry TOTP, tags or folders).
 fn write_fields(target: &mut Entry, e: &ImportedEntry) {
-    set_string_field(target, "Title", &e.title);
-    set_string_field(target, "UserName", &e.username);
-    set_string_field_protected(target, "Password", &e.password);
-    set_string_field(target, "URL", &e.url);
-    set_string_field(target, "Notes", &e.notes);
-    target.tags = if e.tags.is_empty() { None } else { Some(e.tags.join(",")) };
+    for (key, value) in [("Title", &e.title), ("UserName", &e.username), ("URL", &e.url), ("Notes", &e.notes)] {
+        if !value.is_empty() {
+            set_string_field(target, key, value);
+        }
+    }
+    if !e.password.is_empty() {
+        set_string_field_protected(target, "Password", &e.password);
+    }
+    if !e.tags.is_empty() {
+        target.tags = Some(e.tags.join(","));
+    }
     let otp = normalize_totp(&e.totp, &e.title);
-    if otp.is_empty() {
-        target.strings.retain(|s| s.key != "otp");
-    } else {
+    if !otp.is_empty() {
         set_string_field_protected(target, "otp", &otp);
     }
-    let fields: HashMap<String, String> = e.custom_fields.clone().into_iter().collect();
+    // apply_custom_fields deletes a key given an empty value: keep those out.
+    let fields: HashMap<String, String> =
+        e.custom_fields.iter().filter(|(_, v)| !v.is_empty()).map(|(k, v)| (k.clone(), v.clone())).collect();
     apply_custom_fields(target, &fields);
 }
 
@@ -575,6 +582,34 @@ mod tests {
         all_uuids(&b.root.group, &mut ub);
         assert_eq!(ub.len(), 7);
         assert!(ub.iter().all(|u| !ua.contains(u)));
+    }
+
+    /// "Keep the imported one" from a CSV without TOTP, tags or notes (Google)
+    /// must not wipe what the vault entry has and the file cannot carry.
+    #[test]
+    fn apply_import_replace_keeps_what_the_file_lacks() {
+        let mut kf = KeePassFile::new("T");
+        let mut e = entry_with("site", &[("otp", "otpauth://totp/site?secret=AB"), ("Notes", "garde-moi")]);
+        e.tags = Some("perso".to_string());
+        let uuid = e.uuid.clone();
+        kf.root.group.entries.push(e);
+        let incoming = ImportedEntry { title: "site".into(), username: "site-user".into(), password: "new".into(), url: "https://site.io".into(), ..Default::default() };
+        apply_import(&mut kf, vec![ResolvedImport { entry: incoming, replace_uuid: Some(uuid) }]).unwrap();
+        let e = &kf.root.group.entries[0];
+        assert_eq!(e.password(), "new");
+        assert_eq!(raw(e, "otp"), Some("otpauth://totp/site?secret=AB"));
+        assert_eq!(e.notes(), "garde-moi");
+        assert_eq!(e.tags.as_deref(), Some("perso"));
+    }
+
+    #[test]
+    fn roundtrip_from_totp_seed() {
+        let mut a = KeePassFile::new("A");
+        a.root.group.entries.push(entry_with("keepass2", &[("TOTP Seed", "jbsw y3dp ehpk 3pxp")]));
+        let mut b = KeePassFile::new("B");
+        apply_import(&mut b, resolved(parse_import(&export(&a, ExportFormat::Json, &[]).unwrap()).unwrap())).unwrap();
+        let e = &b.root.group.entries[0];
+        assert_eq!(raw(e, "otp"), Some("otpauth://totp/keepass2?secret=JBSWY3DPEHPK3PXP"));
     }
 
     #[test]

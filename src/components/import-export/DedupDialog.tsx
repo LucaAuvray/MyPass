@@ -210,8 +210,8 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
 
                 <FieldRow
                   label={t("dedup.fieldTotp")}
-                  value={entry.totp ? t("dedup.hasTotp") : t("dedup.noTotp")}
-                  muted={!entry.totp}
+                  value={entry.totp || entry.hasTotp ? t("dedup.hasTotp") : t("dedup.noTotp")}
+                  muted={!(entry.totp || entry.hasTotp)}
                 />
 
                 {entry.created && (

@@ -10,6 +10,20 @@ import type {
   DedupResolution,
 } from "@/types/import";
 
+// ── File decoding ────────────────────────────────────────────────
+
+/**
+ * Import file bytes → text: UTF-8, else Windows-1252, which is what Excel
+ * writes for "CSV (séparateur : point-virgule)" on a French Windows.
+ */
+export function decodeImportBytes(bytes: ArrayBuffer | Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1252").decode(bytes);
+  }
+}
+
 // ── URL normalization ────────────────────────────────────────────
 
 /** Extracts a normalized hostname from a URL string. */
@@ -39,6 +53,7 @@ export function makeMatchKey(
   url: string,
   username: string,
   title: string,
+  customFields: Record<string, string> = {},
 ): { key: string; matchType: MatchType } {
   const normUrl = normalizeUrl(url);
   const normUser = username.trim().toLowerCase();
@@ -52,10 +67,15 @@ export function makeMatchKey(
   if (normUser) {
     return { key: `__empty__::${normUser}`, matchType: "username" };
   }
-  // Cards, identities, documents, SSH keys: no URL nor username, the title is all there is.
+  // Cards, identities, documents, SSH keys: no URL nor username. The title
+  // alone would merge two different cards named "Visa", so their fields
+  // (number, holder…) must match too.
   const normTitle = title.trim().toLowerCase();
   if (normTitle) {
-    return { key: `__title__::${normTitle}`, matchType: "title" };
+    const fields = Object.entries(customFields)
+      .filter(([k]) => !k.startsWith("KPEX_"))
+      .sort(([a], [b]) => a.localeCompare(b));
+    return { key: `__title__::${normTitle}::${JSON.stringify(fields)}`, matchType: "title" };
   }
   return { key: "", matchType: "url+username" };
 }
@@ -72,11 +92,13 @@ export function vaultEntryToDupEntry(entry: {
   notes?: string;
   tags?: string[];
   customFields?: Record<string, string>;
+  hasTotp?: boolean;
   created?: string;
   modified?: string;
 }): DuplicateEntry {
   return {
     source: "vault",
+    hasTotp: entry.hasTotp ?? false,
     group: "",
     uuid: entry.uuid,
     title: entry.title,
@@ -96,6 +118,7 @@ export function vaultEntryToDupEntry(entry: {
 export function parsedEntryToDupEntry(e: ParsedEntry): DuplicateEntry {
   return {
     source: "import",
+    hasTotp: !!e.totp,
     group: e.group,
     tempId: e.tempId,
     title: e.title,
@@ -120,7 +143,7 @@ export function computeDuplicateGroups(
 
   // Index import entries
   for (const e of importEntries) {
-    const { key, matchType } = makeMatchKey(e.url, e.username, e.title);
+    const { key, matchType } = makeMatchKey(e.url, e.username, e.title, e.customFields);
     if (!key) continue;
     let bucket = map.get(key);
     if (!bucket) {
@@ -132,7 +155,7 @@ export function computeDuplicateGroups(
 
   // Index vault entries
   for (const e of vaultEntries) {
-    const { key, matchType } = makeMatchKey(e.url, e.username, e.title);
+    const { key, matchType } = makeMatchKey(e.url, e.username, e.title, e.customFields);
     if (!key) continue;
     let bucket = map.get(key);
     if (!bucket) {

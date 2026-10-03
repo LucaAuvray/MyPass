@@ -8,15 +8,15 @@ import { Progress } from "@/components/ui/progress";
 import { tauriCommand } from "@/lib/tauri";
 import { FileUp, ArrowRight, Check, AlertTriangle, Loader2 } from "lucide-react";
 import type { ImportedEntry, ImportResult, ParsedEntry, DuplicateGroup, DedupResolution } from "@/types/import";
-import { computeDuplicateGroups, findNonDuplicates, vaultEntryToDupEntry, resolveDuplicates } from "@/lib/dedup";
+import { computeDuplicateGroups, decodeImportBytes, findNonDuplicates, vaultEntryToDupEntry, resolveDuplicates } from "@/lib/dedup";
 import { DedupDialog } from "@/components/import-export/DedupDialog";
 
 interface ImportWizardProps { open: boolean; onOpenChange: (open: boolean) => void; }
 
 type Step = "pick" | "parsing" | "dedup" | "importing" | "done";
 
-/** Shape of get_entries rows used for the duplicate comparison. */
-type VaultEntry = Parameters<typeof vaultEntryToDupEntry>[0];
+/** Shape of get_entries rows used for the duplicate comparison (EntryInfo sends has_totp). */
+type VaultEntry = Parameters<typeof vaultEntryToDupEntry>[0] & { has_totp?: boolean };
 
 export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
   const { t, i18n } = useTranslation();
@@ -56,7 +56,7 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
       const vault = await tauriCommand<VaultEntry[]>("get_entries", {});
       setParsingProgress(80);
 
-      const groups = computeDuplicateGroups(parsed, (vault ?? []).map(vaultEntryToDupEntry));
+      const groups = computeDuplicateGroups(parsed, (vault ?? []).map((v) => vaultEntryToDupEntry({ ...v, hasTotp: v.has_totp })));
       const nonDup = findNonDuplicates(parsed, groups);
       setParsingProgress(100);
 
@@ -118,7 +118,7 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
       return;
     }
     try {
-      await analyze(await file.text(), file.name);
+      await analyze(decodeImportBytes(await file.arrayBuffer()), file.name);
     } catch (err: unknown) {
       setError(t("import.readError", { msg: err instanceof Error ? err.message : String(err) }));
     }

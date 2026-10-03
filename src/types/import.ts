@@ -40,6 +40,8 @@ export interface DuplicateEntry {
   tags: string[];
   customFields: Record<string, string>;
   totp: string;
+  /** The vault side never carries the secret itself, only whether it has one. */
+  hasTotp: boolean;
   created: string;
   modified: string;
 }
