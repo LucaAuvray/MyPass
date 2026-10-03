@@ -23,6 +23,7 @@
 - 🔍 **⌘K search** — instant command palette
 - 🎲 **Password generator** — CSPRNG passwords & passphrases with strength evaluation
 - ⏱ **TOTP 2FA** — codes with countdown and copy, 2FA key (or `otpauth://` link) in the entry form, browser extension fill; SHA1/SHA256/SHA512
+- 📁 **Folders** — folder tree, filtering, create/rename/delete (content moves up), move entries; synced across devices
 - 📥 **Import** — CSV (Google, Apple, KeePassXC, Bitwarden…) and MyPass JSON, with duplicate detection
 - 📤 **Export** — MyPass JSON (lossless) and CSV
 - 🛡 **Security dashboard** — weak/reused/old password detection, HIBP k-anonymity

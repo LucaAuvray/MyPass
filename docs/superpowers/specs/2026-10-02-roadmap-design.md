@@ -243,6 +243,17 @@ entrée (par menu ; glisser-déposer seulement si demandé), parité web.
 **Fini quand :** un groupe créé ou renommé sur un PC apparaît sur l'autre et sur le téléphone ;
 le comportement de la suppression correspond à ce que la spec a décidé.
 
+**Résultat (2026-10-03) :** livré (spec `docs/superpowers/specs/2026-10-03-groups-design.md`, plan
+`docs/superpowers/plans/2026-10-03-groups.md`). Barre latérale : section « Dossiers » (arbre,
+compteurs sous-dossiers compris, créer / renommer / supprimer), filtre de la liste exclusif avec les
+filtres par type, création dans le dossier sélectionné, « Déplacer » dans la fiche. Supprimer un
+dossier fait remonter entrées et sous-dossiers au parent (une tombstone : le dossier). La fusion
+gère les dossiers : nom le plus récent gagne, dossier supprimé jamais recréé et dissous chez l'autre,
+entrée gagnante ramène son dossier. Parité PWA (`web.ts`) et mock. E2E PWA (dont largeur mobile) et
+desktop + PWA sur un serveur local : création, renommage, déplacement et suppression propagés.
+Limites assumées : position d'un dossier non fusionnée ; déplacer puis modifier ailleurs avant sync
+ramène l'entrée dans son ancien dossier.
+
 ## 5 — Import / export
 
 **Objectif :** sortir et rentrer ses données de façon fiable, sur desktop comme sur PWA.
@@ -334,7 +345,7 @@ redémarre en 0.1.1.
 | 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
 | 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
 | 3 | TOTP | [x] | [x] | [x] 2026-10-03 |
-| 4 | Groupes | [ ] | [ ] | [ ] |
+| 4 | Groupes | [x] | [x] | [x] 2026-10-03 |
 | 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
 | 6 | Durcissement | [ ] | [ ] | [ ] |
 | 7 | Mise à jour auto | [ ] | [ ] | [ ] |
