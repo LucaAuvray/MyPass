@@ -1,5 +1,6 @@
 /// Pure vault operations on entries: no Tauri, no locking, no I/O.
 /// Callers (Tauri commands, wasm bindings) own the lock/save around these.
+use crate::totp::TotpCode;
 use crate::xml::{self, Entry, EntryString, Group, KeePassFile, Value};
 use std::collections::HashMap;
 
@@ -17,6 +18,8 @@ pub struct EntryInfo {
     pub created: Option<String>,
     pub modified: Option<String>,
     pub has_totp: bool,
+    /// The 2FA `otpauth://` link, or `""` (prefills the entry form).
+    pub totp: String,
     pub has_passkey: bool,
     pub expired: bool,
     #[serde(rename = "customFields")]
@@ -35,6 +38,9 @@ pub struct NewEntry {
     pub tags: Option<Vec<String>>,
     #[serde(default)]
     pub custom_fields: Option<HashMap<String, String>>,
+    /// 2FA key or link; `None` = none.
+    #[serde(default)]
+    pub totp: Option<String>,
 }
 
 #[derive(serde::Deserialize)]
@@ -49,6 +55,9 @@ pub struct UpdateEntry {
     pub group_uuid: Option<String>,
     #[serde(default)]
     pub custom_fields: Option<HashMap<String, String>>,
+    /// `None` keeps the 2FA, `""` removes it, anything else replaces it.
+    #[serde(default)]
+    pub totp: Option<String>,
 }
 
 pub fn list(kf: &KeePassFile, group_uuid: Option<&str>) -> Result<Vec<EntryInfo>, String> {
@@ -68,6 +77,7 @@ pub fn get(kf: &KeePassFile, uuid: &str) -> Result<EntryInfo, String> {
 }
 
 pub fn create(kf: &mut KeePassFile, new: NewEntry) -> Result<EntryInfo, String> {
+    let totp = new.totp.as_deref().map(|v| resolve_totp(v, &new.title)).transpose()?;
     let mut new_entry = xml::Entry::new(
         &new.title,
         &new.username,
@@ -84,6 +94,9 @@ pub fn create(kf: &mut KeePassFile, new: NewEntry) -> Result<EntryInfo, String> 
     if let Some(fields) = &new.custom_fields {
         apply_custom_fields(&mut new_entry, fields);
     }
+    if let Some(link) = &totp {
+        write_totp(&mut new_entry, link);
+    }
 
     let target_group = if let Some(guid) = &new.group_uuid {
         find_group_mut(&mut kf.root.group, guid)?
@@ -99,6 +112,9 @@ pub fn create(kf: &mut KeePassFile, new: NewEntry) -> Result<EntryInfo, String> 
 
 pub fn update(kf: &mut KeePassFile, uuid: &str, update: UpdateEntry) -> Result<EntryInfo, String> {
     let entry = find_entry_mut(&mut kf.root.group, uuid)?;
+    // Validated before anything is touched: a refused key leaves the entry as it was.
+    let title = update.title.clone().unwrap_or_else(|| entry.title().to_string());
+    let totp = update.totp.as_deref().map(|v| resolve_totp(v, &title)).transpose()?;
 
     if let Some(title) = &update.title {
         set_string_field(entry, "Title", title);
@@ -121,6 +137,9 @@ pub fn update(kf: &mut KeePassFile, uuid: &str, update: UpdateEntry) -> Result<E
     if let Some(fields) = &update.custom_fields {
         apply_custom_fields(entry, fields);
     }
+    if let Some(link) = &totp {
+        write_totp(entry, link);
+    }
 
     // Move to different group if requested
     if let Some(_new_group_uuid) = &update.group_uuid {
@@ -130,6 +149,30 @@ pub fn update(kf: &mut KeePassFile, uuid: &str, update: UpdateEntry) -> Result<E
     entry.times.touch();
 
     Ok(entry_to_info(entry, ""))
+}
+
+/// Current 2FA code of an entry (`TOTP_NONE` when it has no 2FA).
+pub fn get_totp_code(kf: &KeePassFile, uuid: &str, now: u64) -> Result<TotpCode, String> {
+    crate::totp::code_for_entry(find_entry(&kf.root.group, uuid)?, now)
+}
+
+/// The `otp` link to store for what the user typed: `""` (remove) or a link
+/// that gives a real code, else `TOTP_INVALID`.
+fn resolve_totp(value: &str, title: &str) -> Result<String, String> {
+    if value.trim().is_empty() {
+        return Ok(String::new());
+    }
+    let link = crate::totp::normalize(value, title);
+    crate::totp::code_at(&link, 0)?;
+    Ok(link)
+}
+
+/// One 2FA source of truth: `otp`; the KeePass2 legacy fields go.
+fn write_totp(entry: &mut Entry, link: &str) {
+    entry.strings.retain(|s| !matches!(s.key.as_str(), "otp" | "TOTP Seed" | "TOTP Settings"));
+    if !link.is_empty() {
+        set_string_field_protected(entry, "otp", link);
+    }
 }
 
 pub fn delete(kf: &mut KeePassFile, uuid: &str) -> Result<(), String> {
@@ -161,6 +204,7 @@ pub fn duplicate(kf: &mut KeePassFile, uuid: &str) -> Result<EntryInfo, String> 
 // =============================================================================
 
 pub(crate) fn entry_to_info(entry: &Entry, group_uuid: &str) -> EntryInfo {
+    let totp = crate::totp::entry_otp_uri(entry);
     EntryInfo {
         uuid: entry.uuid.clone(),
         group_uuid: group_uuid.to_string(),
@@ -177,7 +221,8 @@ pub(crate) fn entry_to_info(entry: &Entry, group_uuid: &str) -> EntryInfo {
         icon: entry.icon_id.clone(),
         created: entry.times.creation_time.clone(),
         modified: entry.times.last_modification_time.clone(),
-        has_totp: entry.strings.iter().any(|s| s.key == "TOTP Seed" || s.key == "otp"),
+        has_totp: totp.is_some(),
+        totp: totp.unwrap_or_default(),
         has_passkey: entry.strings.iter().any(|s| s.key.starts_with("KPEX_PASSKEY_")),
         expired: entry.times.expires.as_deref() == Some("True"),
         custom_fields: entry
@@ -186,7 +231,7 @@ pub(crate) fn entry_to_info(entry: &Entry, group_uuid: &str) -> EntryInfo {
             .filter(|s| {
                 !matches!(
                     s.key.as_str(),
-                    "Title" | "UserName" | "Password" | "URL" | "Notes" | "TOTP Seed" | "otp"
+                    "Title" | "UserName" | "Password" | "URL" | "Notes" | "TOTP Seed" | "TOTP Settings" | "otp"
                 ) && !s.key.starts_with("KPEX_PASSKEY_")
             })
             .map(|s| (s.key.clone(), s.value.content.clone()))
@@ -454,6 +499,7 @@ mod tests {
                 notes: None,
                 tags: None,
                 custom_fields: None,
+                totp: None,
             },
         )
         .unwrap();
@@ -484,6 +530,7 @@ mod tests {
                 notes: None,
                 tags: None,
                 custom_fields: None,
+                totp: None,
             },
         )
         .unwrap();
@@ -503,6 +550,7 @@ mod tests {
                 tags: None,
                 group_uuid: None,
                 custom_fields: None,
+                totp: None,
             },
         )
         .unwrap();
@@ -531,6 +579,7 @@ mod tests {
                 notes: Some("ligne 1\nligne 2".to_string()),
                 tags: Some(vec!["perso".to_string(), "web".to_string()]),
                 custom_fields: None,
+                totp: None,
             },
         )
         .unwrap();
@@ -553,7 +602,7 @@ mod tests {
         fields.insert("Note".to_string(), "x".to_string());
         update(&mut kf, &uuid, UpdateEntry {
             title: Some("GitHub perso".to_string()), username: None, password: None, url: None,
-            notes: None, tags: None, group_uuid: None, custom_fields: Some(fields),
+            notes: None, tags: None, group_uuid: None, custom_fields: Some(fields), totp: None,
         }).unwrap();
 
         let bytes = crate::writer::write_database_bytes(
@@ -566,5 +615,108 @@ mod tests {
         assert_eq!(value("KPEX_PASSKEY_PRIVATE_KEY_PEM").as_deref(), Some("pem-blob"));
         assert_eq!(e.title(), "GitHub perso");
         assert!(entry_to_info(e, "").has_passkey);
+    }
+
+    const LINK: &str = "otpauth://totp/Site?secret=JBSWY3DPEHPK3PXP";
+
+    fn site_with(fields: &[(&str, &str)]) -> (xml::KeePassFile, String) {
+        let mut kf = xml::KeePassFile::new("t");
+        let mut e = Entry::new("Site", "u", "p", "https://s.io");
+        for (k, v) in fields {
+            set_string_field(&mut e, k, v);
+        }
+        let uuid = e.uuid.clone();
+        kf.root.group.entries.push(e);
+        (kf, uuid)
+    }
+
+    /// (content, protected) of the string `key` of entry `uuid`.
+    fn field(kf: &xml::KeePassFile, uuid: &str, key: &str) -> Option<(String, bool)> {
+        let e = find_entry(&kf.root.group, uuid).unwrap();
+        e.strings
+            .iter()
+            .find(|s| s.key == key)
+            .map(|s| (s.value.content.clone(), s.value.protected.as_deref() == Some("True")))
+    }
+
+    fn set_totp(totp: Option<&str>) -> UpdateEntry {
+        UpdateEntry {
+            title: None, username: None, password: None, url: None, notes: None, tags: None,
+            group_uuid: None, custom_fields: None, totp: totp.map(String::from),
+        }
+    }
+
+    fn new_site(totp: &str) -> NewEntry {
+        NewEntry {
+            group_uuid: None, title: "Site".into(), username: "u".into(), password: "p".into(),
+            url: None, notes: None, tags: None, custom_fields: None, totp: Some(totp.into()),
+        }
+    }
+
+    #[test]
+    fn update_totp_stores_protected_otp_and_drops_legacy() {
+        let (mut kf, uuid) = site_with(&[("TOTP Seed", "AAAA"), ("TOTP Settings", "60;8")]);
+        let info = update(&mut kf, &uuid, set_totp(Some("jbsw y3dp ehpk 3pxp"))).unwrap();
+        assert_eq!(field(&kf, &uuid, "otp"), Some((LINK.to_string(), true)));
+        assert_eq!(field(&kf, &uuid, "TOTP Seed"), None);
+        assert_eq!(field(&kf, &uuid, "TOTP Settings"), None);
+        assert_eq!(info.totp, LINK);
+        assert!(info.has_totp);
+    }
+
+    #[test]
+    fn update_empty_totp_removes_every_totp_field() {
+        let (mut kf, uuid) = site_with(&[("otp", LINK), ("TOTP Seed", "AAAA"), ("TOTP Settings", "60;8")]);
+        let info = update(&mut kf, &uuid, set_totp(Some("  "))).unwrap();
+        for key in ["otp", "TOTP Seed", "TOTP Settings"] {
+            assert_eq!(field(&kf, &uuid, key), None, "{key}");
+        }
+        assert_eq!(info.totp, "");
+        assert!(!info.has_totp);
+    }
+
+    #[test]
+    fn update_invalid_totp_is_refused_and_entry_untouched() {
+        let (mut kf, uuid) = site_with(&[("otp", LINK)]);
+        let mut upd = set_totp(Some("pas une clé !"));
+        upd.title = Some("Changed".to_string());
+        assert_eq!(update(&mut kf, &uuid, upd).err().as_deref(), Some("TOTP_INVALID"));
+        assert_eq!(find_entry(&kf.root.group, &uuid).unwrap().title(), "Site");
+        assert_eq!(field(&kf, &uuid, "otp").unwrap().0, LINK);
+    }
+
+    #[test]
+    fn update_without_totp_keeps_it() {
+        let (mut kf, uuid) = site_with(&[("otp", LINK)]);
+        let mut upd = set_totp(None);
+        upd.title = Some("Renamed".to_string());
+        update(&mut kf, &uuid, upd).unwrap();
+        assert_eq!(field(&kf, &uuid, "otp").unwrap().0, LINK);
+    }
+
+    #[test]
+    fn update_with_same_link_keeps_it() {
+        let link = "otpauth://totp/Old%20title?secret=JBSWY3DPEHPK3PXP&digits=8";
+        let (mut kf, uuid) = site_with(&[("otp", link)]);
+        let mut upd = set_totp(Some(link));
+        upd.title = Some("New title".to_string());
+        update(&mut kf, &uuid, upd).unwrap();
+        assert_eq!(field(&kf, &uuid, "otp").unwrap().0, link);
+    }
+
+    #[test]
+    fn create_with_totp_then_get_code() {
+        let mut kf = xml::KeePassFile::new("t");
+        let info = create(&mut kf, new_site("JBSWY3DPEHPK3PXP")).unwrap();
+        assert_eq!(info.totp, LINK);
+        assert_eq!(get_totp_code(&kf, &info.uuid, 1111111109).unwrap().code, "071271");
+        assert!(get_totp_code(&kf, "nope", 0).is_err());
+    }
+
+    #[test]
+    fn create_with_invalid_totp_is_refused() {
+        let mut kf = xml::KeePassFile::new("t");
+        assert_eq!(create(&mut kf, new_site("!!!")).err().as_deref(), Some("TOTP_INVALID"));
+        assert!(kf.root.group.entries.is_empty());
     }
 }
