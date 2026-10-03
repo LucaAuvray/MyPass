@@ -73,11 +73,12 @@ pub fn delete(kf: &mut KeePassFile, uuid: &str) -> Result<(), String> {
         return Err("Cannot delete the root group".to_string());
     }
 
-    // The moved content must look moved to the merge on the other devices.
+    // Only the location changes (KeePassXC's LocationChanged): the content keeps its LMT, so
+    // an edit made meanwhile on another device still wins; that device's merge dissolves the
+    // folder into the same parent.
     let target = entries::find_group_mut(&mut kf.root.group, uuid)?;
     let now = xml::Times::now().last_modification_time;
     for entry in &mut target.entries {
-        entry.times.touch();
         entry.times.location_changed = now.clone();
     }
     for group in &mut target.groups {
@@ -213,7 +214,8 @@ mod tests {
         let p = entries::find_group(&kf.root.group, &parent.uuid).unwrap();
         assert_eq!(p.entries.len(), 1);
         assert_eq!(p.entries[0].uuid, entry_uuid);
-        assert!(p.entries[0].times.last_modification_time.as_deref().unwrap() > OLD);
+        // Only the location changes: a newer edit made elsewhere must keep winning the merge.
+        assert_eq!(p.entries[0].times.last_modification_time.as_deref(), Some(OLD));
         assert!(p.entries[0].times.location_changed.as_deref().unwrap() > OLD);
         assert_eq!(p.groups.len(), 1);
         assert_eq!(p.groups[0].uuid, grand.uuid);

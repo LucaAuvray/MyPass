@@ -6,6 +6,7 @@
 /// propagent via DeletedObjects si la tombstone est plus récente que la
 /// dernière modification.
 use crate::xml::{DeletedObject, Entry, Group, History, KeePassFile};
+use std::collections::HashMap;
 
 #[derive(Debug, Default, PartialEq, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -95,14 +96,17 @@ fn subgroups<'a>(group: &'a Group, out: &mut Vec<&'a Group>) {
 /// Groupe inconnu : ajouté vide (les entrées arrivent par la passe entrées),
 /// sauf s'il a été supprimé ici après sa dernière modification — il n'est
 /// alors pas recréé et ses sous-groupes vont au parent survivant le plus proche.
+/// `redirect` reçoit, pour chaque groupe non recréé, le parent local qui le
+/// remplace : ses entrées y vont, comme chez l'autre qui le dissout.
 /// ponytail: folder position is not merged (no UI moves folders); a folder deleted on one
-/// device and renamed on another before sync survives, its subfolders may then sit in
-/// different places per device.
+/// device and renamed on another before sync survives, its subfolders and entries may then
+/// sit in different places per device.
 fn merge_groups(
     local_root: &mut Group,
     local_dead: &[DeletedObject],
     remote_group: &Group,
     local_parent: &str,
+    redirect: &mut HashMap<String, String>,
     outcome: &mut MergeOutcome,
 ) {
     for child in &remote_group.groups {
@@ -120,7 +124,10 @@ fn merge_groups(
                 }
                 child.uuid.as_str()
             }
-            None if deleted_here() => local_parent,
+            None if deleted_here() => {
+                redirect.insert(child.uuid.clone(), local_parent.to_string());
+                local_parent
+            }
             None => {
                 let mut shell = child.clone();
                 shell.groups = vec![];
@@ -133,7 +140,7 @@ fn merge_groups(
                 child.uuid.as_str()
             }
         };
-        merge_groups(local_root, local_dead, child, next_parent, outcome);
+        merge_groups(local_root, local_dead, child, next_parent, redirect, outcome);
     }
 }
 
@@ -152,10 +159,7 @@ fn relocate_entry(root: &mut Group, uuid: &str, target: &str) {
 pub fn merge(local: &mut KeePassFile, remote: &KeePassFile) -> MergeOutcome {
     let mut outcome = MergeOutcome::default();
     let local_root_uuid = local.root.group.uuid.clone();
-    // Le parent distant d'une entrée, vu d'ici (la racine distante = la nôtre).
-    let local_parent = |remote_parent: &str| {
-        if remote_parent == remote.root.group.uuid { local_root_uuid.clone() } else { remote_parent.to_string() }
-    };
+    let mut redirect = HashMap::new();
 
     // 1. Groupes (avant les entrées, pour qu'elles aient leur parent).
     merge_groups(
@@ -163,8 +167,19 @@ pub fn merge(local: &mut KeePassFile, remote: &KeePassFile) -> MergeOutcome {
         &local.root.deleted_objects.items,
         &remote.root.group,
         &local_root_uuid,
+        &mut redirect,
         &mut outcome,
     );
+
+    // Le parent distant d'une entrée, vu d'ici : la racine distante = la nôtre,
+    // un dossier supprimé ici = le parent qui le remplace.
+    let local_parent = |remote_parent: &str| {
+        if remote_parent == remote.root.group.uuid {
+            local_root_uuid.clone()
+        } else {
+            redirect.get(remote_parent).cloned().unwrap_or_else(|| remote_parent.to_string())
+        }
+    };
 
     // 2. Entrées du remote : mise à jour LWW ou ajout.
     let mut remote_entries = Vec::new();
@@ -192,14 +207,12 @@ pub fn merge(local: &mut KeePassFile, remote: &KeePassFile) -> MergeOutcome {
                 let blocked = tombstone(local, &remote_entry.uuid)
                     .is_some_and(|t| t >= lmt(remote_entry));
                 if !blocked {
-                    // Le parent existe forcément si le remote l'avait (passe 1),
-                    // sinon racine (uuid parent = racine remote, différente de la
-                    // racine locale).
-                    let root_uuid = local.root.group.uuid.clone();
-                    let target_uuid = if find_group_mut(&mut local.root.group, parent_uuid).is_some() {
-                        parent_uuid.clone()
+                    // Le parent existe (passe 1 l'a créé, ou le remplace) ; sinon racine.
+                    let wanted = local_parent(parent_uuid);
+                    let target_uuid = if find_group_mut(&mut local.root.group, &wanted).is_some() {
+                        wanted
                     } else {
-                        root_uuid
+                        local_root_uuid.clone()
                     };
                     let target = find_group_mut(&mut local.root.group, &target_uuid)
                         .expect("groupe cible garanti");
@@ -563,5 +576,60 @@ mod tests {
         assert_eq!(entry_uuids(&local.root.group.groups[0]), vec!["u2"]);
         assert_eq!(entry_uuids(&local.root.group), vec!["u1"]);
         assert!(!merge(&mut local, &remote).changed(), "2nd merge = no-op");
+    }
+
+    /// Uuid of the folder holding entry `uuid`.
+    fn parent_of(kf: &KeePassFile, uuid: &str) -> String {
+        let mut all = Vec::new();
+        collect_entries(&kf.root.group, &mut all);
+        all.into_iter().find(|(_, e)| e.uuid == uuid).map(|(p, _)| p).expect("entry exists")
+    }
+
+    #[test]
+    fn edit_made_before_a_folder_deletion_elsewhere_survives() {
+        // Both devices: root > g1 { u1 "old" @T10 }.
+        let mut a = vault_with(&[]);
+        let mut g1 = folder("g1", "Perso", T10);
+        let mut old = Entry::new("old", "user", "pass", "");
+        old.uuid = "u1".to_string();
+        old.times.last_modification_time = Some(T10.to_string());
+        g1.entries.push(old);
+        a.root.group.groups.push(g1);
+        let mut b = a.clone();
+        // B edits u1 (offline), then A deletes the folder (later).
+        let mut edited = Entry::new("NEW", "user", "pass", "");
+        edited.uuid = "u1".to_string();
+        edited.times.last_modification_time = Some(T11.to_string());
+        b.root.group.groups[0].entries[0] = edited;
+        crate::ops::groups::delete(&mut a, "g1").unwrap();
+
+        merge(&mut b, &a);
+        merge(&mut a, &b);
+
+        for kf in [&a, &b] {
+            assert_eq!(kf.root.group.entries.len(), 1);
+            assert_eq!(kf.root.group.entries[0].title(), "NEW", "the newest edit must stay visible");
+            assert!(kf.root.group.groups.is_empty());
+        }
+    }
+
+    #[test]
+    fn new_entry_in_a_folder_deleted_here_lands_in_the_same_place_on_both_devices() {
+        // Both devices: root > work > f.
+        let mut a = vault_with(&[]);
+        let mut work = folder("work", "Work", T10);
+        work.groups.push(folder("f", "F", T10));
+        a.root.group.groups.push(work);
+        let mut b = a.clone();
+        // B adds n to f (offline); A deletes f.
+        b.root.group.groups[0].groups[0].entries.push(entry("n", T11));
+        crate::ops::groups::delete(&mut a, "f").unwrap();
+
+        merge(&mut a, &b);
+        merge(&mut b, &a);
+
+        assert_eq!(parent_of(&a, "n"), "work", "here: the deleted folder's parent");
+        assert_eq!(parent_of(&b, "n"), "work", "there: dissolved into the same parent");
+        assert!(!merge(&mut a, &b).changed() && !merge(&mut b, &a).changed(), "converged");
     }
 }

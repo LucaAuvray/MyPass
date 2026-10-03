@@ -53,9 +53,11 @@ réapparaisse ; une entrée déplacée change de dossier partout.
   `Err("GROUP_NAME_REQUIRED")`. `update` qui change le nom ou l'icône appelle `times.touch()`
   (pas pour `is_expanded` seul).
 - `delete(kf, uuid)` : racine refusée (inchangé). Entrées et sous-dossiers du dossier sont ajoutés
-  à la fin du parent ; chaque entrée remontée a son `LastModificationTime` et son `LocationChanged`
-  avancés, chaque sous-dossier remonté son `LocationChanged`. Le dossier est retiré ; **une seule**
-  tombstone, celle du dossier.
+  à la fin du parent ; chaque entrée et chaque sous-dossier remontés ont leur `LocationChanged`
+  avancé, **pas** le `LastModificationTime` des entrées (une modification faite entre-temps sur un
+  autre appareil doit continuer à gagner ; cet appareil dissout le dossier dans le même parent).
+  Le dossier est retiré ; **une seule** tombstone, celle du dossier. *(Amendé après la revue
+  finale : la première version avançait aussi le LMT et masquait une modification plus récente.)*
 - `move_entry` : avance aussi `LocationChanged` (compat KeePassXC) en plus du `touch()` existant.
 - `GroupInfo` : `#[serde(rename_all = "camelCase")]`, champ `parent_uuid` supprimé,
   `entry_count` = entrées du dossier **et de ses sous-dossiers**.
@@ -74,7 +76,10 @@ Ordre dans `merge(local, remote)` :
    - connu en local avec `LMT(distant) > LMT(local)` : `name`, `icon_id`, `notes` et `times`
      du distant sont copiés, `groups_updated += 1`. Les enfants et entrées ne sont pas touchés.
 2. **Entrées** (existant) : quand le distant gagne, en plus du remplacement, l'entrée est déplacée
-   dans le dossier parent distant si celui-ci existe en local et diffère de l'actuel.
+   dans le dossier parent distant si celui-ci existe en local et diffère de l'actuel. Un parent
+   distant supprimé ici (non recréé en passe 1) est remplacé par le parent survivant qui le
+   remplace, pour les entrées mises à jour comme pour les nouvelles : l'autre appareil les range
+   au même endroit en dissolvant le dossier.
 3. **Suppressions d'entrées** (existant).
 4. **Suppressions de dossiers** : tout groupe local (racine exclue) absent du distant et ayant une
    tombstone distante `t >= LMT(groupe local)` est retiré ; son contenu restant (entrées et
@@ -86,8 +91,8 @@ Ordre dans `merge(local, remote)` :
 - Le merge reste idempotent : rejouer la même fusion ne change rien et renvoie `changed() == false`.
 - **Limite assumée** (commentaire `ponytail:` dans `merge.rs`) : la position d'un dossier n'est
   pas fusionnée. Seul cas visible : un même dossier supprimé sur un appareil et renommé sur un
-  autre avant sync — le dossier renommé survit (vide), mais ses sous-dossiers peuvent rester à des
-  endroits différents selon l'appareil.
+  autre avant sync — le dossier renommé survit, mais ses sous-dossiers et ses entrées peuvent
+  rester à des endroits différents selon l'appareil.
 - **Limite assumée de l'approche A** : déplacer une entrée sur un appareil puis la modifier sur un
   autre avant sync → la modification (plus récente) gagne et ramène l'entrée dans son ancien
   dossier. Rien n'est perdu.
