@@ -20,6 +20,8 @@ quick-xml = { version = "0.37", features = ["serialize"] }
 # use totp-rs's own secret generation (generate_totp_secret hand-rolls base32
 # using mypass-core's own rand 0.8 dependency instead).
 totp-rs = { version = "5", features = ["otpauth"] }
+# Already in the tree through totp-rs (otpauth): cleans pasted 2FA links.
+url = "2"
 csv = "1"
 serde_json = "1"
 

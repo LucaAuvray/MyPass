@@ -2,6 +2,7 @@
 /// (lossless) and CSV (read by header names, so Google, Apple, KeePassXC and
 /// Bitwarden exports land in the right fields).
 use crate::ops::entries::{apply_custom_fields, find_entry_mut, set_string_field, set_string_field_protected};
+use crate::totp::{entry_otp_uri, normalize};
 use crate::xml::{Entry, Group, KeePassFile};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
@@ -41,7 +42,7 @@ impl ExportFormat {
 }
 
 /// Fields carried by ImportedEntry's own members rather than by customFields.
-const STANDARD_KEYS: [&str; 7] = ["Title", "UserName", "Password", "URL", "Notes", "otp", "TOTP Seed"];
+const STANDARD_KEYS: [&str; 8] = ["Title", "UserName", "Password", "URL", "Notes", "otp", "TOTP Seed", "TOTP Settings"];
 const CSV_HEADER: [&str; 8] = ["Group", "Title", "Username", "Password", "URL", "Notes", "TOTP", "Tags"];
 
 #[derive(Serialize, Deserialize)]
@@ -92,7 +93,6 @@ fn collect(group: &Group, path: &str, bin: Option<&str>, uuids: &[String], out: 
 }
 
 fn to_imported(e: &Entry, group: &str) -> ImportedEntry {
-    let field = |key: &str| e.strings.iter().find(|s| s.key == key).map(|s| s.value.content.clone());
     ImportedEntry {
         group: group.to_string(),
         title: e.title().to_string(),
@@ -101,7 +101,7 @@ fn to_imported(e: &Entry, group: &str) -> ImportedEntry {
         url: e.url().to_string(),
         notes: e.notes().to_string(),
         tags: split_tags(e.tags.as_deref().unwrap_or("")),
-        totp: field("otp").or_else(|| field("TOTP Seed")).unwrap_or_default(),
+        totp: entry_otp_uri(e).unwrap_or_default(),
         custom_fields: e
             .strings
             .iter()
@@ -134,7 +134,7 @@ fn tidy(mut e: ImportedEntry) -> Option<ImportedEntry> {
     if e.title.is_empty() {
         e.title = e.url.clone();
     }
-    e.totp = normalize_totp(&e.totp, &e.title);
+    e.totp = normalize(&e.totp, &e.title);
     Some(e)
 }
 
@@ -192,19 +192,6 @@ fn parse_csv(content: &str) -> Result<Vec<ImportedEntry>, String> {
     Ok(out)
 }
 
-/// TOTP as stored in the `otp` field (KeePassXC convention): an `otpauth://`
-/// URI is kept as is, a bare secret is wrapped into one.
-pub(crate) fn normalize_totp(value: &str, title: &str) -> String {
-    let v = value.trim();
-    if v.is_empty() {
-        return String::new();
-    }
-    if v.get(..10).is_some_and(|p| p.eq_ignore_ascii_case("otpauth://")) {
-        return v.to_string();
-    }
-    let secret: String = v.chars().filter(|c| !c.is_whitespace()).collect::<String>().to_uppercase();
-    format!("otpauth://totp/{}?secret={secret}", percent_encode(title))
-}
 
 /// An entry after deduplication: `replaceUuid` names the vault entry it overwrites.
 #[derive(Deserialize, Clone, Debug)]
@@ -260,7 +247,7 @@ fn write_fields(target: &mut Entry, e: &ImportedEntry) {
     if !e.tags.is_empty() {
         target.tags = Some(e.tags.join(","));
     }
-    let otp = normalize_totp(&e.totp, &e.title);
+    let otp = normalize(&e.totp, &e.title);
     if !otp.is_empty() {
         set_string_field_protected(target, "otp", &otp);
     }
@@ -286,17 +273,6 @@ fn ensure_group<'a>(root: &'a mut Group, path: &str) -> &'a mut Group {
     group
 }
 
-fn percent_encode(s: &str) -> String {
-    s.bytes()
-        .map(|b| {
-            if b.is_ascii_alphanumeric() || b"-._~".contains(&b) {
-                (b as char).to_string()
-            } else {
-                format!("%{b:02X}")
-            }
-        })
-        .collect()
-}
 
 #[cfg(test)]
 mod tests {
@@ -383,15 +359,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn totp_bare_secret_becomes_otpauth() {
-        assert_eq!(
-            normalize_totp("jbsw y3dp ehpk 3pxp", "Mon site"),
-            "otpauth://totp/Mon%20site?secret=JBSWY3DPEHPK3PXP"
-        );
-        assert_eq!(normalize_totp("OTPAUTH://totp/X?secret=AB", "t"), "OTPAUTH://totp/X?secret=AB");
-        assert_eq!(normalize_totp("  ", "t"), "");
-    }
 
     fn vault_with_one_in_perso() -> (KeePassFile, String) {
         let mut kf = KeePassFile::new("T");
@@ -610,6 +577,15 @@ mod tests {
         apply_import(&mut b, resolved(parse_import(&export(&a, ExportFormat::Json, &[]).unwrap()).unwrap())).unwrap();
         let e = &b.root.group.entries[0];
         assert_eq!(raw(e, "otp"), Some("otpauth://totp/keepass2?secret=JBSWY3DPEHPK3PXP"));
+    }
+
+    #[test]
+    fn export_keeps_legacy_totp_settings() {
+        let mut kf = KeePassFile::new("T");
+        kf.root.group.entries.push(entry_with("keepass2", &[("TOTP Seed", "JBSWY3DPEHPK3PXP"), ("TOTP Settings", "60;8")]));
+        let v: serde_json::Value = serde_json::from_str(&export(&kf, ExportFormat::Json, &[]).unwrap()).unwrap();
+        assert_eq!(v["entries"][0]["totp"], "otpauth://totp/keepass2?secret=JBSWY3DPEHPK3PXP&period=60&digits=8");
+        assert!(v["entries"][0]["customFields"].get("TOTP Settings").is_none());
     }
 
     #[test]
