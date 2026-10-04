@@ -305,6 +305,22 @@ perdus à la création de toute entrée (`ops::entries::create`).
 (déverrouillage, sync, HIBP, copie, extension) ; les coffres serveur sont en `600` et le service
 répond.
 
+**Résultat (2026-10-04) :** livré (spec `docs/superpowers/specs/2026-10-04-hardening-design.md`, plan
+`docs/superpowers/plans/2026-10-04-hardening.md`). CSP stricte sur le desktop (`tauri.conf.json`)
+et sur la PWA (en-tête posé par le serveur, avec `nosniff` et `no-referrer`, `/api` compris).
+Polices embarquées (`@fontsource-variable`, gardées en fichiers par Vite : `font-src 'self'` refuse
+les `data:`), plus aucun appel à Google. Plugins `fs` et `shell` retirés, capabilities réduites à
+`core`, presse-papiers écrire/vider et `opener` ; un clic sur l'URL d'une entrée ouvre un seul
+onglet. Mot de passe maître et fichier-clé en `Zeroizing`, effacés par `DbState::lock_vault`.
+Clippy `-D warnings` propre sur les quatre crates (un test de `keys.rs` qui passait quoi qu'il
+arrive compare désormais deux clés au même sel). Constaté en E2E : Tauri n'ajoute pas de nonce à
+`style-src` (aucun style en ligne dans `index.html`), donc `'unsafe-inline'` reste effectif pour
+le `<style>` de sonner ; l'IPC passe par `https://ipc.localhost`, couvert par `http://ipc.localhost`.
+E2E desktop (build release, identifiant de test) et PWA (Chrome headless, dont rechargement serveur
+coupé servi par le service worker) : zéro violation CSP. Limite assumée : les entrées déchiffrées
+sont libérées sans mise à zéro au verrouillage. Production (droits `600`, `UMask`, ménage du
+conteneur, déploiement) : au feu vert de Luca.
+
 ## 7 — Mise à jour automatique
 
 **Objectif :** déployer une version une fois et voir les deux PC se mettre à jour seuls.
@@ -347,7 +363,7 @@ redémarre en 0.1.1.
 | 3 | TOTP | [x] | [x] | [x] 2026-10-03 |
 | 4 | Groupes | [x] | [x] | [x] 2026-10-03 |
 | 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
-| 6 | Durcissement | [ ] | [ ] | [ ] |
+| 6 | Durcissement | [x] | [x] | [x] 2026-10-04 |
 | 7 | Mise à jour auto | [ ] | [ ] | [ ] |
 | 8 | Docs | — | — | [ ] |
 
