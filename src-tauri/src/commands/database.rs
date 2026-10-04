@@ -3,14 +3,17 @@ use crate::kdbx::{self, crypto::Cipher, keys::KdfParams, xml::KeePassFile};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use tauri::State;
+use zeroize::Zeroizing;
 
 /// In-memory database state. Stored behind a Mutex for thread safety.
 pub struct DbState {
     pub is_open: bool,
     pub file_path: Option<PathBuf>,
     pub keepass_file: Option<KeePassFile>,
-    pub password_hash: Option<Vec<u8>>, // Cached for save operations
-    pub keyfile_data: Option<Vec<u8>>,
+    /// Kept while the vault is open: every save and every sync re-derives the key
+    /// from it (each write draws a new salt, and the remote vault has its own).
+    pub master_password: Option<Zeroizing<String>>,
+    pub keyfile_data: Option<Zeroizing<Vec<u8>>>,
     pub cipher: Cipher,
     pub kdf: KdfParams,
     pub salt: Vec<u8>,
@@ -22,7 +25,7 @@ impl Default for DbState {
             is_open: false,
             file_path: None,
             keepass_file: None,
-            password_hash: None,
+            master_password: None,
             keyfile_data: None,
             cipher: Cipher::Aes256,
             kdf: KdfParams::default(),
@@ -39,19 +42,26 @@ impl DbState {
         if !self.is_open || self.keepass_file.is_none() || self.file_path.is_none() {
             return Err("No open database".to_string());
         }
-        let password = String::from_utf8(
-            self.password_hash.as_ref().ok_or("No password cached")?.clone(),
-        )
-        .map_err(|_| "Password encoding error".to_string())?;
+        let password = self.master_password.as_deref().ok_or("No password cached")?;
 
         kdbx::writer::write_database(
             self.file_path.as_ref().unwrap(),
             self.keepass_file.as_ref().unwrap(),
-            &password,
-            self.keyfile_data.as_deref(),
+            password,
+            self.keyfile_data.as_deref().map(Vec::as_slice),
             self.cipher,
             &self.kdf,
         )
+    }
+
+    /// Lock: wipes (zeroes) the master password and the keyfile, and drops the
+    /// decrypted vault.
+    // ponytail: the decrypted entries (KeePassFile strings) are dropped, not zeroed — derive Zeroize on the xml types if memory dumps after lock matter.
+    pub fn lock_vault(&mut self) {
+        self.master_password = None;
+        self.keyfile_data = None;
+        self.keepass_file = None;
+        self.is_open = false;
     }
 }
 
@@ -117,8 +127,8 @@ pub fn load_into_state(
     db.is_open = true;
     db.file_path = Some(path);
     db.keepass_file = Some(result.keepass_file);
-    db.password_hash = Some(password.as_bytes().to_vec()); // Simplified — use hash in production
-    db.keyfile_data = keyfile;
+    db.master_password = Some(Zeroizing::new(password.to_string()));
+    db.keyfile_data = keyfile.map(Zeroizing::new);
     db.cipher = result.cipher;
     db.kdf = result.kdf;
     db.salt = result.salt;
@@ -241,8 +251,8 @@ pub async fn create_database(
     db.is_open = true;
     db.file_path = Some(path.clone());
     db.keepass_file = Some(keepass_file);
-    db.password_hash = Some(password.as_bytes().to_vec());
-    db.keyfile_data = keyfile_data;
+    db.master_password = Some(Zeroizing::new(password));
+    db.keyfile_data = keyfile_data.map(Zeroizing::new);
     db.cipher = cipher;
     db.kdf = kdf;
     db.salt = kdbx::keys::generate_salt(32);
@@ -270,12 +280,7 @@ pub async fn save_database(state: State<'_, Arc<Mutex<DbState>>>) -> Result<(), 
 pub async fn lock_database(state: State<'_, Arc<Mutex<DbState>>>) -> Result<(), String> {
     crate::ssh::agent::clear_session_approvals();
     let mut db = state.lock().map_err(|e| format!("Lock error: {e}"))?;
-
-    // Zero out sensitive data
-    db.password_hash = None;
-    db.keepass_file = None;
-    db.is_open = false;
-
+    db.lock_vault();
     Ok(())
 }
 
@@ -319,6 +324,22 @@ mod tests {
     use super::*;
     use crate::kdbx::xml::{CustomDataItem, KeePassFile};
 
+    #[test]
+    fn lock_vault_forgets_password_keyfile_and_vault() {
+        let mut db = DbState {
+            is_open: true,
+            keepass_file: Some(KeePassFile::new("t")),
+            master_password: Some(zeroize::Zeroizing::new("pw".to_string())),
+            keyfile_data: Some(zeroize::Zeroizing::new(vec![1, 2, 3])),
+            ..Default::default()
+        };
+        db.lock_vault();
+        assert!(!db.is_open);
+        assert!(db.keepass_file.is_none());
+        assert!(db.master_password.is_none());
+        assert!(db.keyfile_data.is_none());
+    }
+
     /// Proves the browser-bridge fix: mutating the in-memory vault and calling
     /// save() actually persists to disk (associations/credentials survive
     /// restart), by writing, mutating+saving, then reopening from disk.
@@ -338,7 +359,7 @@ mod tests {
             is_open: true,
             file_path: Some(path.clone()),
             keepass_file: Some(loaded.keepass_file),
-            password_hash: Some(password.as_bytes().to_vec()),
+            master_password: Some(zeroize::Zeroizing::new(password.to_string())),
             keyfile_data: None,
             cipher: loaded.cipher,
             kdf: loaded.kdf,

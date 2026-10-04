@@ -238,16 +238,14 @@ async fn run_sync_inner(db: Arc<Mutex<DbState>>, runtime: SyncRuntime) -> Result
             if !db.is_open || db.keepass_file.is_none() {
                 return Err("coffre fermé pendant la sync".into());
             }
-            let password = String::from_utf8(
-                db.password_hash.as_ref().ok_or("mot de passe non disponible")?.clone(),
-            )
-            .map_err(|_| "encodage mot de passe")?;
+            let password = db.master_password.clone().ok_or("mot de passe non disponible")?;
             let keyfile = db.keyfile_data.clone();
+            let keyfile = keyfile.as_deref().map(Vec::as_slice);
 
             match &remote_bytes {
                 Some(bytes) => {
                     let remote =
-                        kdbx::reader::read_database_bytes(bytes, &password, keyfile.as_deref())
+                        kdbx::reader::read_database_bytes(bytes, &password, keyfile)
                             .map_err(|e| {
                                 set_status(
                                     &runtime,
@@ -271,7 +269,7 @@ async fn run_sync_inner(db: Arc<Mutex<DbState>>, runtime: SyncRuntime) -> Result
                         Some(kdbx::writer::write_database_bytes(
                             db.keepass_file.as_ref().unwrap(),
                             &password,
-                            keyfile.as_deref(),
+                            keyfile,
                             db.cipher,
                             &db.kdf,
                         )?)
@@ -282,7 +280,7 @@ async fn run_sync_inner(db: Arc<Mutex<DbState>>, runtime: SyncRuntime) -> Result
                 None => Some(kdbx::writer::write_database_bytes(
                     db.keepass_file.as_ref().unwrap(),
                     &password,
-                    keyfile.as_deref(),
+                    keyfile,
                     db.cipher,
                     &db.kdf,
                 )?),
