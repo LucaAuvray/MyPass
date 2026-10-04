@@ -6,6 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import App from "./App";
+import "@fontsource-variable/inter/opsz.css";
+import "@fontsource-variable/dm-sans/opsz.css";
+import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import "./i18n/config";
 

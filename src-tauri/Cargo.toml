@@ -17,8 +17,6 @@ tauri-build = { version = "2", features = [] }
 mypass-core = { path = "../crates/mypass-core" }
 tauri = { version = "2", features = [] }
 tauri-plugin-clipboard-manager = "2"
-tauri-plugin-fs = "2"
-tauri-plugin-shell = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 # Ensures only one MyPass process runs, so the browser bridge and the unlocked

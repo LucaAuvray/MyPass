@@ -67,6 +67,8 @@ export default defineConfig(({ mode }) => ({
     minify: !process.env.TAURI_DEBUG ? "esbuild" : false,
     // Produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    // Fonts stay files: the CSP (font-src 'self') refuses data: URIs.
+    assetsInlineLimit: (file) => (file.endsWith(".woff2") ? false : undefined),
   },
 
   resolve: {

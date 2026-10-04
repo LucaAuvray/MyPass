@@ -5,11 +5,7 @@
   "permissions": [
     "core:default",
     "clipboard-manager:allow-write-text",
-    "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-clear",
-    "fs:default",
-    "shell:default",
-    "opener:default",
-    "dialog:default"
+    "opener:default"
   ]
 }

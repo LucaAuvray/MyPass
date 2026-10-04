@@ -11,9 +11,9 @@
 
 @theme {
   /* === Typography === */
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "DM Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "DM Sans Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 
   /* === Light Mode Palette === */
   --color-background: #FAFAF9;
