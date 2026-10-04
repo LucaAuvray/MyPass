@@ -94,7 +94,7 @@ les coffres sont en `600`.
 **`DbState`** (`src-tauri/src/commands/database.rs`) :
 - `password_hash: Option<Vec<u8>>` → `master_password: Option<Zeroizing<String>>` ;
 - `keyfile_data: Option<Vec<u8>>` → `Option<Zeroizing<Vec<u8>>>` ;
-- `DbState::lock(&mut self)` : met `master_password`, `keyfile_data` et `keepass_file` à `None`
+- `DbState::lock_vault(&mut self)` : met `master_password`, `keyfile_data` et `keepass_file` à `None`
   et `is_open` à `false` ; `lock_database` l'appelle (après `clear_session_approvals`) ;
 - `save()` et `commands/sync.rs` lisent `master_password` directement (fin du
   `String::from_utf8(clone)`) ; toute copie reste un `Zeroizing` ;
@@ -128,7 +128,7 @@ Sans `MYPASS_STATIC_DIR`, le middleware n'est pas monté et rien ne change (API 
 ## 4. Vérification
 
 - **Tests automatiques :**
-  - `DbState::lock` efface mot de passe, fichier-clé et coffre ;
+  - `DbState::lock_vault` efface mot de passe, fichier-clé et coffre ;
   - `server/tests/static_files.rs` : `index.html` et une réponse `/api` portent la CSP (avec
     `'wasm-unsafe-eval'` et `frame-ancestors 'none'`), `nosniff` et `no-referrer`.
 - **Non-régression :** `cargo test` (core, src-tauri, server, wasm), `clippy -D warnings` sur les
