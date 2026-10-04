@@ -78,18 +78,25 @@ pub fn app_with_static(state: AppState, static_dir: Option<std::path::PathBuf>) 
                 tower_http::services::ServeDir::new(&dir)
                     .fallback(tower_http::services::ServeFile::new(dir.join("index.html"))),
             )
-            .layer(middleware::from_fn(static_cache_policy)),
+            .layer(middleware::from_fn(static_headers)),
         None => router,
     }
 }
 
+/// CSP de la PWA : tout vient du serveur lui-même, sauf HIBP ; le wasm
+/// exige 'wasm-unsafe-eval', et sonner injecte une balise <style>.
+const PWA_CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.pwnedpasswords.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+
+/// En-têtes de sécurité (CSP, nosniff, no-referrer) sur toutes les réponses,
+/// /api compris.
+///
 /// Politique de cache des statiques : l'index.html DOIT être revalidé à
 /// chaque visite (no-cache) — sinon, après un redéploiement, un index mis en
 /// cache heuristique référence des assets aux hashes disparus et la page se
 /// charge sans CSS/JS. Les assets Vite sont hashés → cache long immuable.
 /// Les réponses /api (JSON/octets, jamais text/html ni /assets/) ne matchent
 /// aucune des deux branches et restent sans directive de cache.
-async fn static_cache_policy(
+async fn static_headers(
     req: axum::extract::Request,
     next: middleware::Next,
 ) -> axum::response::Response {
@@ -111,5 +118,9 @@ async fn static_cache_policy(
         res.headers_mut()
             .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
     }
+    let h = res.headers_mut();
+    h.insert(header::CONTENT_SECURITY_POLICY, HeaderValue::from_static(PWA_CSP));
+    h.insert(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff"));
+    h.insert(header::REFERRER_POLICY, HeaderValue::from_static("no-referrer"));
     res
 }

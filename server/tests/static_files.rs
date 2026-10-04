@@ -85,6 +85,26 @@ async fn cache_headers_no_cache_html_immutable_assets() {
 }
 
 #[tokio::test]
+async fn every_response_carries_security_headers() {
+    let tmp = tempfile::tempdir().unwrap();
+    let web = tmp.path().join("web");
+    std::fs::create_dir_all(web.join("assets")).unwrap();
+    std::fs::write(web.join("index.html"), "<html>mypass-web</html>").unwrap();
+    std::fs::write(web.join("assets/app.js"), "console.log(1)").unwrap();
+
+    let app = app_with_static(common::test_state(tmp.path()), Some(web));
+
+    const CSP: &str = "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://api.pwnedpasswords.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+    for uri in ["/", "/sync", "/assets/app.js", "/api/health", "/api/vault"] {
+        let res = app.clone().oneshot(request(uri)).await.unwrap();
+        let h = res.headers();
+        assert_eq!(h["content-security-policy"], CSP, "{uri}");
+        assert_eq!(h["x-content-type-options"], "nosniff", "{uri}");
+        assert_eq!(h["referrer-policy"], "no-referrer", "{uri}");
+    }
+}
+
+#[tokio::test]
 async fn without_static_dir_root_stays_404() {
     let tmp = tempfile::tempdir().unwrap();
     let app = app_with_static(common::test_state(tmp.path()), None);
