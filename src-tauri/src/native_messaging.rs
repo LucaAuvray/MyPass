@@ -756,7 +756,9 @@ fn handle_lock_database(req: &NativeRequest, _session: &SessionState, db_state: 
         Err(_) => return error_response(req, 3, "Database lock error"),
     };
 
-    db.keepass_file = None;
+    // Same lock as the app's own button: wipes the master password and keyfile too.
+    crate::ssh::agent::clear_session_approvals();
+    db.lock_vault();
 
     NativeResponse {
         action: Some("lock-database".to_string()),
@@ -938,4 +940,36 @@ fn base64_encode(data: &[u8]) -> String {
 fn base64_decode(s: &str) -> Option<Vec<u8>> {
     use base64::Engine;
     base64::engine::general_purpose::STANDARD.decode(s).ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::kdbx::xml::KeePassFile;
+    use zeroize::Zeroizing;
+
+    #[test]
+    fn extension_lock_wipes_password_and_keyfile() {
+        let db = Arc::new(Mutex::new(DbState {
+            is_open: true,
+            keepass_file: Some(KeePassFile::new("t")),
+            master_password: Some(Zeroizing::new("pw".to_string())),
+            keyfile_data: Some(Zeroizing::new(vec![1, 2, 3])),
+            ..Default::default()
+        }));
+        let req = NativeRequest {
+            action: "lock-database".to_string(),
+            message: None,
+            nonce: None,
+            client_id: "c".to_string(),
+            public_key: None,
+            trigger_unlock: None,
+        };
+        handle_lock_database(&req, &SessionState::new(), &db);
+        let db = db.lock().unwrap();
+        assert!(!db.is_open);
+        assert!(db.keepass_file.is_none());
+        assert!(db.master_password.is_none());
+        assert!(db.keyfile_data.is_none());
+    }
 }
