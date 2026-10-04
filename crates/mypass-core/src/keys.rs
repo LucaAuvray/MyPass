@@ -142,8 +142,9 @@ mod tests {
         let kdf = KdfParams::default();
         let salt = generate_salt(32);
 
-        let key_no_kf = derive_composite_key(password, None, &kdf).unwrap();
-        let key_with_kf = derive_composite_key(password, Some(b"keyfile-data"), &kdf).unwrap();
+        let key_no_kf = derive_composite_key_with_salt(password, None, &kdf, &salt).unwrap();
+        let key_with_kf =
+            derive_composite_key_with_salt(password, Some(b"keyfile-data"), &kdf, &salt).unwrap();
 
         assert_ne!(key_no_kf, key_with_kf);
     }

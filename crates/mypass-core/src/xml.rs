@@ -1,8 +1,8 @@
-/// KDBX XML layer. Handles serialization and deserialization of
-/// the XML-based inner format used by KDBX databases.
-///
-/// KDBX format: [Outer Header] | [Encrypted XML payload]
-/// The XML payload contains groups, entries, and metadata.
+//! KDBX XML layer. Handles serialization and deserialization of
+//! the XML-based inner format used by KDBX databases.
+//!
+//! KDBX format: [Outer Header] | [Encrypted XML payload]
+//! The XML payload contains groups, entries, and metadata.
 
 use serde::{Deserialize, Serialize};
 
@@ -421,7 +421,7 @@ mod tests {
     #[test]
     fn chrono_now_is_not_frozen_in_2024() {
         let now = chrono_now();
-        assert!(now > "2026-01-01".to_string(), "date figée: {now}");
+        assert!(now.as_str() > "2026-01-01", "date figée: {now}");
         assert_eq!(now.len(), "2026-07-10T12:00:00Z".len());
         assert!(now.ends_with('Z'));
     }

@@ -307,11 +307,11 @@ pub async fn get_database_info(state: State<'_, Arc<Mutex<DbState>>>) -> Result<
 // =============================================================================
 
 fn count_entries(group: &kdbx::xml::Group) -> usize {
-    group.entries.len() + group.groups.iter().map(|g| count_entries(g)).sum::<usize>()
+    group.entries.len() + group.groups.iter().map(count_entries).sum::<usize>()
 }
 
 fn count_groups(group: &kdbx::xml::Group) -> usize {
-    1 + group.groups.iter().map(|g| count_groups(g)).sum::<usize>()
+    1 + group.groups.iter().map(count_groups).sum::<usize>()
 }
 
 #[cfg(test)]

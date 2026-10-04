@@ -1,26 +1,26 @@
-/// Native Messaging Host for KeePassXC-Browser protocol.
-///
-/// Communicates with browser extensions via stdin/stdout using the
-/// KeePassXC-Browser protocol (NaCl box encryption).
-///
-/// Message format:
-/// - 4-byte length prefix (little-endian u32)
-/// - JSON message body: { action, message, nonce, clientID }
-///
-/// Protocol actions handled:
-/// - change-public-keys: Initial NaCl key exchange
-/// - associate: Link browser to vault
-/// - test-associate: Verify association
-/// - get-logins: Retrieve credentials for URL
-/// - set-login: Create/update credential
-/// - get-totp: Get TOTP code
-/// - get-identities: Retrieve identities and cards for form filling
-/// - generate-password: Generate random password
-/// - lock-database: Lock the vault
-/// - get-databasehash: Get database hash
-/// - get-database-groups: Get group list
-/// - create-new-group: Create new group
-/// - request-autotype: Global auto-type
+//! Native Messaging Host for KeePassXC-Browser protocol.
+//!
+//! Communicates with browser extensions via stdin/stdout using the
+//! KeePassXC-Browser protocol (NaCl box encryption).
+//!
+//! Message format:
+//! - 4-byte length prefix (little-endian u32)
+//! - JSON message body: { action, message, nonce, clientID }
+//!
+//! Protocol actions handled:
+//! - change-public-keys: Initial NaCl key exchange
+//! - associate: Link browser to vault
+//! - test-associate: Verify association
+//! - get-logins: Retrieve credentials for URL
+//! - set-login: Create/update credential
+//! - get-totp: Get TOTP code
+//! - get-identities: Retrieve identities and cards for form filling
+//! - generate-password: Generate random password
+//! - lock-database: Lock the vault
+//! - get-databasehash: Get database hash
+//! - get-database-groups: Get group list
+//! - create-new-group: Create new group
+//! - request-autotype: Global auto-type
 
 use crate::commands::browser;
 use crate::commands::database::DbState;

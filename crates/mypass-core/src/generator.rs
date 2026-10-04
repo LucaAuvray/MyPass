@@ -124,7 +124,7 @@ pub fn generate_password(config: PasswordConfig) -> Result<String, String> {
 
 pub fn generate_passphrase(config: PassphraseConfig) -> Result<String, String> {
     let mut rng = rand::thread_rng();
-    let word_count = config.word_count.max(3).min(20);
+    let word_count = config.word_count.clamp(3, 20);
 
     let words: Vec<String> = (0..word_count)
         .map(|_| {

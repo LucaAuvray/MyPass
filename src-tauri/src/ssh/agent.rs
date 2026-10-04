@@ -239,9 +239,7 @@ mod tests {
         apply_custom_fields(&mut e, &f);
         kf.root.group.entries.push(e);
 
-        let mut db = DbState::default();
-        db.is_open = true;
-        db.keepass_file = Some(kf);
+        let db = DbState { is_open: true, keepass_file: Some(kf), ..Default::default() };
         Arc::new(Mutex::new(db))
     }
 

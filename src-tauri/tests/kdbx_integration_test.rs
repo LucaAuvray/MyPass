@@ -1,6 +1,5 @@
-/// Integration test: Create a real KDBX file, write entries, read it back.
-/// Validates AES-256-GCM and ChaCha20-Poly1305 encryption + Argon2id KDF.
-use std::path::PathBuf;
+//! Integration test: Create a real KDBX file, write entries, read it back.
+//! Validates AES-256-GCM and ChaCha20-Poly1305 encryption + Argon2id KDF.
 
 #[test]
 fn test_kdbx_create_and_read_aes256() {

@@ -1,10 +1,10 @@
-/// NaCl box protocol implementation for browser integration using crypto_box crate.
-///
-/// Protocol overview:
-/// 1. Browser extension generates key pair (public + secret)
-/// 2. Extension sends public key to MyPass
-/// 3. MyPass generates its own key pair and sends public key back
-/// 4. All subsequent messages are encrypted using NaCl box (Curve25519 + XSalsa20-Poly1305)
+//! NaCl box protocol implementation for browser integration using crypto_box crate.
+//!
+//! Protocol overview:
+//! 1. Browser extension generates key pair (public + secret)
+//! 2. Extension sends public key to MyPass
+//! 3. MyPass generates its own key pair and sends public key back
+//! 4. All subsequent messages are encrypted using NaCl box (Curve25519 + XSalsa20-Poly1305)
 
 use crypto_box::aead::{Aead, AeadCore, OsRng};
 use crypto_box::{PublicKey, SecretKey, SalsaBox};
@@ -94,7 +94,7 @@ pub fn decrypt(
     let nonce = crypto_box::Nonce::from_slice(nonce);
 
     salsa_box
-        .decrypt(&nonce, ciphertext)
+        .decrypt(nonce, ciphertext)
         .map_err(|e| format!("Decryption error: {e}"))
 }
 
