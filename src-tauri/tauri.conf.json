@@ -1,7 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/nicepkg/vscode-css-system/refs/heads/main/schemas/tauri-v2.json",
   "productName": "MyPass",
-  "version": "0.1.0",
   "identifier": "com.mypass.app",
   "build": {
     "beforeDevCommand": "npm run dev",

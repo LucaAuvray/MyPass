@@ -23,7 +23,7 @@ Tout ce qui est « serveur » vit sur un conteneur Proxmox (CT 107, Ubuntu 24.04
 | `/var/lib/mypass/token.hash` | Hash du jeton Bearer d'API. Le jeton en clair n'est nulle part dans ce dépôt. |
 | `/usr/local/bin/mypass-server` | Binaire du serveur déployé (service `mypass-server.service`, user `mypass`, port 8787) |
 | `/opt/mypass-web/` | Build de la PWA servie (`MYPASS_STATIC_DIR`) ; `/opt/mypass-web.old/` = version précédente |
-| `/opt/mypass-downloads/` | `MyPass_0.1.0_x64_en-US.msi` + `latest.json`, servis sous `/download/<nom>` (`MYPASS_DOWNLOAD_DIR`) |
+| `/opt/mypass-downloads/` | `MyPass_<version>_x64_en-US.msi` (le courant et le précédent) + `latest.json` (manifeste de l'updater), servis sous `/download/<nom>` (`MYPASS_DOWNLOAD_DIR`) |
 | `/opt/mypass-src/server-build/` | Copie du projet utilisée pour compiler le serveur (cargo installé dans `/root/.cargo`) |
 | `/opt/mypass-src/server/` | Ancienne copie du serveur, **obsolète** (sans /download ni politique de cache) — à supprimer |
 
@@ -31,8 +31,21 @@ Règles pour toute opération sur le conteneur :
 - **Les coffres ne sont jamais dans le dépôt** (`*.kdbx` est ignoré). Ne jamais les rapatrier, afficher ou committer sans demande explicite ; ce sont les vraies données de Luca.
 - Lire/diagnostiquer avant de modifier. Copier un fichier en `.bak-<date>` avant de l'éditer. Vérifier après chaque changement (`systemctl status mypass-server`, `journalctl -u mypass-server`, `curl http://127.0.0.1:8787/api/health`) et montrer la sortie.
 - Le conteneur n'a **ni node ni wasm-pack** : la PWA se construit sur le PC (`npm run build:web`) puis `dist/` est copié dans `/opt/mypass-web` (sauvegarder l'ancien en `mypass-web.old`). Le serveur Rust se compile sur le conteneur (`cargo build --release` dans `server/`), puis remplacer `/usr/local/bin/mypass-server` et `systemctl restart mypass-server`.
-- Le `.msi` est construit sur le PC Windows (`npm run tauri build`), jamais sur le conteneur. `latest.json` est servi, mais **aucun plugin updater n'est configuré** dans `src-tauri/tauri.conf.json` à ce jour.
+- Le `.msi` est construit sur le PC Windows avec `npm run release`, jamais sur le conteneur : voir « Release desktop ».
 - Pas de sauvegarde automatique de `/var/lib/mypass` aujourd'hui (aucun cron) : à mettre en place.
+
+## Release desktop
+
+Au démarrage, l'app (build release) lit `https://mypass-luca.tail7687c9.ts.net/download/latest.json` ; si la version annoncée est plus récente, elle propose de l'installer (boîte native), vérifie la signature du `.msi`, se ferme, et le MSI la relance.
+
+1. Incrémenter `version` dans `src-tauri/Cargo.toml` (seule source de la version), committer.
+2. `npm run release` : construit le `.msi` signé et écrit `src-tauri/target/release/bundle/msi/latest.json`.
+3. Sur le conteneur : `cp -a /opt/mypass-downloads/latest.json /opt/mypass-downloads/latest.json.bak-<date>`.
+4. `scp` le `.msi` dans `/opt/mypass-downloads/`, puis `latest.json` en `latest.json.new`, puis `mv latest.json.new latest.json` : le manifeste arrive en dernier, aucun PC ne voit une version sans son `.msi`.
+5. Vérifier via le tailnet : `latest.json` annonce la version, et le `.msi` téléchargé a le même sha256 qu'en local.
+6. Garder le `.msi` courant et le précédent, supprimer les plus anciens.
+
+**Clé de signature :** `%USERPROFILE%\.tauri\mypass.key` (+ `.pub`), sans mot de passe, jamais dans le dépôt ; copie de secours dans le coffre de Luca. La clé publique est dans `tauri.conf.json` (`plugins.updater.pubkey`). Clé perdue = nouvelle paire, puis réinstallation manuelle du `.msi` sur chaque PC. Un simple `npm run tauri build` échoue sans la clé : utiliser `npm run release` (ou `--no-bundle`).
 
 ## Commandes
 
@@ -47,7 +60,8 @@ npm run build:web       # build PWA déployée sur le serveur de sync
 npm run smoke:wasm      # smoke test Node du module wasm
 npm run lint            # eslint, --max-warnings 0
 npm run format[:check]  # prettier sur src/
-npm run tauri build     # binaire natif / .msi
+npm run tauri build     # binaire natif (avec --no-bundle ; le .msi signé passe par release)
+npm run release         # .msi signé + latest.json (voir « Release desktop »)
 ```
 
 Rust :
@@ -66,7 +80,7 @@ cd server && cargo test                         # serveur (tests/api.rs, tests/s
 - `src/` — UI React 19. État : Zustand (`src/stores/{app,database,entries}Store.ts`) + TanStack Query. **Tous les appels vers Rust passent par `src/lib/tauri.ts`.**
 - `crates/mypass-core/` — noyau KDBX (lecture/écriture, crypto AES-GCM/ChaCha20, Argon2, XML), générateur, TOTP, ops sur coffre, `merge.rs` (fusion LWW + tombstones). Compile aussi en wasm32. `src-tauri` le ré-exporte comme `kdbx`.
 - `crates/mypass-wasm/` — bindings wasm-bindgen (JSON in/out, session `thread_local` qui reflète `DbState`). Sortie dans `crates/mypass-wasm/pkg`, alias `@wasm`.
-- `src-tauri/src/` — backend desktop. `commands/` : un fichier par domaine (`database`, `entries`, `groups`, `generator`, `totp`, `import_export`, `passkeys`, `browser`, `sync`, `ssh`). **Toute commande doit être ajoutée à `tauri::generate_handler![]` dans `lib.rs`**, sinon elle n'existe pas. `security/` (NaCl box, HIBP k-anonymity, zxcvbn), `ssh/` (agent SSH + clés), `native_messaging.rs`.
+- `src-tauri/src/` — backend desktop. `commands/` : un fichier par domaine (`database`, `entries`, `groups`, `generator`, `totp`, `import_export`, `passkeys`, `browser`, `sync`, `ssh`). **Toute commande doit être ajoutée à `tauri::generate_handler![]` dans `lib.rs`**, sinon elle n'existe pas. `security/` (NaCl box, HIBP k-anonymity, zxcvbn), `ssh/` (agent SSH + clés), `native_messaging.rs`, `updater.rs` (vérification de mise à jour au démarrage).
 - `server/` — serveur de sync Axum : `GET/PUT /api/vault` (ETag / If-Match / 409), `/api/vault/versions[/{n}]`, `/api/health`, auth Bearer, blobs chiffrés versionnés. Sert aussi la PWA (`MYPASS_STATIC_DIR`) et `/download` ; `/api/*` inconnu = 404 (jamais l'index SPA).
 - Env du serveur : `MYPASS_DATA_DIR`, `MYPASS_BIND` (défaut `0.0.0.0:8787`), `MYPASS_STATIC_DIR`, `MYPASS_DOWNLOAD_DIR`.
 
