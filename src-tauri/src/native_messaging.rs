@@ -239,6 +239,10 @@ pub fn run_native_messaging_proxy() -> Result<(), String> {
                 }
             }
         }
+        // The app is gone: exit now instead of waiting on Chrome's stdin, so this
+        // process no longer holds mypass.exe and an update can replace it. The
+        // extension relaunches the relay on its next use.
+        std::process::exit(0);
     });
 
     let mut stdin = std::io::stdin();
