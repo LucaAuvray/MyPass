@@ -18,7 +18,8 @@ export function useGroups() {
   };
 
   const create = useMutation({
-    mutationFn: (p: { name: string; parentUuid?: string }) => tauriCommand<Group>("create_group", p),
+    mutationFn: (p: { name: string; parentUuid?: string }) =>
+      tauriCommand<Group>("create_group", p),
     onSuccess,
   });
   const rename = useMutation({
@@ -30,7 +31,8 @@ export function useGroups() {
     onSuccess,
   });
   const move = useMutation({
-    mutationFn: (p: { entryUuid: string; groupUuid: string }) => tauriCommand<void>("move_entry", p),
+    mutationFn: (p: { entryUuid: string; groupUuid: string }) =>
+      tauriCommand<void>("move_entry", p),
     onSuccess,
   });
 

@@ -10,7 +10,14 @@ const check = (ok: boolean, msg: string) => {
 };
 
 const g = (uuid: string, children: Group[] = []): Group => ({
-  uuid, name: uuid, icon: null, children, entryCount: 0, isExpanded: true, created: null, modified: null,
+  uuid,
+  name: uuid,
+  icon: null,
+  children,
+  entryCount: 0,
+  isExpanded: true,
+  created: null,
+  modified: null,
 });
 const root = g("root", [g("A", [g("A1", [g("A1a")])]), g("B")]);
 const eq = (set: Set<string> | null, uuids: string[]) =>
@@ -23,7 +30,12 @@ check(eq(groupAndDescendants(root, "B"), ["B"]), "leaf folder");
 check(groupAndDescendants(root, "zz") === null, "missing folder → null");
 check(
   JSON.stringify(flattenGroups(root).map((f) => [f.uuid, f.depth])) ===
-    JSON.stringify([["A", 0], ["A1", 1], ["A1a", 2], ["B", 0]]),
+    JSON.stringify([
+      ["A", 0],
+      ["A1", 1],
+      ["A1a", 2],
+      ["B", 0],
+    ]),
   "pre-order, root excluded",
 );
 

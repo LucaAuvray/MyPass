@@ -93,7 +93,9 @@ export function ItemForm({ kind, open, onOpenChange, editEntry }: ItemFormProps)
       <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? t("items.editTitle", { kind: t(`items.${kind}`) }) : t(`items.new.${kind}`)}
+            {isEditing
+              ? t("items.editTitle", { kind: t(`items.${kind}`) })
+              : t(`items.new.${kind}`)}
           </DialogTitle>
           <DialogDescription>{t(`items.desc.${kind}`)}</DialogDescription>
         </DialogHeader>
@@ -108,7 +110,7 @@ export function ItemForm({ kind, open, onOpenChange, editEntry }: ItemFormProps)
               placeholder={t(`items.titlePlaceholder.${kind}`)}
             />
             {form.formState.errors.title && (
-              <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
+              <p className="text-destructive text-xs">{form.formState.errors.title.message}</p>
             )}
           </div>
 
@@ -196,8 +198,18 @@ function ItemField({
         type={isDate ? "date" : "text"}
         inputMode={fieldKey === "CC_Number" || fieldKey === "CC_CVC" ? "numeric" : undefined}
         className={isSecret ? "font-mono" : undefined}
-        maxLength={fieldKey === "CC_CVC" ? 4 : fieldKey === "CC_ExpMonth" ? 2 : fieldKey === "CC_ExpYear" ? 4 : undefined}
-        placeholder={fieldKey === "CC_ExpMonth" ? "MM" : fieldKey === "CC_ExpYear" ? "AAAA" : undefined}
+        maxLength={
+          fieldKey === "CC_CVC"
+            ? 4
+            : fieldKey === "CC_ExpMonth"
+              ? 2
+              : fieldKey === "CC_ExpYear"
+                ? 4
+                : undefined
+        }
+        placeholder={
+          fieldKey === "CC_ExpMonth" ? "MM" : fieldKey === "CC_ExpYear" ? "AAAA" : undefined
+        }
         {...form.register(fieldKey)}
       />
     </div>

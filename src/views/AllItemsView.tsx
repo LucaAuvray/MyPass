@@ -20,16 +20,21 @@ export function AllItemsView() {
   return (
     <div className="flex h-full">
       {/* Entry list */}
-      <div className={cn("flex-1 overflow-y-auto p-4 md:p-6", selectedEntryId && "hidden lg:block lg:w-1/2")}>
+      <div
+        className={cn(
+          "flex-1 overflow-y-auto p-4 md:p-6",
+          selectedEntryId && "hidden lg:block lg:w-1/2",
+        )}
+      >
         <EntryList onCreateClick={() => setShowNewEntry(true)} />
         <EntryForm open={showNewEntry} onOpenChange={setShowNewEntry} />
       </div>
 
       {/* Detail panel */}
       {selectedEntryId && (
-        <div className="w-full border-l border-border bg-card lg:w-1/2">
-          <div className="flex items-center justify-between border-b border-border px-4 py-2">
-            <span className="text-xs text-muted-foreground">{t("entries.details")}</span>
+        <div className="border-border bg-card w-full border-l lg:w-1/2">
+          <div className="border-border flex items-center justify-between border-b px-4 py-2">
+            <span className="text-muted-foreground text-xs">{t("entries.details")}</span>
             <Button
               variant="ghost"
               size="icon"

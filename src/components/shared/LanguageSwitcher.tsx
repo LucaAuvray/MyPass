@@ -17,7 +17,7 @@ export function LanguageSwitcher({ className }: LanguageSwitcherProps) {
     <button
       onClick={toggle}
       className={cn(
-        "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:bg-muted",
+        "hover:bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors",
         className,
       )}
       title={currentLang === "fr" ? "Switch to English" : "Passer en français"}

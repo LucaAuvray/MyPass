@@ -40,8 +40,12 @@ export function useDatabase() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (params: { password: string; name: string; encryption?: string; keyfilePath?: string }) =>
-      tauriCommand<DatabaseInfo>("create_database", params),
+    mutationFn: (params: {
+      password: string;
+      name: string;
+      encryption?: string;
+      keyfilePath?: string;
+    }) => tauriCommand<DatabaseInfo>("create_database", params),
     onSuccess: onOpened,
   });
 

@@ -50,8 +50,7 @@ export const useEntriesStore = create<EntriesState>((set) => ({
     set((s) => ({
       entries: s.entries.map((e) => (e.uuid === uuid ? { ...e, ...update } : e)),
     })),
-  removeEntry: (uuid) =>
-    set((s) => ({ entries: s.entries.filter((e) => e.uuid !== uuid) })),
+  removeEntry: (uuid) => set((s) => ({ entries: s.entries.filter((e) => e.uuid !== uuid) })),
   selectEntry: (uuid) => set({ selectedEntryId: uuid }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setKindFilter: (kind) => set({ kindFilter: kind, groupFilter: null, selectedEntryId: null }),

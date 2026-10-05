@@ -36,7 +36,7 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
       className={cn(
         "group cursor-pointer transition-all duration-150 hover:shadow-md",
         "border-border hover:border-primary/30",
-        isSelected && "ring-2 ring-primary border-primary",
+        isSelected && "ring-primary border-primary ring-2",
       )}
       onClick={onClick}
     >
@@ -44,18 +44,24 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
         {kind === "login" ? (
           <EntryIcon url={entry.url} size="md" />
         ) : (
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
-            {kind === "identity" ? <Contact className="size-5" /> : kind === "card" ? <CreditCard className="size-5" /> : kind === "ssh_key" ? <Terminal className="size-5" /> : <FileText className="size-5" />}
+          <div className="bg-secondary text-muted-foreground flex size-10 shrink-0 items-center justify-center rounded-xl">
+            {kind === "identity" ? (
+              <Contact className="size-5" />
+            ) : kind === "card" ? (
+              <CreditCard className="size-5" />
+            ) : kind === "ssh_key" ? (
+              <Terminal className="size-5" />
+            ) : (
+              <FileText className="size-5" />
+            )}
           </div>
         )}
 
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold text-foreground">
+          <h3 className="text-foreground truncate text-sm font-semibold">
             {entry.title || t("entries.untitled")}
           </h3>
-          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-            {subtitle}
-          </p>
+          <p className="text-muted-foreground mt-0.5 truncate text-xs">{subtitle}</p>
 
           {entry.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
@@ -74,9 +80,7 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
         </div>
 
         <div className="shrink-0 text-right">
-          <span className="text-[10px] text-muted-foreground">
-            {formatDate(entry.modified, t)}
-          </span>
+          <span className="text-muted-foreground text-[10px]">{formatDate(entry.modified, t)}</span>
         </div>
       </div>
     </Card>

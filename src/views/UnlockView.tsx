@@ -5,7 +5,17 @@ import { useDatabase } from "@/hooks/useDatabase";
 import { syncNowAndRefresh } from "@/hooks/useSync";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { isWebMode, hasWebToken, setWebToken } from "@/lib/tauri";
-import { Lock, Eye, EyeOff, Key, Upload, KeyRound, Server, Download, ArrowLeft } from "lucide-react";
+import {
+  Lock,
+  Eye,
+  EyeOff,
+  Key,
+  Upload,
+  KeyRound,
+  Server,
+  Download,
+  ArrowLeft,
+} from "lucide-react";
 import logo from "@/assets/logo.png";
 
 /** unlock: vault present · choose: desktop without vault · fetch/create: its two ways out. */
@@ -72,15 +82,25 @@ export default function UnlockView() {
     if (web && token) setWebToken(token);
     if (!password || busy) return;
     if (current === "unlock") void run(() => openDatabase({ password }));
-    if (current === "create" && dbName) void run(() => createDatabase({ password, name: dbName, encryption: "aes256" }));
-    if (current === "fetch" && serverUrl && token) void run(() => fetchFromServer({ serverUrl, token, password }));
+    if (current === "create" && dbName)
+      void run(() => createDatabase({ password, name: dbName, encryption: "aes256" }));
+    if (current === "fetch" && serverUrl && token)
+      void run(() => fetchFromServer({ serverUrl, token, password }));
   };
 
   const rawError =
-    current === "unlock" ? openError : current === "create" ? createError : current === "fetch" ? fetchError : undefined;
+    current === "unlock"
+      ? openError
+      : current === "create"
+        ? createError
+        : current === "fetch"
+          ? fetchError
+          : undefined;
   const message = rawError ?? vaultLocation.error?.message;
   const error =
-    message && /^[A-Z_]+$/.test(message) && i18n.exists(`unlock.errors.${message}`) ? t(`unlock.errors.${message}`) : message;
+    message && /^[A-Z_]+$/.test(message) && i18n.exists(`unlock.errors.${message}`)
+      ? t(`unlock.errors.${message}`)
+      : message;
 
   const title =
     current === "unlock"
@@ -94,58 +114,147 @@ export default function UnlockView() {
             : "";
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+    <div className="bg-background flex min-h-screen flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <img src={logo} alt="MyPass" className="mx-auto mb-4 size-16 rounded-2xl shadow-lg shadow-primary/25" />
-          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">{t("app.name")}</h1>
-          {title && <p className="mt-1.5 text-sm text-muted-foreground">{title}</p>}
+          <img
+            src={logo}
+            alt="MyPass"
+            className="shadow-primary/25 mx-auto mb-4 size-16 rounded-2xl shadow-lg"
+          />
+          <h1 className="font-display text-foreground text-2xl font-bold tracking-tight">
+            {t("app.name")}
+          </h1>
+          {title && <p className="text-muted-foreground mt-1.5 text-sm">{title}</p>}
         </div>
-        {error && <div className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">{error}</div>}
+        {error && (
+          <div className="border-destructive/30 bg-destructive/10 text-destructive mb-4 rounded-lg border px-4 py-2.5 text-sm">
+            {error}
+          </div>
+        )}
 
         {current === "choose" && (
           <div className="flex flex-col gap-3">
-            <button onClick={() => go("fetch")} className="flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98]"><Download className="size-4" />{t("unlock.fetchFromServer")}</button>
-            <button onClick={() => go("create")} className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-border py-2.5 text-sm text-muted-foreground transition-colors hover:text-foreground"><Upload className="size-3.5" />{t("unlock.switchToCreate")}</button>
+            <button
+              onClick={() => go("fetch")}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-[0.98]"
+            >
+              <Download className="size-4" />
+              {t("unlock.fetchFromServer")}
+            </button>
+            <button
+              onClick={() => go("create")}
+              className="border-border text-muted-foreground hover:text-foreground inline-flex items-center justify-center gap-1.5 rounded-xl border py-2.5 text-sm transition-colors"
+            >
+              <Upload className="size-3.5" />
+              {t("unlock.switchToCreate")}
+            </button>
           </div>
         )}
 
         {(current === "unlock" || current === "create" || current === "fetch") && (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {current === "create" && (
-              <FieldRow icon={<KeyRound className="size-4 shrink-0 text-muted-foreground" />}>
-                <input type="text" value={dbName} onChange={(e) => setDbName(e.target.value)} placeholder={t("unlock.vaultName")} className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+              <FieldRow icon={<KeyRound className="text-muted-foreground size-4 shrink-0" />}>
+                <input
+                  type="text"
+                  value={dbName}
+                  onChange={(e) => setDbName(e.target.value)}
+                  placeholder={t("unlock.vaultName")}
+                  className="text-foreground placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
+                />
               </FieldRow>
             )}
             {current === "fetch" && (
-              <FieldRow icon={<Server className="size-4 shrink-0 text-muted-foreground" />}>
-                <input type="url" value={serverUrl} onChange={(e) => setServerUrl(e.target.value)} placeholder={t("unlock.serverUrl")} autoComplete="url" className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+              <FieldRow icon={<Server className="text-muted-foreground size-4 shrink-0" />}>
+                <input
+                  type="url"
+                  value={serverUrl}
+                  onChange={(e) => setServerUrl(e.target.value)}
+                  placeholder={t("unlock.serverUrl")}
+                  autoComplete="url"
+                  className="text-foreground placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
+                />
               </FieldRow>
             )}
             {(needsToken || current === "fetch") && (
-              <FieldRow icon={<KeyRound className="size-4 shrink-0 text-muted-foreground" />}>
-                <input type="password" value={token} onChange={(e) => setToken(e.target.value)} placeholder={t("unlock.serverToken")} autoComplete="off" className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" />
+              <FieldRow icon={<KeyRound className="text-muted-foreground size-4 shrink-0" />}>
+                <input
+                  type="password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder={t("unlock.serverToken")}
+                  autoComplete="off"
+                  className="text-foreground placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
+                />
               </FieldRow>
             )}
-            <FieldRow icon={<Key className="size-4 shrink-0 text-muted-foreground" />}>
-              <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t("unlock.password")} className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground" autoComplete={current === "unlock" ? "current-password" : "new-password"} autoFocus />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="shrink-0 rounded p-1 text-muted-foreground hover:bg-secondary hover:text-foreground" aria-label={showPassword ? t("unlock.hide") : t("unlock.show")}>{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}</button>
+            <FieldRow icon={<Key className="text-muted-foreground size-4 shrink-0" />}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={t("unlock.password")}
+                className="text-foreground placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
+                autoComplete={current === "unlock" ? "current-password" : "new-password"}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="text-muted-foreground hover:bg-secondary hover:text-foreground shrink-0 rounded p-1"
+                aria-label={showPassword ? t("unlock.hide") : t("unlock.show")}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
             </FieldRow>
-            <button type="submit" disabled={busy} className="flex items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"><Lock className="size-4" />{busy ? "..." : current === "unlock" ? t("unlock.unlock") : current === "create" ? t("unlock.create") : t("unlock.fetch")}</button>
+            <button
+              type="submit"
+              disabled={busy}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all active:scale-[0.98] disabled:opacity-50"
+            >
+              <Lock className="size-4" />
+              {busy
+                ? "..."
+                : current === "unlock"
+                  ? t("unlock.unlock")
+                  : current === "create"
+                    ? t("unlock.create")
+                    : t("unlock.fetch")}
+            </button>
           </form>
         )}
 
         <div className="mt-6 text-center">
           {web && (
-            <button onClick={() => go(mode === "unlock" ? "create" : "unlock")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"><Upload className="size-3.5" />{mode === "unlock" ? t("unlock.switchToCreate") : t("unlock.switchToUnlock")}</button>
+            <button
+              onClick={() => go(mode === "unlock" ? "create" : "unlock")}
+              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+            >
+              <Upload className="size-3.5" />
+              {mode === "unlock" ? t("unlock.switchToCreate") : t("unlock.switchToUnlock")}
+            </button>
           )}
           {!web && (current === "fetch" || current === "create") && (
-            <button onClick={() => go("choose")} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="size-3.5" />{t("unlock.back")}</button>
+            <button
+              onClick={() => go("choose")}
+              className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
+            >
+              <ArrowLeft className="size-3.5" />
+              {t("unlock.back")}
+            </button>
           )}
         </div>
-        {!web && vaultLocation.data && <p className="mt-4 break-all text-center text-[11px] text-muted-foreground">{vaultLocation.data.path}</p>}
+        {!web && vaultLocation.data && (
+          <p className="text-muted-foreground mt-4 text-center text-[11px] break-all">
+            {vaultLocation.data.path}
+          </p>
+        )}
       </div>
-      <div className="mt-auto flex flex-col items-center gap-4 pt-8"><LanguageSwitcher /><p className="text-xs text-muted-foreground">{t("app.footer")}</p></div>
+      <div className="mt-auto flex flex-col items-center gap-4 pt-8">
+        <LanguageSwitcher />
+        <p className="text-muted-foreground text-xs">{t("app.footer")}</p>
+      </div>
     </div>
   );
 }
@@ -153,7 +262,7 @@ export default function UnlockView() {
 function FieldRow({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <div className="glass-card rounded-xl p-1">
-      <div className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2">
+      <div className="bg-muted/50 flex items-center gap-2 rounded-lg px-3 py-2">
         {icon}
         {children}
       </div>

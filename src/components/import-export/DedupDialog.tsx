@@ -14,10 +14,16 @@ interface DedupDialogProps {
   onCancel: () => void;
 }
 
-export function DedupDialog({ open, groups, nonDuplicateCount, onConfirm, onCancel }: DedupDialogProps) {
+export function DedupDialog({
+  open,
+  groups,
+  nonDuplicateCount,
+  onConfirm,
+  onCancel,
+}: DedupDialogProps) {
   const { t } = useTranslation();
-  const [localGroups, setLocalGroups] = useState<DuplicateGroup[]>(
-    () => groups.map((g) => ({ ...g, selectedIndex: g.selectedIndex })),
+  const [localGroups, setLocalGroups] = useState<DuplicateGroup[]>(() =>
+    groups.map((g) => ({ ...g, selectedIndex: g.selectedIndex })),
   );
   const [revealedPasswords, setRevealedPasswords] = useState<Record<string, boolean>>({});
 
@@ -58,7 +64,7 @@ export function DedupDialog({ open, groups, nonDuplicateCount, onConfirm, onCanc
           </DialogTitle>
         </DialogHeader>
 
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {t("dedup.description", { count: localGroups.length })}
         </p>
 
@@ -85,12 +91,10 @@ export function DedupDialog({ open, groups, nonDuplicateCount, onConfirm, onCanc
         </div>
 
         {/* Summary */}
-        <div className="flex items-center justify-between border-t border-border pt-4">
+        <div className="border-border flex items-center justify-between border-t pt-4">
           <div className="flex items-center gap-2 text-sm">
             <CheckCircle2 className="size-4 text-green-500" />
-            <span>
-              {t("dedup.summary", { kept: totalKept, discarded: totalDiscarded })}
-            </span>
+            <span>{t("dedup.summary", { kept: totalKept, discarded: totalDiscarded })}</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={onCancel}>
@@ -116,7 +120,13 @@ interface DuplicateGroupCardProps {
   t: (key: string, options?: Record<string, unknown>) => string;
 }
 
-function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect, t }: DuplicateGroupCardProps) {
+function DuplicateGroupCard({
+  group,
+  revealedPasswords,
+  onToggleReveal,
+  onSelect,
+  t,
+}: DuplicateGroupCardProps) {
   const isInternal = group.entries.every((e) => e.source === "import");
 
   return (
@@ -128,7 +138,7 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
         </Badge>
         <span className="text-sm font-medium">{group.matchKey}</span>
         {isInternal && (
-          <span className="text-xs text-muted-foreground">
+          <span className="text-muted-foreground text-xs">
             {t("dedup.internalLabel", { count: group.entries.length })}
           </span>
         )}
@@ -145,9 +155,7 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
             <div
               key={entryId}
               className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
-                isSelected
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/30"
+                isSelected ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
               }`}
               onClick={() => onSelect(idx)}
             >
@@ -158,9 +166,12 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
                     isSelected ? "border-primary" : "border-muted-foreground/30"
                   }`}
                 >
-                  {isSelected && <div className="size-2.5 rounded-full bg-primary" />}
+                  {isSelected && <div className="bg-primary size-2.5 rounded-full" />}
                 </div>
-                <Badge variant={entry.source === "import" ? "default" : "secondary"} className="text-[10px]">
+                <Badge
+                  variant={entry.source === "import" ? "default" : "secondary"}
+                  className="text-[10px]"
+                >
                   {entry.source === "import" ? t("dedup.sourceImport") : t("dedup.sourceVault")}
                 </Badge>
               </div>
@@ -173,14 +184,14 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
 
                 {/* Password with reveal */}
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{t("dedup.fieldPassword")}</span>
+                  <span className="text-muted-foreground text-xs">{t("dedup.fieldPassword")}</span>
                   <div className="flex items-center gap-1">
                     <span className="font-mono text-xs">
                       {isRevealed ? entry.password : "••••••••"}
                     </span>
                     <button
                       type="button"
-                      className="inline-flex size-5 items-center justify-center rounded hover:bg-muted"
+                      className="hover:bg-muted inline-flex size-5 items-center justify-center rounded"
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleReveal(entryId);
@@ -188,9 +199,9 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
                       aria-label={t("dedup.revealPassword")}
                     >
                       {isRevealed ? (
-                        <EyeOff className="size-3 text-muted-foreground" />
+                        <EyeOff className="text-muted-foreground size-3" />
                       ) : (
-                        <Eye className="size-3 text-muted-foreground" />
+                        <Eye className="text-muted-foreground size-3" />
                       )}
                     </button>
                   </div>
@@ -215,10 +226,16 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
                 />
 
                 {entry.created && (
-                  <FieldRow label={t("dedup.fieldCreated")} value={entry.created.substring(0, 10)} />
+                  <FieldRow
+                    label={t("dedup.fieldCreated")}
+                    value={entry.created.substring(0, 10)}
+                  />
                 )}
                 {entry.modified && (
-                  <FieldRow label={t("dedup.fieldModified")} value={entry.modified.substring(0, 10)} />
+                  <FieldRow
+                    label={t("dedup.fieldModified")}
+                    value={entry.modified.substring(0, 10)}
+                  />
                 )}
 
                 {Object.keys(entry.customFields).length > 0 && (
@@ -240,18 +257,10 @@ function DuplicateGroupCard({ group, revealedPasswords, onToggleReveal, onSelect
 
 // ── Field Row ────────────────────────────────────────────────────
 
-function FieldRow({
-  label,
-  value,
-  muted,
-}: {
-  label: string;
-  value: string;
-  muted?: boolean;
-}) {
+function FieldRow({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-2">
-      <span className="shrink-0 text-xs text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground shrink-0 text-xs">{label}</span>
       <span className={`text-right text-xs break-all ${muted ? "text-muted-foreground/50" : ""}`}>
         {value || "—"}
       </span>

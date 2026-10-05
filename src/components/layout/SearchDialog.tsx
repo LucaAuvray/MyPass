@@ -59,9 +59,9 @@ export function SearchDialog() {
 
   return (
     <Dialog open={searchOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-xl p-0 gap-0" showCloseButton={false}>
-        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-          <Search className="size-4 shrink-0 text-muted-foreground" />
+      <DialogContent className="gap-0 p-0 sm:max-w-xl" showCloseButton={false}>
+        <div className="border-border flex items-center gap-2 border-b px-4 py-3">
+          <Search className="text-muted-foreground size-4 shrink-0" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -69,7 +69,7 @@ export function SearchDialog() {
             className="border-0 bg-transparent p-0 text-sm shadow-none outline-none focus-visible:ring-0"
             autoFocus
           />
-          <kbd className="hidden rounded-md border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground sm:inline-block">
+          <kbd className="border-border text-muted-foreground hidden rounded-md border px-1.5 py-0.5 text-[10px] sm:inline-block">
             ESC
           </kbd>
         </div>
@@ -80,17 +80,15 @@ export function SearchDialog() {
               <button
                 key={entry.uuid}
                 onClick={() => handleSelect(entry.uuid)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-muted"
+                className="hover:bg-muted flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors"
               >
                 <EntryIcon url={entry.url} size="sm" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{entry.title}</p>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {entry.username}
-                  </p>
+                  <p className="text-muted-foreground truncate text-xs">{entry.username}</p>
                 </div>
                 {entry.url && (
-                  <span className="hidden truncate text-xs text-muted-foreground sm:inline">
+                  <span className="text-muted-foreground hidden truncate text-xs sm:inline">
                     {entry.url}
                   </span>
                 )}
@@ -100,7 +98,7 @@ export function SearchDialog() {
         )}
 
         {query && filtered.length === 0 && (
-          <div className="py-12 text-center text-sm text-muted-foreground">
+          <div className="text-muted-foreground py-12 text-center text-sm">
             {t("entries.noResults")}
           </div>
         )}

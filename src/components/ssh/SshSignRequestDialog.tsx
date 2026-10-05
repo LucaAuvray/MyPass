@@ -39,7 +39,9 @@ export function SshSignRequestDialog() {
       setRequests((r) => [...r, e.payload]);
       // Amène la fenêtre au premier plan : la demande vient d'un terminal.
       const w = getCurrentWindow();
-      w.show().then(() => w.setFocus()).catch(() => {});
+      w.show()
+        .then(() => w.setFocus())
+        .catch(() => {});
     });
     const unlistenClosed = listen<{ requestId: string }>("ssh-sign-request-closed", (e) => {
       setRequests((r) => r.filter((req) => req.requestId !== e.payload.requestId));
@@ -64,26 +66,41 @@ export function SshSignRequestDialog() {
   };
 
   return (
-    <Dialog open={!!request} onOpenChange={(o) => { if (!o) respond(false); }}>
+    <Dialog
+      open={!!request}
+      onOpenChange={(o) => {
+        if (!o) respond(false);
+      }}
+    >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Terminal className="size-5 text-primary" /> {t("sshAgent.requestTitle")}
+            <Terminal className="text-primary size-5" /> {t("sshAgent.requestTitle")}
           </DialogTitle>
           <DialogDescription>{t("sshAgent.requestDesc")}</DialogDescription>
         </DialogHeader>
         {request && (
-          <div className="space-y-1 rounded-xl border border-border bg-muted/30 p-3">
+          <div className="border-border bg-muted/30 space-y-1 rounded-xl border p-3">
             <p className="text-sm font-semibold">{request.title}</p>
-            <p className="break-all font-mono text-xs text-muted-foreground">{request.fingerprint}</p>
+            <p className="text-muted-foreground font-mono text-xs break-all">
+              {request.fingerprint}
+            </p>
           </div>
         )}
         <div className="flex items-center gap-2">
-          <Checkbox id="ssh-remember" checked={remember} onCheckedChange={(v) => setRemember(v === true)} />
-          <Label htmlFor="ssh-remember" className="text-xs">{t("sshAgent.remember")}</Label>
+          <Checkbox
+            id="ssh-remember"
+            checked={remember}
+            onCheckedChange={(v) => setRemember(v === true)}
+          />
+          <Label htmlFor="ssh-remember" className="text-xs">
+            {t("sshAgent.remember")}
+          </Label>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => respond(false)}>{t("sshAgent.deny")}</Button>
+          <Button variant="outline" onClick={() => respond(false)}>
+            {t("sshAgent.deny")}
+          </Button>
           <Button onClick={() => respond(true)}>{t("sshAgent.approve")}</Button>
         </DialogFooter>
       </DialogContent>

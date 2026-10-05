@@ -64,14 +64,17 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     // pt safe-area : en PWA iOS plein écran, ne pas passer sous la barre de statut
-    <div className="flex h-screen overflow-hidden bg-background pt-[env(safe-area-inset-top)]">
+    <div className="bg-background flex h-screen overflow-hidden pt-[env(safe-area-inset-top)]">
       {/* Desktop Sidebar */}
       <AppSidebar className="hidden md:flex" />
 
       <div className="flex flex-1 flex-col overflow-hidden">
         <AppHeader />
         {notSynced && (
-          <div className="flex items-center gap-1.5 border-b border-border bg-amber-500/10 px-4 py-1 text-xs text-amber-600" title={status.data?.detail ?? undefined}>
+          <div
+            className="border-border flex items-center gap-1.5 border-b bg-amber-500/10 px-4 py-1 text-xs text-amber-600"
+            title={status.data?.detail ?? undefined}
+          >
             <span className="size-1.5 rounded-full bg-amber-500" />
             {t("sync.notSynced")}
           </div>

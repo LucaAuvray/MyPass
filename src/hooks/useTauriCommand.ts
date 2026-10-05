@@ -4,9 +4,7 @@ import { useState, useCallback } from "react";
  * Typed hook wrapping Tauri IPC invoke calls.
  * Returns { data, error, isLoading, execute }.
  */
-export function useTauriCommand<TArgs extends Record<string, unknown>, TResult>(
-  command: string,
-) {
+export function useTauriCommand<TArgs extends Record<string, unknown>, TResult>(command: string) {
   const [data, setData] = useState<TResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

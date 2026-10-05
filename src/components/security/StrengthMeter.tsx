@@ -16,7 +16,7 @@ export function StrengthMeter({ strength, className, showDetails = true }: Stren
     <div className={cn("space-y-2", className)}>
       {/* Bar */}
       <div className="flex items-center gap-3">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+        <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
           <div
             className="h-full rounded-full transition-all duration-500 ease-out"
             style={{
@@ -25,20 +25,15 @@ export function StrengthMeter({ strength, className, showDetails = true }: Stren
             }}
           />
         </div>
-        <span
-          className="text-xs font-semibold tabular-nums"
-          style={{ color: strength.color }}
-        >
+        <span className="text-xs font-semibold tabular-nums" style={{ color: strength.color }}>
           {strength.label}
         </span>
       </div>
 
       {showDetails && (
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="text-muted-foreground flex items-center justify-between text-[11px]">
           <span>{strength.feedback}</span>
-          <span className="tabular-nums">
-            Crack time: {strength.crackTimeDisplay}
-          </span>
+          <span className="tabular-nums">Crack time: {strength.crackTimeDisplay}</span>
         </div>
       )}
     </div>
@@ -55,10 +50,7 @@ export function StrengthBadge({ score, label }: { score: number; label: string }
       className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
       style={{ backgroundColor: `${color}18`, color }}
     >
-      <span
-        className="size-1.5 rounded-full"
-        style={{ backgroundColor: color }}
-      />
+      <span className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
       {label}
     </span>
   );

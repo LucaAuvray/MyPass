@@ -315,28 +315,57 @@
       "document": "Store passports, ID cards and other official documents securely.",
       "ssh_key": "Import or generate a key to connect to your machines from the terminal or VS Code."
     },
-    "new": { "identity": "New identity", "card": "New card", "document": "New document", "ssh_key": "New SSH key" },
+    "new": {
+      "identity": "New identity",
+      "card": "New card",
+      "document": "New document",
+      "ssh_key": "New SSH key"
+    },
     "desc": {
       "identity": "Personal details for filling sign-up forms.",
       "card": "Card details for filling payment forms.",
       "document": "Official document details, stored encrypted.",
       "ssh_key": "Import an existing key or generate an Ed25519 key. The private key stays in the vault."
     },
-    "titlePlaceholder": { "identity": "Personal identity", "card": "Personal Visa", "document": "Passport", "ssh_key": "e.g. Prod server" },
+    "titlePlaceholder": {
+      "identity": "Personal identity",
+      "card": "Personal Visa",
+      "document": "Passport",
+      "ssh_key": "e.g. Prod server"
+    },
     "fields": {
-      "ID_FirstName": "First name", "ID_LastName": "Last name", "ID_BirthDate": "Birth date",
-      "ID_Email": "Email", "ID_Phone": "Phone", "ID_Address": "Address", "ID_City": "City",
-      "ID_PostalCode": "Postal code", "ID_Country": "Country", "ID_Company": "Company",
-      "CC_Holder": "Cardholder", "CC_Number": "Card number", "CC_ExpMonth": "Exp. month",
-      "CC_ExpYear": "Exp. year", "CC_CVC": "CVC",
-      "DOC_Kind": "Document type", "DOC_Number": "Number", "DOC_IssueDate": "Issue date",
-      "DOC_ExpiryDate": "Expiry date", "DOC_Country": "Country",
-      "SSH_PublicKey": "Public key", "SSH_Fingerprint": "Fingerprint", "SSH_Algorithm": "Algorithm",
-      "SSH_Comment": "Comment", "SSH_PrivateKey": "Private key"
+      "ID_FirstName": "First name",
+      "ID_LastName": "Last name",
+      "ID_BirthDate": "Birth date",
+      "ID_Email": "Email",
+      "ID_Phone": "Phone",
+      "ID_Address": "Address",
+      "ID_City": "City",
+      "ID_PostalCode": "Postal code",
+      "ID_Country": "Country",
+      "ID_Company": "Company",
+      "CC_Holder": "Cardholder",
+      "CC_Number": "Card number",
+      "CC_ExpMonth": "Exp. month",
+      "CC_ExpYear": "Exp. year",
+      "CC_CVC": "CVC",
+      "DOC_Kind": "Document type",
+      "DOC_Number": "Number",
+      "DOC_IssueDate": "Issue date",
+      "DOC_ExpiryDate": "Expiry date",
+      "DOC_Country": "Country",
+      "SSH_PublicKey": "Public key",
+      "SSH_Fingerprint": "Fingerprint",
+      "SSH_Algorithm": "Algorithm",
+      "SSH_Comment": "Comment",
+      "SSH_PrivateKey": "Private key"
     },
     "docKinds": {
-      "passport": "Passport", "id_card": "ID card", "driver_license": "Driver's license",
-      "social_security": "Social security", "other": "Other"
+      "passport": "Passport",
+      "id_card": "ID card",
+      "driver_license": "Driver's license",
+      "social_security": "Social security",
+      "other": "Other"
     }
   },
   "sshKeys": {

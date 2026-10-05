@@ -56,7 +56,7 @@ export function SyncView() {
           {!web && (
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <RefreshCw className="size-4 text-primary" />
+                <RefreshCw className="text-primary size-4" />
                 <h3 className="text-sm font-semibold">{t("sync.enable")}</h3>
               </div>
               <Switch checked={enabled} onCheckedChange={(checked) => save.mutate(checked)} />
@@ -65,7 +65,9 @@ export function SyncView() {
 
           {!web && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">{t("sync.serverUrl")}</label>
+              <label className="text-muted-foreground text-xs font-medium">
+                {t("sync.serverUrl")}
+              </label>
               <Input
                 value={serverUrl ?? cfg?.serverUrl ?? ""}
                 onChange={(e) => setServerUrl(e.target.value)}
@@ -75,7 +77,7 @@ export function SyncView() {
           )}
 
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">{t("sync.token")}</label>
+            <label className="text-muted-foreground text-xs font-medium">{t("sync.token")}</label>
             <Input
               type="password"
               value={token}
@@ -90,22 +92,26 @@ export function SyncView() {
         </CardContent>
       </Card>
 
-      <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
+      <div className="border-border bg-muted/30 flex items-center justify-between rounded-xl border p-4">
         <div className="space-y-1">
           <p className="text-sm font-medium">{t(`sync.state.${st?.state ?? "idle"}`)}</p>
-          {st?.detail && <p className="text-xs text-muted-foreground">{st.detail}</p>}
+          {st?.detail && <p className="text-muted-foreground text-xs">{st.detail}</p>}
           {st?.lastSync && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               {t("sync.lastSync")}: {new Date(Number(st.lastSync) * 1000).toLocaleString()}
             </p>
           )}
           {st?.serverVersion && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               {t("sync.serverVersion")}: {st.serverVersion}
             </p>
           )}
         </div>
-        <Button size="sm" onClick={() => syncNow.mutate()} disabled={syncNow.isPending || st?.state === "syncing"}>
+        <Button
+          size="sm"
+          onClick={() => syncNow.mutate()}
+          disabled={syncNow.isPending || st?.state === "syncing"}
+        >
           {t("sync.syncNow")}
         </Button>
       </div>

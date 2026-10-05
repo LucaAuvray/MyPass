@@ -1,7 +1,15 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { ChevronRight, Folder, FolderOpen, Plus, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import {
+  ChevronRight,
+  Folder,
+  FolderOpen,
+  Plus,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -45,7 +53,7 @@ function GroupTreeItem({ group, depth, ...props }: ItemProps) {
         {hasChildren ? (
           <button
             onClick={() => setExpanded(!expanded)}
-            className="rounded p-0.5 text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground rounded p-0.5"
           >
             <ChevronRight className={cn("size-3 transition-transform", expanded && "rotate-90")} />
           </button>
@@ -68,7 +76,7 @@ function GroupTreeItem({ group, depth, ...props }: ItemProps) {
             <Folder className="size-4 shrink-0" />
           )}
           <span className="truncate text-left">{group.name}</span>
-          <span className="ml-auto text-xs text-muted-foreground">{group.entryCount}</span>
+          <span className="text-muted-foreground ml-auto text-xs">{group.entryCount}</span>
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger

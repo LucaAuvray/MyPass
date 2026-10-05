@@ -136,18 +136,34 @@ export function SshKeyForm({ open, onOpenChange }: SshKeyFormProps) {
         <div className="flex flex-col gap-4">
           <div className="space-y-1.5">
             <Label htmlFor="ssh-title">{t("entries.title")}</Label>
-            <Input id="ssh-title" autoFocus value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("items.titlePlaceholder.ssh_key")} />
+            <Input
+              id="ssh-title"
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("items.titlePlaceholder.ssh_key")}
+            />
           </div>
 
           {!key && (
             <div className="flex gap-2">
-              <Button type="button" variant="outline" className="flex-1" onClick={() => fileRef.current?.click()}>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => fileRef.current?.click()}
+              >
                 <FileKey className="size-4" /> {t("sshKeys.importFile")}
               </Button>
               <Button type="button" variant="outline" className="flex-1" onClick={handleGenerate}>
                 <Sparkles className="size-4" /> {t("sshKeys.generate")}
               </Button>
-              <input ref={fileRef} type="file" className="hidden" onChange={(e) => handleFile(e.target.files?.[0])} />
+              <input
+                ref={fileRef}
+                type="file"
+                className="hidden"
+                onChange={(e) => handleFile(e.target.files?.[0])}
+              />
             </div>
           )}
 
@@ -155,7 +171,12 @@ export function SshKeyForm({ open, onOpenChange }: SshKeyFormProps) {
             <div className="space-y-1.5">
               <Label htmlFor="ssh-passphrase">{t("sshKeys.passphrase")}</Label>
               <div className="flex gap-2">
-                <Input id="ssh-passphrase" type="password" value={passphrase} onChange={(e) => setPassphrase(e.target.value)} />
+                <Input
+                  id="ssh-passphrase"
+                  type="password"
+                  value={passphrase}
+                  onChange={(e) => setPassphrase(e.target.value)}
+                />
                 <Button type="button" onClick={() => parse(pendingContent, passphrase)}>
                   {t("sshKeys.unlock")}
                 </Button>
@@ -164,24 +185,33 @@ export function SshKeyForm({ open, onOpenChange }: SshKeyFormProps) {
           )}
 
           {key && (
-            <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
-              <p className="break-all font-mono text-xs">{key.publicKey}</p>
-              <p className="font-mono text-xs text-muted-foreground">{key.fingerprint}</p>
+            <div className="border-border bg-muted/30 space-y-2 rounded-xl border p-3">
+              <p className="font-mono text-xs break-all">{key.publicKey}</p>
+              <p className="text-muted-foreground font-mono text-xs">{key.fingerprint}</p>
             </div>
           )}
 
-          {error && <p className="text-xs text-destructive">{error}</p>}
+          {error && <p className="text-destructive text-xs">{error}</p>}
 
           <div className="space-y-1.5">
             <Label htmlFor="ssh-notes">{t("entries.notes")}</Label>
-            <Textarea id="ssh-notes" rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} />
+            <Textarea
+              id="ssh-notes"
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
           </div>
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => close(false)}>
               {t("entries.cancel")}
             </Button>
-            <Button type="button" disabled={!key || !title.trim() || submitting} onClick={handleCreate}>
+            <Button
+              type="button"
+              disabled={!key || !title.trim() || submitting}
+              onClick={handleCreate}
+            >
               {t("entries.create")}
             </Button>
           </DialogFooter>

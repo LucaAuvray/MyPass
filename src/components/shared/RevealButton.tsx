@@ -17,7 +17,7 @@ export function RevealButton({ className }: RevealButtonProps) {
     <button
       onClick={toggle}
       className={cn(
-        "rounded p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground",
+        "text-muted-foreground hover:bg-secondary hover:text-foreground rounded p-1 transition-colors",
         className,
       )}
       aria-label={revealed ? "Hide" : "Show"}

@@ -20,7 +20,7 @@ export function MobileNav({ className }: MobileNavProps) {
     <nav
       className={cn(
         // min-h (pas h) : le padding safe-area iOS (barre home) agrandit la nav
-        "flex min-h-16 shrink-0 items-center justify-around border-t border-border bg-background pb-[env(safe-area-inset-bottom)]",
+        "border-border bg-background flex min-h-16 shrink-0 items-center justify-around border-t pb-[env(safe-area-inset-bottom)]",
         className,
       )}
     >

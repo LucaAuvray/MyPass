@@ -36,13 +36,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       if (this.props.fallback) return this.props.fallback;
 
       return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+        <div className="bg-background flex min-h-screen flex-col items-center justify-center p-4">
           <div className="flex flex-col items-center gap-4 text-center">
-            <div className="flex size-16 items-center justify-center rounded-2xl bg-destructive/10">
-              <AlertTriangle className="size-8 text-destructive" />
+            <div className="bg-destructive/10 flex size-16 items-center justify-center rounded-2xl">
+              <AlertTriangle className="text-destructive size-8" />
             </div>
             <h2 className="text-xl font-bold">{i18n.t("common.somethingWrong")}</h2>
-            <p className="max-w-sm text-sm text-muted-foreground">
+            <p className="text-muted-foreground max-w-sm text-sm">
               {this.state.error?.message || i18n.t("common.unexpectedError")}
             </p>
             <Button onClick={this.handleRetry} className="gap-1.5">

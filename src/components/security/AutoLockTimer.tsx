@@ -57,10 +57,7 @@ export function AutoLockTimer({ className }: AutoLockTimerProps) {
     const checkBrowserActivity = () => {
       tauriCommand<BrowserActivityStatus>("get_browser_status")
         .then((status) => {
-          const latest = Math.max(
-            0,
-            ...status.browsers.map((b) => Number(b.last_seen) || 0),
-          );
+          const latest = Math.max(0, ...status.browsers.map((b) => Number(b.last_seen) || 0));
           if (latest * 1000 > lastActivityRef.current) {
             resetTimer();
           }
@@ -97,7 +94,7 @@ export function AutoLockTimer({ className }: AutoLockTimerProps) {
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs transition-colors hover:bg-secondary",
+          "hover:bg-secondary flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-xs transition-colors",
           isLow ? "text-amber-500" : "text-muted-foreground",
           className,
         )}

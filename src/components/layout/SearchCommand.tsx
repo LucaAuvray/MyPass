@@ -21,7 +21,10 @@ export function SearchCommand() {
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "p" && (e.metaKey || e.ctrlKey))) {
+      if (
+        (e.key === "k" && (e.metaKey || e.ctrlKey)) ||
+        (e.key === "p" && (e.metaKey || e.ctrlKey))
+      ) {
         e.preventDefault();
         setSearchOpen(true);
       }
@@ -52,7 +55,7 @@ export function SearchCommand() {
               <EntryIcon url={entry.url} size="sm" />
               <div className="flex flex-col">
                 <span className="text-sm font-medium">{entry.title}</span>
-                <span className="text-xs text-muted-foreground">{entry.username}</span>
+                <span className="text-muted-foreground text-xs">{entry.username}</span>
               </div>
             </CommandItem>
           ))}

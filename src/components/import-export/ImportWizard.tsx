@@ -7,11 +7,26 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { tauriCommand } from "@/lib/tauri";
 import { FileUp, ArrowRight, Check, AlertTriangle, Loader2 } from "lucide-react";
-import type { ImportedEntry, ImportResult, ParsedEntry, DuplicateGroup, DedupResolution } from "@/types/import";
-import { computeDuplicateGroups, decodeImportBytes, findNonDuplicates, vaultEntryToDupEntry, resolveDuplicates } from "@/lib/dedup";
+import type {
+  ImportedEntry,
+  ImportResult,
+  ParsedEntry,
+  DuplicateGroup,
+  DedupResolution,
+} from "@/types/import";
+import {
+  computeDuplicateGroups,
+  decodeImportBytes,
+  findNonDuplicates,
+  vaultEntryToDupEntry,
+  resolveDuplicates,
+} from "@/lib/dedup";
 import { DedupDialog } from "@/components/import-export/DedupDialog";
 
-interface ImportWizardProps { open: boolean; onOpenChange: (open: boolean) => void; }
+interface ImportWizardProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
 type Step = "pick" | "parsing" | "dedup" | "importing" | "done";
 
@@ -37,7 +52,8 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
   /** Error codes from mypass-core are translated, anything else shown as is. */
   const describe = (err: unknown, fallbackKey: string) => {
     const msg = err instanceof Error ? err.message : String(err ?? "");
-    if (/^[A-Z_]+$/.test(msg) && i18n.exists(`import.errors.${msg}`)) return t(`import.errors.${msg}`);
+    if (/^[A-Z_]+$/.test(msg) && i18n.exists(`import.errors.${msg}`))
+      return t(`import.errors.${msg}`);
     return msg || t(fallbackKey);
   };
 
@@ -56,7 +72,10 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
       const vault = await tauriCommand<VaultEntry[]>("get_entries", {});
       setParsingProgress(80);
 
-      const groups = computeDuplicateGroups(parsed, (vault ?? []).map((v) => vaultEntryToDupEntry({ ...v, hasTotp: v.has_totp })));
+      const groups = computeDuplicateGroups(
+        parsed,
+        (vault ?? []).map((v) => vaultEntryToDupEntry({ ...v, hasTotp: v.has_totp })),
+      );
       const nonDup = findNonDuplicates(parsed, groups);
       setParsingProgress(100);
 
@@ -78,7 +97,9 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
   const runImport = async (resolution: DedupResolution) => {
     setStep("importing");
     try {
-      const res = await tauriCommand<ImportResult>("import_entries", { entries: resolution.resolvedEntries });
+      const res = await tauriCommand<ImportResult>("import_entries", {
+        entries: resolution.resolvedEntries,
+      });
       setResult(res);
       // Rows of the file not sent (the vault's copy was kept) count as ignored.
       setIgnored(parsedCountRef.current - resolution.resolvedEntries.length + res.skipped);
@@ -91,7 +112,8 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
     }
   };
 
-  const handleDedupConfirm = (resolvedGroups: DuplicateGroup[]) => runImport(resolveDuplicates(resolvedGroups, nonDuplicates));
+  const handleDedupConfirm = (resolvedGroups: DuplicateGroup[]) =>
+    runImport(resolveDuplicates(resolvedGroups, nonDuplicates));
 
   const handleDedupCancel = () => {
     setDuplicateGroups([]);
@@ -150,31 +172,43 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
     <>
       <Dialog open={open && step !== "dedup"} onOpenChange={handleClose}>
         <DialogContent className="sm:max-w-xl">
-          <DialogHeader><DialogTitle>{t("import.title")}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{t("import.title")}</DialogTitle>
+          </DialogHeader>
 
-          <input ref={fileInputRef} type="file" accept=".csv,.json" className="hidden" onChange={handleFilePicked} />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.json"
+            className="hidden"
+            onChange={handleFilePicked}
+          />
 
           {step === "pick" && (
             <>
               <button
                 onClick={handlePick}
-                className="flex items-start gap-3 rounded-lg border border-border p-4 text-left hover:border-primary/50 hover:bg-muted/50"
+                className="border-border hover:border-primary/50 hover:bg-muted/50 flex items-start gap-3 rounded-lg border p-4 text-left"
               >
-                <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <FileUp className="size-4 text-primary" />
+                <div className="bg-primary/10 flex size-9 shrink-0 items-center justify-center rounded-lg">
+                  <FileUp className="text-primary size-4" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-semibold">{t("import.pickFile")}</p>
-                  <p className="text-xs text-muted-foreground">{t("import.pickFileDesc")}</p>
+                  <p className="text-muted-foreground text-xs">{t("import.pickFileDesc")}</p>
                   <div className="mt-1 flex gap-1">
-                    <Badge variant="secondary" className="text-[10px]">.csv</Badge>
-                    <Badge variant="secondary" className="text-[10px]">.json</Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      .csv
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">
+                      .json
+                    </Badge>
                   </div>
                 </div>
-                <ArrowRight className="ml-auto size-4 shrink-0 text-muted-foreground" />
+                <ArrowRight className="text-muted-foreground ml-auto size-4 shrink-0" />
               </button>
-              {error && <p className="text-xs text-destructive">{error}</p>}
-              <div className="flex items-center gap-2 pt-2 text-[10px] text-muted-foreground">
+              {error && <p className="text-destructive text-xs">{error}</p>}
+              <div className="text-muted-foreground flex items-center gap-2 pt-2 text-[10px]">
                 <AlertTriangle className="size-3" />
                 {t("import.warning")}
               </div>
@@ -183,20 +217,24 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
 
           {step === "parsing" && (
             <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="size-10 animate-spin text-primary" />
+              <Loader2 className="text-primary size-10 animate-spin" />
               <p className="text-sm">
-                {fileName ? t("import.analyzingNamed", { file: fileName }) : t("import.analyzingFile")}
+                {fileName
+                  ? t("import.analyzingNamed", { file: fileName })
+                  : t("import.analyzingFile")}
               </p>
               <Progress value={parsingProgress} className="w-full" />
-              <p className="text-xs text-muted-foreground">{t("dedup.analyzing")}</p>
+              <p className="text-muted-foreground text-xs">{t("dedup.analyzing")}</p>
             </div>
           )}
 
           {step === "importing" && (
             <div className="flex flex-col items-center gap-4 py-8">
-              <Loader2 className="size-10 animate-spin text-primary" />
+              <Loader2 className="text-primary size-10 animate-spin" />
               <p className="text-sm">
-                {fileName ? t("import.importingNamed", { file: fileName }) : t("import.importingFile")}
+                {fileName
+                  ? t("import.importingNamed", { file: fileName })
+                  : t("import.importingFile")}
               </p>
               <Progress value={50} className="w-full" />
             </div>
@@ -211,9 +249,15 @@ export function ImportWizard({ open, onOpenChange }: ImportWizardProps) {
                 <h3 className="text-lg font-bold">{t("import.success")}</h3>
                 <p className="text-sm">{t("import.imported", { count: result.imported })}</p>
                 <p className="text-sm">{t("import.updated", { count: result.updated })}</p>
-                {ignored > 0 && <p className="text-xs text-amber-500">{t("import.skipped", { count: ignored })}</p>}
+                {ignored > 0 && (
+                  <p className="text-xs text-amber-500">
+                    {t("import.skipped", { count: ignored })}
+                  </p>
+                )}
               </div>
-              <Button onClick={handleClose} className="w-full">{t("common.done")}</Button>
+              <Button onClick={handleClose} className="w-full">
+                {t("common.done")}
+              </Button>
             </div>
           )}
         </DialogContent>

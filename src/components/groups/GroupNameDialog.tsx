@@ -22,7 +22,14 @@ interface GroupNameDialogProps {
 }
 
 /** Folder name prompt, shared by "new folder" and "rename". */
-export function GroupNameDialog({ open, onOpenChange, title, initialName, submitLabel, onSubmit }: GroupNameDialogProps) {
+export function GroupNameDialog({
+  open,
+  onOpenChange,
+  title,
+  initialName,
+  submitLabel,
+  onSubmit,
+}: GroupNameDialogProps) {
   const { t } = useTranslation();
   const inputId = useId();
   const [name, setName] = useState(initialName);
@@ -76,7 +83,7 @@ export function GroupNameDialog({ open, onOpenChange, title, initialName, submit
               autoFocus
               autoComplete="off"
             />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            {error && <p className="text-destructive text-xs">{error}</p>}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

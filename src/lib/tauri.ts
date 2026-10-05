@@ -1,6 +1,6 @@
 /**
  * Typed wrapper around Tauri's invoke function.
- * 
+ *
  * In Tauri runtime, uses the native IPC bridge; in web mode, the wasm vault.
  * `npm run dev` in a plain browser alone gets the mock (./mock).
  */

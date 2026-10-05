@@ -13,8 +13,7 @@ export function useEntries(groupUuid?: string) {
 
   const entries = useQuery({
     queryKey: [...ENTRIES_KEY, groupUuid ?? "all"],
-    queryFn: () =>
-      tauriCommand<Entry[]>("get_entries", groupUuid ? { groupUuid } : undefined),
+    queryFn: () => tauriCommand<Entry[]>("get_entries", groupUuid ? { groupUuid } : undefined),
     staleTime: 10_000,
   });
 

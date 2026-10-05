@@ -77,7 +77,7 @@ export function PasswordGenerator({ onApply, embedded }: PasswordGeneratorProps)
     <Card className={cn(embedded && "border-none shadow-none")}>
       <CardContent className="space-y-4 p-4">
         {/* Generated output */}
-        <div className="rounded-lg border border-border bg-muted p-3">
+        <div className="border-border bg-muted rounded-lg border p-3">
           <div className="flex items-center justify-between">
             <span className="font-mono text-sm">{generated || t("generator.clickRefresh")}</span>
             <div className="flex items-center gap-1">
@@ -90,13 +90,13 @@ export function PasswordGenerator({ onApply, embedded }: PasswordGeneratorProps)
           {/* Strength bar */}
           {strength && (
             <div className="mt-2">
-              <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-muted">
+              <div className="bg-muted mb-1 h-1.5 overflow-hidden rounded-full">
                 <div
                   className="h-full rounded-full transition-all duration-300"
                   style={{ width: `${strengthPercent}%`, backgroundColor: strength.color }}
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-[10px]">
                 {strength.label} — {strength.crackTimeDisplay}
               </p>
             </div>
@@ -116,30 +116,68 @@ export function PasswordGenerator({ onApply, embedded }: PasswordGeneratorProps)
           <TabsContent value="password" className="mt-3 space-y-3">
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label className="text-xs">{t("generator.length")}: {length}</Label>
+                <Label className="text-xs">
+                  {t("generator.length")}: {length}
+                </Label>
               </div>
               <Slider
                 value={length}
-                onValueChange={(v) => { setLength(Array.isArray(v) ? v[0] : v as number); setTimeout(refreshPassword, 50); }}
+                onValueChange={(v) => {
+                  setLength(Array.isArray(v) ? v[0] : (v as number));
+                  setTimeout(refreshPassword, 50);
+                }}
                 min={8}
                 max={64}
                 step={1}
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <ToggleOption label="A-Z" checked={useUpper} onChange={(v) => { setUseUpper(v); setTimeout(refreshPassword, 50); }} />
-              <ToggleOption label="a-z" checked={useLower} onChange={(v) => { setUseLower(v); setTimeout(refreshPassword, 50); }} />
-              <ToggleOption label="0-9" checked={useDigits} onChange={(v) => { setUseDigits(v); setTimeout(refreshPassword, 50); }} />
-              <ToggleOption label="!@#$" checked={useSymbols} onChange={(v) => { setUseSymbols(v); setTimeout(refreshPassword, 50); }} />
+              <ToggleOption
+                label="A-Z"
+                checked={useUpper}
+                onChange={(v) => {
+                  setUseUpper(v);
+                  setTimeout(refreshPassword, 50);
+                }}
+              />
+              <ToggleOption
+                label="a-z"
+                checked={useLower}
+                onChange={(v) => {
+                  setUseLower(v);
+                  setTimeout(refreshPassword, 50);
+                }}
+              />
+              <ToggleOption
+                label="0-9"
+                checked={useDigits}
+                onChange={(v) => {
+                  setUseDigits(v);
+                  setTimeout(refreshPassword, 50);
+                }}
+              />
+              <ToggleOption
+                label="!@#$"
+                checked={useSymbols}
+                onChange={(v) => {
+                  setUseSymbols(v);
+                  setTimeout(refreshPassword, 50);
+                }}
+              />
             </div>
           </TabsContent>
 
           <TabsContent value="passphrase" className="mt-3 space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">{t("generator.words")}: {wordCount}</Label>
+              <Label className="text-xs">
+                {t("generator.words")}: {wordCount}
+              </Label>
               <Slider
                 value={wordCount}
-                onValueChange={(v) => { setWordCount(Array.isArray(v) ? v[0] : v as number); setTimeout(refreshPassphrase, 50); }}
+                onValueChange={(v) => {
+                  setWordCount(Array.isArray(v) ? v[0] : (v as number));
+                  setTimeout(refreshPassphrase, 50);
+                }}
                 min={3}
                 max={10}
                 step={1}
@@ -149,14 +187,20 @@ export function PasswordGenerator({ onApply, embedded }: PasswordGeneratorProps)
               <Label className="text-xs">{t("generator.separator")}:</Label>
               <Input
                 value={separator}
-                onChange={(e) => { setSeparator(e.target.value); setTimeout(refreshPassphrase, 50); }}
+                onChange={(e) => {
+                  setSeparator(e.target.value);
+                  setTimeout(refreshPassphrase, 50);
+                }}
                 className="h-7 w-16 text-xs"
               />
               <Label className="ml-2 text-xs">{t("generator.case")}:</Label>
               <select
                 value={wordCase}
-                onChange={(e) => { setWordCase(e.target.value as typeof wordCase); setTimeout(refreshPassphrase, 50); }}
-                className="h-7 rounded-md border border-input bg-transparent px-2 text-xs"
+                onChange={(e) => {
+                  setWordCase(e.target.value as typeof wordCase);
+                  setTimeout(refreshPassphrase, 50);
+                }}
+                className="border-input h-7 rounded-md border bg-transparent px-2 text-xs"
               >
                 <option value="lower">{t("generator.lower")}</option>
                 <option value="upper">{t("generator.upper")}</option>
@@ -186,7 +230,7 @@ function ToggleOption({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
+    <div className="border-border flex items-center justify-between rounded-lg border px-3 py-2">
       <Label className="text-xs">{label}</Label>
       <Switch checked={checked} onCheckedChange={onChange} />
     </div>

@@ -26,13 +26,13 @@ export function EntryIcon({ url, size = "md", className }: EntryIconProps) {
   return (
     <div
       className={cn(
-        "flex shrink-0 items-center justify-center bg-gradient-to-br from-primary/20 to-accent/20 font-semibold text-primary",
+        "from-primary/20 to-accent/20 text-primary flex shrink-0 items-center justify-center bg-gradient-to-br font-semibold",
         sizeMap[size],
         className,
       )}
     >
       {hostname ? (
-        <span className={cn("uppercase tracking-wider", iconSizeMap[size])}>
+        <span className={cn("tracking-wider uppercase", iconSizeMap[size])}>
           {hostname.slice(0, 2)}
         </span>
       ) : (

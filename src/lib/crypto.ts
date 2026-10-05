@@ -8,10 +8,10 @@ import { tauriCommand } from "./tauri";
 
 /** Result of a password strength evaluation */
 export interface StrengthResult {
-  score: number;       // 0-5
-  label: string;       // "Very Weak" to "Very Strong"
-  color: string;       // hex color
-  feedback: string;    // human-readable advice
+  score: number; // 0-5
+  label: string; // "Very Weak" to "Very Strong"
+  color: string; // hex color
+  feedback: string; // human-readable advice
   crackTimeSeconds: number;
   crackTimeDisplay: string;
 }

@@ -48,12 +48,12 @@ export function GroupsSection({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-center justify-between px-2.5">
-        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+        <span className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
           {t("groups.title")}
         </span>
         <button
           onClick={() => setNameDialog({ mode: "create" })}
-          className="rounded p-0.5 text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground rounded p-0.5 transition-colors"
           title={t("groups.newGroup")}
           aria-label={t("groups.newGroup")}
         >
@@ -80,14 +80,20 @@ export function GroupsSection({ onNavigate }: { onNavigate?: () => void }) {
         submitLabel={renaming ? t("groups.save") : t("groups.create")}
         onSubmit={async (name) => {
           if (renaming) await renameGroup({ uuid: renaming.uuid, name });
-          else await createGroup({ name, parentUuid: nameDialog?.mode === "create" ? nameDialog.parentUuid : undefined });
+          else
+            await createGroup({
+              name,
+              parentUuid: nameDialog?.mode === "create" ? nameDialog.parentUuid : undefined,
+            });
         }}
       />
 
       <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t("groups.deleteTitle", { name: toDelete?.name ?? "" })}</AlertDialogTitle>
+            <AlertDialogTitle>
+              {t("groups.deleteTitle", { name: toDelete?.name ?? "" })}
+            </AlertDialogTitle>
             <AlertDialogDescription>{t("groups.deleteDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

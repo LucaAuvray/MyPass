@@ -394,7 +394,11 @@ export function createWebInvoke(): TauriInvokeFn {
       case "export_entries": {
         const format = String(args?.format);
         const content = wasm.export_entries(format, JSON.stringify(args?.uuids ?? []));
-        downloadFile(content, String(args?.fileName), format === "csv" ? "text/csv" : "application/json");
+        downloadFile(
+          content,
+          String(args?.fileName),
+          format === "csv" ? "text/csv" : "application/json",
+        );
         return { saved: true } as T;
       }
 

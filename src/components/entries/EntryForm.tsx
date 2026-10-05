@@ -43,7 +43,15 @@ type EntryFormValues = z.infer<ReturnType<typeof makeEntrySchema>>;
 interface EntryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  editEntry?: { uuid: string; title: string; username: string; password: string; url: string; notes: string; totp: string };
+  editEntry?: {
+    uuid: string;
+    title: string;
+    username: string;
+    password: string;
+    url: string;
+    notes: string;
+    totp: string;
+  };
 }
 
 export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
@@ -131,7 +139,7 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
           <Label htmlFor="title">{t("entries.title")}</Label>
           <Input id="title" {...form.register("title")} placeholder="Google" autoFocus />
           {form.formState.errors.title && (
-            <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
+            <p className="text-destructive text-xs">{form.formState.errors.title.message}</p>
           )}
         </div>
 
@@ -178,13 +186,18 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
             {...form.register("totp")}
           />
           {form.formState.errors.totp && (
-            <p className="text-xs text-destructive">{form.formState.errors.totp.message}</p>
+            <p className="text-destructive text-xs">{form.formState.errors.totp.message}</p>
           )}
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="notes">{t("entries.notes")}</Label>
-          <Textarea id="notes" {...form.register("notes")} placeholder={t("entries.notesPlaceholder")} rows={3} />
+          <Textarea
+            id="notes"
+            {...form.register("notes")}
+            placeholder={t("entries.notesPlaceholder")}
+            rows={3}
+          />
         </div>
       </div>
 
@@ -192,9 +205,7 @@ export function EntryForm({ open, onOpenChange, editEntry }: EntryFormProps) {
         <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
           {t("entries.cancel")}
         </Button>
-        <Button type="submit">
-          {isEditing ? t("entries.save") : t("entries.create")}
-        </Button>
+        <Button type="submit">{isEditing ? t("entries.save") : t("entries.create")}</Button>
       </DialogFooter>
     </form>
   );

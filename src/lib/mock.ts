@@ -9,7 +9,14 @@ import type { TauriInvokeFn } from "./tauri";
 import { findGroup } from "./groups";
 
 const folder = (uuid: string, name: string, children: Group[] = []): Group => ({
-  uuid, name, icon: null, children, entryCount: 0, isExpanded: true, created: null, modified: null,
+  uuid,
+  name,
+  icon: null,
+  children,
+  entryCount: 0,
+  isExpanded: true,
+  created: null,
+  modified: null,
 });
 
 /** A copy of the tree with entryCount recomputed from the mock entries. */
@@ -73,10 +80,66 @@ export function createMockInvoke(): TauriInvokeFn {
         // Mock some entries for demo
         if (mockStore.entries.length === 0) {
           mockStore.entries = [
-            { uuid: "mock-1", group_uuid: "mock-g1", title: "Google", username: "user@gmail.com", url: "https://google.com", password: "mock-pass-1", notes: "", icon: 0, tags: ["email"], customFields: {}, totp: "otpauth://totp/Google?secret=JBSWY3DPEHPK3PXP", created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-2", group_uuid: "mock-g1", title: "GitHub", username: "dev", url: "https://github.com", password: "mock-pass-2", notes: "Code repository", icon: 0, tags: ["dev"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-3", group_uuid: "root", title: "Twitter", username: "@handle", url: "https://twitter.com", password: "mock-pass-3", notes: "", icon: 0, tags: ["social"], customFields: {}, totp: "", created: new Date().toISOString(), modified: new Date().toISOString() },
-            { uuid: "mock-4", group_uuid: "root", title: "Amazon", username: "user@example.com", url: "https://amazon.com", password: "weak", notes: "Shopping", icon: 0, tags: ["shopping"], customFields: {}, totp: "", created: "2024-01-15T00:00:00Z", modified: "2024-01-15T00:00:00Z" },
+            {
+              uuid: "mock-1",
+              group_uuid: "mock-g1",
+              title: "Google",
+              username: "user@gmail.com",
+              url: "https://google.com",
+              password: "mock-pass-1",
+              notes: "",
+              icon: 0,
+              tags: ["email"],
+              customFields: {},
+              totp: "otpauth://totp/Google?secret=JBSWY3DPEHPK3PXP",
+              created: new Date().toISOString(),
+              modified: new Date().toISOString(),
+            },
+            {
+              uuid: "mock-2",
+              group_uuid: "mock-g1",
+              title: "GitHub",
+              username: "dev",
+              url: "https://github.com",
+              password: "mock-pass-2",
+              notes: "Code repository",
+              icon: 0,
+              tags: ["dev"],
+              customFields: {},
+              totp: "",
+              created: new Date().toISOString(),
+              modified: new Date().toISOString(),
+            },
+            {
+              uuid: "mock-3",
+              group_uuid: "root",
+              title: "Twitter",
+              username: "@handle",
+              url: "https://twitter.com",
+              password: "mock-pass-3",
+              notes: "",
+              icon: 0,
+              tags: ["social"],
+              customFields: {},
+              totp: "",
+              created: new Date().toISOString(),
+              modified: new Date().toISOString(),
+            },
+            {
+              uuid: "mock-4",
+              group_uuid: "root",
+              title: "Amazon",
+              username: "user@example.com",
+              url: "https://amazon.com",
+              password: "weak",
+              notes: "Shopping",
+              icon: 0,
+              tags: ["shopping"],
+              customFields: {},
+              totp: "",
+              created: "2024-01-15T00:00:00Z",
+              modified: "2024-01-15T00:00:00Z",
+            },
           ];
         }
         return {
@@ -179,7 +242,10 @@ export function createMockInvoke(): TauriInvokeFn {
         const uuid = String(args?.uuid);
         const parent = parentOf(mockStore.root, uuid);
         if (!parent) throw new Error("Group not found");
-        const [gone] = parent.children.splice(parent.children.findIndex((c) => c.uuid === uuid), 1);
+        const [gone] = parent.children.splice(
+          parent.children.findIndex((c) => c.uuid === uuid),
+          1,
+        );
         parent.children.push(...gone.children);
         for (const e of mockStore.entries) if (e.group_uuid === uuid) e.group_uuid = parent.uuid;
         return undefined as T;
@@ -216,7 +282,8 @@ export function createMockInvoke(): TauriInvokeFn {
         if (String(args?.content ?? "").includes("ENCRYPTED") && !args?.passphrase)
           throw new Error("PASSPHRASE_REQUIRED");
         return {
-          privateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nmock\n-----END OPENSSH PRIVATE KEY-----",
+          privateKey:
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nmock\n-----END OPENSSH PRIVATE KEY-----",
           publicKey: "ssh-ed25519 AAAAC3mock dev@mock",
           fingerprint: "SHA256:mockfingerprint",
           algorithm: "ssh-ed25519",
@@ -226,7 +293,8 @@ export function createMockInvoke(): TauriInvokeFn {
 
       case "generate_ssh_key":
         return {
-          privateKey: "-----BEGIN OPENSSH PRIVATE KEY-----\nmock\n-----END OPENSSH PRIVATE KEY-----",
+          privateKey:
+            "-----BEGIN OPENSSH PRIVATE KEY-----\nmock\n-----END OPENSSH PRIVATE KEY-----",
           publicKey: `ssh-ed25519 AAAAC3mock ${args?.comment ?? "mypass"}`,
           fingerprint: "SHA256:mockfingerprint",
           algorithm: "ssh-ed25519",
@@ -268,8 +336,28 @@ export function createMockInvoke(): TauriInvokeFn {
 
       case "parse_import":
         return [
-          { group: "Perso", title: "Mock import", username: "mock", password: "mock-pw", url: "https://mock.example", notes: "", tags: [], totp: "", customFields: {} },
-          { group: "", title: "GitHub", username: "dev", password: "mock-pw-2", url: "https://github.com", notes: "", tags: [], totp: "", customFields: {} },
+          {
+            group: "Perso",
+            title: "Mock import",
+            username: "mock",
+            password: "mock-pw",
+            url: "https://mock.example",
+            notes: "",
+            tags: [],
+            totp: "",
+            customFields: {},
+          },
+          {
+            group: "",
+            title: "GitHub",
+            username: "dev",
+            password: "mock-pw-2",
+            url: "https://github.com",
+            notes: "",
+            tags: [],
+            totp: "",
+            customFields: {},
+          },
         ] as T;
 
       case "import_entries": {

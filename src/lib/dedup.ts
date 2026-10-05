@@ -139,7 +139,10 @@ export function computeDuplicateGroups(
   importEntries: ParsedEntry[],
   vaultEntries: DuplicateEntry[],
 ): DuplicateGroup[] {
-  const map = new Map<string, { import: DuplicateEntry[]; vault: DuplicateEntry[]; matchType: MatchType }>();
+  const map = new Map<
+    string,
+    { import: DuplicateEntry[]; vault: DuplicateEntry[]; matchType: MatchType }
+  >();
 
   // Index import entries
   for (const e of importEntries) {
@@ -178,7 +181,8 @@ export function computeDuplicateGroups(
     const representative = allEntries[0];
     const urlPart = normalizeUrl(representative.url) || "?";
     const userPart = representative.username || "?";
-    const matchKey = bucket.matchType === "title" ? representative.title : `${urlPart} — ${userPart}`;
+    const matchKey =
+      bucket.matchType === "title" ? representative.title : `${urlPart} — ${userPart}`;
 
     groups.push({
       id: `dup-${groupIdx++}`,
