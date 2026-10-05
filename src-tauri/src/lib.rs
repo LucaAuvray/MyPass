@@ -3,6 +3,7 @@ pub use mypass_core as kdbx;
 pub mod security;
 pub mod native_messaging;
 pub mod ssh;
+mod updater;
 
 use commands::database::DbState;
 use std::sync::{Arc, Mutex};
@@ -24,6 +25,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Arc::new(Mutex::new(DbState::default())))
         .manage(commands::sync::SyncRuntime::default())
         .setup(|app| {
@@ -32,6 +34,7 @@ pub fn run() {
             native_messaging::start_local_bridge(db_state.clone());
             commands::browser::ensure_native_messaging_manifest();
             crate::ssh::agent::start_if_enabled(app.handle().clone(), db_state);
+            updater::check_on_startup(app.handle());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

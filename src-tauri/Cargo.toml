@@ -19,6 +19,7 @@ tauri = { version = "2", features = [] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
 # Ensures only one MyPass process runs, so the browser bridge and the unlocked
 # vault always live in the same process (a second instance can't own the
 # bridge port and would answer the extension with a locked/empty vault).
