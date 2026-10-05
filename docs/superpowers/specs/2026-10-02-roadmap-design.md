@@ -338,6 +338,29 @@ garder Smart App Control actif ; la signature updater Tauri, elle, est gratuite 
 **Fini quand :** après le déploiement d'une 0.1.1, le portable propose la mise à jour et
 redémarre en 0.1.1.
 
+**Résultat (2026-10-05) :** livré (spec `docs/superpowers/specs/2026-10-05-auto-update-design.md`,
+plan `docs/superpowers/plans/2026-10-05-auto-update.md`, revue indépendante). Le 0.1.0 installé
+n'avait pas d'updater : la 0.1.1 qui l'apporte s'installe à la main, et la preuve est la 0.1.2.
+Sur ce PC, la 0.1.1 → 0.1.2 s'est faite seule (boîte au lancement, MSI en 6 s, relance
+automatique, aucun redémarrage de Windows en attente, extension connectée pendant
+l'opération puis fonctionnelle). Pas de signature Authenticode : Smart App Control est coupé
+sur les deux PC. Procédure de release : `CLAUDE.md` (« Release desktop »), clé
+`%USERPROFILE%\.tauri\mypass.key` hors dépôt. Découvertes en route :
+- Le relais `--native-messaging` survivait à l'app et aurait verrouillé `mypass.exe` pendant
+  l'installation : il se termine désormais avec elle.
+- Le service worker de la PWA renvoyait l'app pour toute navigation, `/download/` compris
+  (impossible de télécharger le `.msi` depuis un navigateur où la PWA est installée) :
+  `/download/` et `/api/` sont exclus (`e1c8b59`).
+- Une PWA restée ouverte cassait au déverrouillage après chaque déploiement (le nouveau
+  service worker efface les anciens modules sans recharger la page) : elle se recharge
+  maintenant seule (`99f383a`).
+- La version et la date de build s'affichent en bas des Paramètres (desktop et PWA).
+
+**Reste :** le portable (installer la 0.1.1 par le lien, récupérer le coffre, puis
+vérifier qu'il propose la 0.1.2 ; pour l'extension, copier
+`keepassxc-browser/keepassxc-browser/` et lancer `register-nhm.ps1`, l'app ne crée pas les
+clés de registre).
+
 ## 8 — Docs
 
 **Périmètre :**
@@ -364,7 +387,7 @@ redémarre en 0.1.1.
 | 4 | Groupes | [x] | [x] | [x] 2026-10-03 |
 | 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
 | 6 | Durcissement | [x] | [x] | [x] 2026-10-04 |
-| 7 | Mise à jour auto | [ ] | [ ] | [ ] |
+| 7 | Mise à jour auto | [x] | [x] | [~] ce PC 2026-10-05, reste le portable |
 | 8 | Docs | — | — | [ ] |
 
 Le sous-projet 0 est de l'installation d'outils : il n'a ni spec ni plan, seulement les
