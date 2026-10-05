@@ -36,7 +36,7 @@ risque de perte de données ni fonction factice à l'écran.
 | Passkeys | **Retirées.** Pas d'implémentation WebAuthn. |
 | Navigateur | **Chrome** (Edge suit gratuitement, même mécanisme). Firefox hors périmètre. |
 | Sauvegardes | Pas de nouveau mécanisme : vzdump nocturne + historique versionné du serveur + copie locale sur chaque PC. |
-| CLAUDE.md | Réécrit par Luca (non commité) : corrections reportées au sous-projet 8. |
+| CLAUDE.md | Réécrit par Luca (non commité) : corrections reportées au sous-projet 8 (faites le 2026-10-05). |
 
 ## Contraintes transverses
 
@@ -374,6 +374,17 @@ ne crée pas les clés de registre).
 **Fini quand :** un nouveau lecteur peut installer, builder et déployer en suivant uniquement
 `README.md` et `CLAUDE.md`.
 
+**Résultat (2026-10-05) :** passe Prettier seule (83 fichiers de `src/`, plus `endOfLine: "auto"`
+dans `.prettierrc` : avec `core.autocrlf=true`, un checkout Windows en CRLF faisait échouer
+`format:check` sur tout `src/`). `CLAUDE.md` corrigé (extension réelle et son ID fixé, sauvegardes
+vzdump, étapes de déploiement PWA et serveur, passkeys et note PATH retirées, formats
+d'import/export réels, vérifications Node) ; `mypass-nhm.bat` mort retiré du dépôt. `README.md`
+réécrit : fonctions, structure, prérequis, commandes, auto-hébergement (unité systemd, jeton,
+`tailscale serve`), PWA, release signée, extension ; mention de licence retirée (dépôt privé).
+Vérifié : chaque commande et chemin cités existent, le bloc « Check » du README passe tel quel
+(core, `src-tauri`, clippy, serveur, lint, format, build). Non rejoué : une installation du serveur
+sur un hôte vierge.
+
 ---
 
 ## Suivi
@@ -388,7 +399,7 @@ ne crée pas les clés de registre).
 | 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
 | 6 | Durcissement | [x] | [x] | [x] 2026-10-04 |
 | 7 | Mise à jour auto | [x] | [x] | [x] 2026-10-05 |
-| 8 | Docs | — | — | [ ] |
+| 8 | Docs | — | — | [x] 2026-10-05 |
 
 Le sous-projet 0 est de l'installation d'outils : il n'a ni spec ni plan, seulement les
 vérifications de « Fini quand ». Le 8 est de la rédaction pure.
