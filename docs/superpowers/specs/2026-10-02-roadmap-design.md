@@ -141,7 +141,7 @@ sur le portable et le téléphone en ≤ 60 s ; un mauvais mot de passe affiche 
 `docs/superpowers/plans/2026-10-02-desktop-two-pcs.md`, revue indépendante + corrections).
 E2E validé sur ce PC + téléphone : récupération du vrai coffre (octets identiques à `vault.v7`),
 erreurs jeton / mot de passe, création sur PC → téléphone (v8) et suppression téléphone → PC (v9)
-sans clic. **Reste : installer et récupérer le coffre sur le deuxième PC.**
+sans clic. **Le fixe (2026-10-05) :** `.msi` installé, coffre récupéré, fonctionne (confirmé par Luca).
 Découvertes en route :
 - Le jeton serveur était perdu : rotation faite (ancien hash dans
   `/var/lib/mypass/token.hash.bak-2026-10-02`). Procédure : renommer `token.hash`, `systemctl
@@ -356,10 +356,8 @@ sur les deux PC. Procédure de release : `CLAUDE.md` (« Release desktop »), cl
   maintenant seule (`99f383a`).
 - La version et la date de build s'affichent en bas des Paramètres (desktop et PWA).
 
-**Le fixe** n'a pas encore MyPass (reste du sous-projet 1) : y installer la dernière version
-par le lien `/download/`, récupérer le coffre ; les versions suivantes y arriveront seules. Pour
-l'extension, copier `keepassxc-browser/keepassxc-browser/` et lancer `register-nhm.ps1` (l'app
-ne crée pas les clés de registre).
+**Le fixe** : MyPass y est installé depuis le 2026-10-05 (fin du sous-projet 1) ; les versions
+suivantes y arriveront par la mise à jour automatique.
 
 ## 8 — Docs
 
@@ -392,7 +390,7 @@ sur un hôte vierge.
 | # | Sous-projet | Spec | Plan | Fait |
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
-| 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le fixe |
+| 1 | Desktop sur 2 PC | [x] | [x] | [x] 2026-10-05 |
 | 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
 | 3 | TOTP | [x] | [x] | [x] 2026-10-03 |
 | 4 | Groupes | [x] | [x] | [x] 2026-10-03 |
