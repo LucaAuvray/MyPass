@@ -21,6 +21,9 @@ export default defineConfig(({ mode }) => ({
       manifest: false, // We use public/manifest.json
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // The server answers these itself (the .msi downloads, the API): opening
+        // such a link must reach it, not get the app's index.html.
+        navigateFallbackDenylist: [/^\/download\//, /^\/api\//],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
