@@ -22,17 +22,21 @@ Tout ce qui est « serveur » vit sur un conteneur Proxmox (CT 107, Ubuntu 24.04
 | `/var/lib/mypass/vaults/` | **LES COFFRES** : `vault.v<N>.kdbx` (historique versionné, rétention limitée) + `index.json` (`{"current":N}`). Chiffrés, appartiennent à l'utilisateur `mypass`. |
 | `/var/lib/mypass/token.hash` | Hash du jeton Bearer d'API. Le jeton en clair n'est nulle part dans ce dépôt. |
 | `/usr/local/bin/mypass-server` | Binaire du serveur déployé (service `mypass-server.service`, user `mypass`, port 8787) |
-| `/opt/mypass-web/` | Build de la PWA servie (`MYPASS_STATIC_DIR`) ; `/opt/mypass-web.old/` = version précédente |
+| `/opt/mypass-web/` | Build de la PWA servie (`MYPASS_STATIC_DIR`) ; `/opt/mypass-web.bak-<date>[-sp<N>]/` = versions précédentes |
 | `/opt/mypass-downloads/` | `MyPass_<version>_x64_en-US.msi` (le courant et le précédent) + `latest.json` (manifeste de l'updater), servis sous `/download/<nom>` (`MYPASS_DOWNLOAD_DIR`) |
-| `/opt/mypass-src/server-build/` | Copie du projet utilisée pour compiler le serveur (cargo installé dans `/root/.cargo`) |
-| `/opt/mypass-src/server/` | Ancienne copie du serveur, **obsolète** (sans /download ni politique de cache) — à supprimer |
+| `/opt/mypass-src/server-build/` | Copie du projet utilisée pour compiler le serveur (cargo installé dans `/root/.cargo`) ; seul `server/` y sert, il ne dépend d'aucun autre crate du dépôt |
+| `/etc/systemd/system/mypass-server.service` (+ `.d/`) | Unité du service : user `mypass`, `MYPASS_DATA_DIR=/var/lib/mypass`, `MYPASS_STATIC_DIR`, `MYPASS_DOWNLOAD_DIR`, `UMask=0077`, `ProtectSystem=strict` |
 
 Règles pour toute opération sur le conteneur :
 - **Les coffres ne sont jamais dans le dépôt** (`*.kdbx` est ignoré). Ne jamais les rapatrier, afficher ou committer sans demande explicite ; ce sont les vraies données de Luca.
 - Lire/diagnostiquer avant de modifier. Copier un fichier en `.bak-<date>` avant de l'éditer. Vérifier après chaque changement (`systemctl status mypass-server`, `journalctl -u mypass-server`, `curl http://127.0.0.1:8787/api/health`) et montrer la sortie.
-- Le conteneur n'a **ni node ni wasm-pack** : la PWA se construit sur le PC (`npm run build:web`) puis `dist/` est copié dans `/opt/mypass-web` (sauvegarder l'ancien en `mypass-web.old`). Le serveur Rust se compile sur le conteneur (`cargo build --release` dans `server/`), puis remplacer `/usr/local/bin/mypass-server` et `systemctl restart mypass-server`.
+- Le conteneur n'a **ni node ni wasm-pack** : la PWA se construit sur le PC.
+  1. `npm run build:web` (avant tout `npm run tauri build`/`release`, qui écrase `dist/` avec le build desktop), puis `tar czf mypass-web.tgz -C dist .` et `scp` dans `/root/`.
+  2. Sur le conteneur : `mkdir /opt/mypass-web.new && tar xzf /root/mypass-web.tgz --no-same-owner -C /opt/mypass-web.new && chown -R root:root /opt/mypass-web.new` (sans `--no-same-owner`, tar échoue sur l'uid Windows).
+  3. `mv /opt/mypass-web /opt/mypass-web.bak-<date>` puis `mv /opt/mypass-web.new /opt/mypass-web`. Les PWA ouvertes se rechargent seules sur le nouveau build (service worker `autoUpdate` + `controllerchange` dans `src/main.tsx`).
+- Le serveur Rust se compile sur le conteneur : copier les fichiers modifiés de `server/` dans `/opt/mypass-src/server-build/server/` (`.bak-<date>` d'abord), `cargo build --release`, copier `target/release/mypass-server` sur `/usr/local/bin/mypass-server`, `systemctl restart mypass-server`.
 - Le `.msi` est construit sur le PC Windows avec `npm run release`, jamais sur le conteneur : voir « Release desktop ».
-- Pas de sauvegarde automatique de `/var/lib/mypass` aujourd'hui (aucun cron) : à mettre en place.
+- Sauvegardes : vzdump nocturne de CT 107 par l'hôte Proxmox `Pve` (03:00, `keep-daily=3,keep-weekly=2`, stockage `sauvegardes`), plus l'historique versionné du serveur et la copie locale du coffre sur chaque PC. Pas d'autre mécanisme (choix de la feuille de route).
 
 ## Release desktop
 
@@ -71,8 +75,8 @@ cd crates/mypass-core && cargo test             # noyau KDBX/crypto/ops
 cd server && cargo test                         # serveur (tests/api.rs, tests/static_files.rs)
 ```
 
-- Pas de runner de tests frontend (ni vitest ni jest) : seul Rust est testé (modules `#[cfg(test)]` + `server/tests`).
-- Le script `tauri` de `package.json` préfixe le PATH avec `C:\Users\Utilisateur\.cargo\bin` (ancien PC). **Sur ce PC l'utilisateur est `lucaa`** : vérifier que cargo est installé et corriger ce chemin si `npm run tauri` ne trouve pas `cargo`.
+- Pas de runner de tests frontend (ni vitest ni jest) : Rust est testé (modules `#[cfg(test)]` + `server/tests`), et la logique front pure a des vérifications Node sans dépendance : `node src/lib/dedup.check.ts`, `node src/lib/groups.check.ts`.
+- Non-régression avant de livrer : les trois `cargo test`, `cargo clippy` sans nouveau warning, `npm run lint`, `npm run format:check`, `npm run build`.
 
 ## Architecture
 
@@ -80,7 +84,7 @@ cd server && cargo test                         # serveur (tests/api.rs, tests/s
 - `src/` — UI React 19. État : Zustand (`src/stores/{app,database,entries}Store.ts`) + TanStack Query. **Tous les appels vers Rust passent par `src/lib/tauri.ts`.**
 - `crates/mypass-core/` — noyau KDBX (lecture/écriture, crypto AES-GCM/ChaCha20, Argon2, XML), générateur, TOTP, ops sur coffre, `merge.rs` (fusion LWW + tombstones). Compile aussi en wasm32. `src-tauri` le ré-exporte comme `kdbx`.
 - `crates/mypass-wasm/` — bindings wasm-bindgen (JSON in/out, session `thread_local` qui reflète `DbState`). Sortie dans `crates/mypass-wasm/pkg`, alias `@wasm`.
-- `src-tauri/src/` — backend desktop. `commands/` : un fichier par domaine (`database`, `entries`, `groups`, `generator`, `totp`, `import_export`, `passkeys`, `browser`, `sync`, `ssh`). **Toute commande doit être ajoutée à `tauri::generate_handler![]` dans `lib.rs`**, sinon elle n'existe pas. `security/` (NaCl box, HIBP k-anonymity, zxcvbn), `ssh/` (agent SSH + clés), `native_messaging.rs`, `updater.rs` (vérification de mise à jour au démarrage).
+- `src-tauri/src/` — backend desktop. `commands/` : un fichier par domaine (`database`, `entries`, `groups`, `generator`, `totp`, `import_export`, `browser`, `sync`, `ssh`). **Toute commande doit être ajoutée à `tauri::generate_handler![]` dans `lib.rs`**, sinon elle n'existe pas. `security/` (NaCl box, HIBP k-anonymity, zxcvbn), `ssh/` (agent SSH + clés), `native_messaging.rs`, `updater.rs` (vérification de mise à jour au démarrage).
 - `server/` — serveur de sync Axum : `GET/PUT /api/vault` (ETag / If-Match / 409), `/api/vault/versions[/{n}]`, `/api/health`, auth Bearer, blobs chiffrés versionnés. Sert aussi la PWA (`MYPASS_STATIC_DIR`) et `/download` ; `/api/*` inconnu = 404 (jamais l'index SPA).
 - Env du serveur : `MYPASS_DATA_DIR`, `MYPASS_BIND` (défaut `0.0.0.0:8787`), `MYPASS_STATIC_DIR`, `MYPASS_DOWNLOAD_DIR`.
 
@@ -95,14 +99,15 @@ cd server && cargo test                         # serveur (tests/api.rs, tests/s
 ### Intégration navigateur
 Même protocole que KeePassXC-Browser (NaCl box + Native Messaging) pour réutiliser son extension.
 - Le même binaire sert d'hôte : lancé avec `--native-messaging` il exécute `run_native_messaging_host()` (stdin/stdout JSON) au lieu d'ouvrir une fenêtre (`src-tauri/src/main.rs`).
-- `register-nhm.ps1` / `mypass-nhm.bat` (Windows) enregistrent l'hôte pour Chrome/Edge/Firefox.
-- `keepassxc-browser/keepassxc-browser/` = clone vendored de l'extension amont, en **référence uniquement** (non buildé). `extension/` = notre extension MV3 minimale ; sa clé `extension/dev-key.pem` est **ignorée par git** (garder une copie hors dépôt, elle fixe l'ID de l'extension).
+- À chaque démarrage, l'app écrit `%APPDATA%\MyPass\mypass_browser_manifest.json` et `mypass-nhm.bat` (qui lance l'exe courant avec `--native-messaging`) ; `register-nhm.ps1`, lancé une fois à la main, crée les clés `HKCU` de l'hôte `com.mypass.mypass_browser` pour Chrome et Edge (l'app ne touche pas au registre). L'hôte refuse de servir tant que l'intégration n'est pas activée dans Réglages (opt-in, `%APPDATA%\MyPass\browser_settings.json`). Firefox hors périmètre.
+- L'extension est `keepassxc-browser/keepassxc-browser/` : KeePassXC-Browser 1.10.3 adaptée (« MyPass Browser », hôte `com.mypass.mypass_browser`), chargée **non empaquetée** dans Chrome (`chrome://extensions` → mode développeur). La `key` (publique) de son `manifest.json` fixe son ID (`bmeobbbilliigohcbhomfphecoocnnda`) quel que soit le dossier, et `allowed_origins` du manifeste natif (`commands/browser.rs`) l'autorise : ne pas changer l'un sans l'autre.
+- Le relais natif quitte dès que l'app se ferme, pour ne pas bloquer le remplacement de l'exe par une mise à jour ; l'extension le relance à son prochain usage.
 
 ### Import / export
-`commands/import_export.rs` + `src/lib/dedup.ts` : import CSV, 1PUX, Bitwarden, Google, Apple, Proton Pass avec dédoublonnage ; export CSV/JSON/XML/HTML.
+`commands/import_export.rs` → `mypass-core/src/ops/transfer.rs` (partagé avec la PWA) : import JSON MyPass (sans perte) ou CSV lu par ses en-têtes (Google, Apple, KeePassXC, Bitwarden…), dédoublonnage côté front (`src/lib/dedup.ts`) ; export JSON MyPass ou CSV (boîte « Enregistrer sous » native sur desktop).
 
 ### Docs de conception
-`plans/` (architecture, intégration navigateur, dedup) et `docs/superpowers/{specs,plans}/` (agent SSH, cartes d'identité/documents, backend de sync, PWA iPhone, extraction du core/vault-ops, bindings wasm). Les lire avant de remettre en cause un choix non évident.
+`plans/` (architecture, intégration navigateur, dedup, d'origine) et `docs/superpowers/{specs,plans}/` : agent SSH, cartes d'identité, backend de sync, PWA iPhone, extraction du core, bindings wasm, puis la feuille de route du 2026-10-02 (`specs/2026-10-02-roadmap-design.md`) et ses sous-projets (desktop sur 2 PC, retrait du factice, TOTP, groupes, import/export, durcissement, mise à jour auto). Les lire avant de remettre en cause un choix non évident.
 
 ## Conventions frontend
 - Alias `@/` → `src/` (`vite.config.ts` + `tsconfig.json`).

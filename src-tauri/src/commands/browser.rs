@@ -65,11 +65,9 @@ pub fn ensure_native_messaging_manifest() {
         return;
     }
 
-    // Includes both the upstream KeePassXC-Browser extension (this project
-    // reuses it rather than shipping its own, see
-    // plans/browser-integration-plan.md) and MyPass's own extension/, whose
-    // manifest.json now pins a "key" so `chrome://extensions` gives it this
-    // same ID every time it's loaded unpacked, regardless of machine or path.
+    // The upstream KeePassXC-Browser store IDs, then bmeobbbi…, the ID pinned
+    // by the "key" in keepassxc-browser/keepassxc-browser/manifest.json (the
+    // adapted copy loaded unpacked), whatever the machine or folder.
     let manifest = serde_json::json!({
         "name": NM_HOST_NAME,
         "description": "MyPass integration with native messaging support",
@@ -79,9 +77,8 @@ pub fn ensure_native_messaging_manifest() {
             "chrome-extension://pdffhmdngciaglkoonimfcmckehcpafo/",
             "chrome-extension://oboonakemofpalcgghocfoadofidjkkk/",
             "chrome-extension://bmeobbbilliigohcbhomfphecoocnnda/",
-            // The vendored keepassxc-browser/ clone loaded unpacked from this
-            // repo's path — its manifest has no "key", so Chrome derives this
-            // ID from the folder path (changes if the repo moves).
+            // Path-derived ID the clone had before its manifest pinned a
+            // "key"; unused since.
             "chrome-extension://cdfcdponhpejgnglmjapmgimbmfpacgj/"
         ]
     });
