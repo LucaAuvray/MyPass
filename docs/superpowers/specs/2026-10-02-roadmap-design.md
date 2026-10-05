@@ -341,7 +341,7 @@ redémarre en 0.1.1.
 **Résultat (2026-10-05) :** livré (spec `docs/superpowers/specs/2026-10-05-auto-update-design.md`,
 plan `docs/superpowers/plans/2026-10-05-auto-update.md`, revue indépendante). Le 0.1.0 installé
 n'avait pas d'updater : la 0.1.1 qui l'apporte s'installe à la main, et la preuve est la 0.1.2.
-Sur ce PC, la 0.1.1 → 0.1.2 s'est faite seule (boîte au lancement, MSI en 6 s, relance
+Sur le portable (le PC de dev, ASUS Zenbook), la 0.1.1 → 0.1.2 s'est faite seule (boîte au lancement, MSI en 6 s, relance
 automatique, aucun redémarrage de Windows en attente, extension connectée pendant
 l'opération puis fonctionnelle). Pas de signature Authenticode : Smart App Control est coupé
 sur les deux PC. Procédure de release : `CLAUDE.md` (« Release desktop »), clé
@@ -356,10 +356,10 @@ sur les deux PC. Procédure de release : `CLAUDE.md` (« Release desktop »), cl
   maintenant seule (`99f383a`).
 - La version et la date de build s'affichent en bas des Paramètres (desktop et PWA).
 
-**Reste :** le portable (installer la 0.1.1 par le lien, récupérer le coffre, puis
-vérifier qu'il propose la 0.1.2 ; pour l'extension, copier
-`keepassxc-browser/keepassxc-browser/` et lancer `register-nhm.ps1`, l'app ne crée pas les
-clés de registre).
+**Le fixe** n'a pas encore MyPass (reste du sous-projet 1) : y installer la dernière version
+par le lien `/download/`, récupérer le coffre ; les versions suivantes y arriveront seules. Pour
+l'extension, copier `keepassxc-browser/keepassxc-browser/` et lancer `register-nhm.ps1` (l'app
+ne crée pas les clés de registre).
 
 ## 8 — Docs
 
@@ -381,13 +381,13 @@ clés de registre).
 | # | Sous-projet | Spec | Plan | Fait |
 |---|---|---|---|---|
 | 0 | Poste de dev | — | — | [x] 2026-10-02 |
-| 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le 2ᵉ PC |
+| 1 | Desktop sur 2 PC | [x] | [x] | [~] reste le fixe |
 | 2 | Retrait du factice | [x] | [x] | [x] 2026-10-02 |
 | 3 | TOTP | [x] | [x] | [x] 2026-10-03 |
 | 4 | Groupes | [x] | [x] | [x] 2026-10-03 |
 | 5 | Import / export | [x] | [x] | [x] 2026-10-03 |
 | 6 | Durcissement | [x] | [x] | [x] 2026-10-04 |
-| 7 | Mise à jour auto | [x] | [x] | [~] ce PC 2026-10-05, reste le portable |
+| 7 | Mise à jour auto | [x] | [x] | [x] 2026-10-05 |
 | 8 | Docs | — | — | [ ] |
 
 Le sous-projet 0 est de l'installation d'outils : il n'a ni spec ni plan, seulement les
