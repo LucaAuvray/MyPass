@@ -91,6 +91,7 @@ export function BrowserIntegrationView() {
         <Shield className="size-5 shrink-0 text-primary" />
         <div><h4 className="text-sm font-semibold">{t("browser.encrypted")}</h4><p className="text-xs text-muted-foreground">{t("browser.encryptedDesc")}</p></div>
       </div>
+      <p className="text-center text-xs text-muted-foreground">{t("browser.version", { version: __APP_VERSION__, date: __BUILD_DATE__ })}</p>
     </div>
   );
 }

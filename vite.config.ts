@@ -2,10 +2,19 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { readFileSync } from "node:fs";
 
 const host = process.env.TAURI_DEV_HOST;
+// Shown in Settings: the desktop version (Cargo.toml is its only source) and
+// when this frontend was built, which tells PWA deploys apart.
+const appVersion = readFileSync("src-tauri/Cargo.toml", "utf8").match(/^version = "(.+)"/m)![1];
+const buildDate = new Date().toLocaleString("sv-SE").slice(0, 16);
 
 export default defineConfig(({ mode }) => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __BUILD_DATE__: JSON.stringify(buildDate),
+  },
   plugins: [
     react(),
     tailwindcss(),

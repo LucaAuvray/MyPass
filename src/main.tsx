@@ -11,6 +11,14 @@ import "@fontsource-variable/dm-sans/opsz.css";
 import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import "./i18n/config";
+import { isWebMode } from "@/lib/tauri";
+
+// After a deploy the new service worker takes over this already-open page
+// (skipWaiting + clientsClaim) and drops the old lazy chunks, so unlocking
+// would fail: reload once onto the new build. Skipped on the first install.
+if (isWebMode() && navigator.serviceWorker?.controller) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => location.reload());
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {

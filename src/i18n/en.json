@@ -275,7 +275,8 @@
     "step4Title": "Fill your passwords",
     "step4Desc": "The extension now offers to auto-fill your saved credentials.",
     "encrypted": "Encrypted connection",
-    "encryptedDesc": "All communication with the extension is end-to-end encrypted (NaCl box)."
+    "encryptedDesc": "All communication with the extension is end-to-end encrypted (NaCl box).",
+    "version": "MyPass {{version}} · built {{date}}"
   },
   "sshAgent": {
     "title": "SSH Agent",

@@ -282,7 +282,8 @@
     "step4Title": "Remplissez vos mots de passe",
     "step4Desc": "L'extension propose désormais de remplir automatiquement vos identifiants enregistrés.",
     "encrypted": "Connexion chiffrée",
-    "encryptedDesc": "Toutes les communications avec l'extension sont chiffrées de bout en bout (NaCl box)."
+    "encryptedDesc": "Toutes les communications avec l'extension sont chiffrées de bout en bout (NaCl box).",
+    "version": "MyPass {{version}} · build du {{date}}"
   },
   "sshAgent": {
     "title": "Agent SSH",
