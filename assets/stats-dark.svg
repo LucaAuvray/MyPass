@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 150" width="1200" height="150" role="img" aria-label="1 noyau Rust partagé, 3 appareils synchronisés, 100+ tests Rust, 3 mois de juillet à octobre 2026">
+  <defs><linearGradient id="a" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#60a5fa" stop-opacity="0"/><stop offset="0.5" stop-color="#60a5fa"/><stop offset="1" stop-color="#60a5fa" stop-opacity="0"/></linearGradient></defs>
+  <style>
+    text { font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+    .n { font-size: 58px; font-weight: 700; fill: #60a5fa; }
+    .u { font-size: 28px; font-weight: 600; fill: #60a5fa; fill-opacity: 0.7; }
+    .l { font-size: 19px; fill: #9198a1; }
+  </style>
+  <rect width="1200" height="3" fill="url(#a)"/>
+  <text class="n" x="150" y="86" text-anchor="middle">1</text><text class="l" x="150" y="122" text-anchor="middle">noyau Rust partagé</text>
+  <line x1="300" y1="30" x2="300" y2="126" stroke="#30363d"/><text class="n" x="450" y="86" text-anchor="middle">3</text><text class="l" x="450" y="122" text-anchor="middle">appareils synchronisés</text>
+  <line x1="600" y1="30" x2="600" y2="126" stroke="#30363d"/><text class="n" x="750" y="86" text-anchor="middle">100+</text><text class="l" x="750" y="122" text-anchor="middle">tests Rust</text>
+  <line x1="900" y1="30" x2="900" y2="126" stroke="#30363d"/><text class="n" x="1050" y="86" text-anchor="middle">3<tspan class="u" dx="7">mois</tspan></text><text class="l" x="1050" y="122" text-anchor="middle">de juillet à octobre 2026</text>
+  <rect y="149" width="1200" height="1" fill="#30363d"/>
+</svg>
