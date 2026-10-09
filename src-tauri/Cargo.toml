@@ -1,6 +1,6 @@
 [package]
 name = "mypass"
-version = "0.1.2"
+version = "0.1.3"
 description = "MyPass — Modern Password Manager"
 authors = ["MyPass"]
 edition = "2021"
