@@ -191,7 +191,10 @@ export function createMockInvoke(): TauriInvokeFn {
       case "update_entry": {
         const idx = mockStore.entries.findIndex((e) => e.uuid === args?.uuid);
         if (idx >= 0) {
-          const update = args?.update as Partial<Entry>;
+          // undefined = keep the field, like the real backend's None
+          const update = Object.fromEntries(
+            Object.entries(args?.update as Partial<Entry>).filter(([, v]) => v !== undefined),
+          );
           mockStore.entries[idx] = { ...mockStore.entries[idx], ...update };
           return mockStore.entries[idx] as T;
         }

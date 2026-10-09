@@ -216,7 +216,7 @@ pub(crate) fn entry_to_info(entry: &Entry, group_uuid: &str) -> EntryInfo {
         tags: entry
             .tags
             .as_ref()
-            .map(|t| t.split(',').map(|s| s.trim().to_string()).collect())
+            .map(|t| t.split(',').map(str::trim).filter(|s| !s.is_empty()).map(String::from).collect())
             .unwrap_or_default(),
         icon: entry.icon_id.clone(),
         created: entry.times.creation_time.clone(),
@@ -584,6 +584,16 @@ mod tests {
         .unwrap();
         assert_eq!(created.notes, "ligne 1\nligne 2");
         assert_eq!(created.tags, vec!["perso", "web"]);
+    }
+
+    /// An empty Tags string (saved by the form, or from KeePass) is no tag, not one blank chip.
+    #[test]
+    fn empty_tags_string_gives_no_tags() {
+        let mut entry = Entry::new("Site", "u", "p", "");
+        entry.tags = Some(String::new());
+        assert!(entry_to_info(&entry, "g").tags.is_empty());
+        entry.tags = Some("perso, ,web,".to_string());
+        assert_eq!(entry_to_info(&entry, "g").tags, vec!["perso", "web"]);
     }
 
     /// MyPass has no passkey feature, but a vault from KeePassXC may carry

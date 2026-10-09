@@ -120,8 +120,10 @@ export function EntryDetail({ className }: EntryDetailProps) {
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="text-foreground text-xl font-bold">{entry.title}</h2>
-          <p className="text-muted-foreground mt-0.5 text-sm">
+          <h2 className="text-foreground truncate text-xl font-bold" title={entry.title}>
+            {entry.title}
+          </h2>
+          <p className="text-muted-foreground mt-0.5 truncate text-sm">
             {kind === "login" ? entry.url : t(`items.${kind}`)}
           </p>
           {folder && (
@@ -140,7 +142,7 @@ export function EntryDetail({ className }: EntryDetailProps) {
             </div>
           )}
         </div>
-        <div className="flex gap-1">
+        <div className="flex shrink-0 gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger
               render={
