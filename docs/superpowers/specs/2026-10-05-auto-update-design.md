@@ -47,7 +47,7 @@ permission `updater:*` dans `capabilities/default.json`.
 **`tauri.conf.json` :**
 - `bundle.createUpdaterArtifacts: true` (génère `MyPass_<v>_x64_en-US.msi.sig`) ;
 - `plugins.updater` : `pubkey` (clé publique, committée), `endpoints:
-  ["https://mypass-luca.tail7687c9.ts.net/download/latest.json"]`, `windows.installMode:
+  ["https://<host>.<tailnet>.ts.net/download/latest.json"]`, `windows.installMode:
   "passive"` ;
 - `version` retiré (Tauri prend alors celle de `Cargo.toml`).
 
@@ -83,7 +83,7 @@ dépôt.
 3. écrit `src-tauri/target/release/bundle/msi/latest.json` :
    `{ version, pub_date, platforms: { "windows-x86_64": { signature, url } } }`, `signature` =
    contenu du `.msi.sig`, `url` =
-   `https://mypass-luca.tail7687c9.ts.net/download/MyPass_<v>_x64_en-US.msi` ;
+   `https://<host>.<tailnet>.ts.net/download/MyPass_<v>_x64_en-US.msi` ;
 4. s'arrête avec un message clair si la clé ou le `.sig` manque.
 
 **Procédure de release** (écrite dans `CLAUDE.md`, qui remplace la ligne « aucun plugin updater

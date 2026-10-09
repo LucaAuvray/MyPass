@@ -19,7 +19,7 @@
 
 ## Global Constraints
 
-- **Endpoint**, exactly: `https://mypass-luca.tail7687c9.ts.net/download/latest.json`. `windows.installMode` is `"passive"`.
+- **Endpoint**, exactly: `https://<host>.<tailnet>.ts.net/download/latest.json`. `windows.installMode` is `"passive"`.
 - **The webview gets nothing:**
   - no npm updater or process package;
   - no `updater:*` or `process:*` permission in `src-tauri/capabilities/default.json`.
@@ -171,7 +171,7 @@ git commit -m "fix(desktop): the browser relay exits with the app so updates can
 { "version": "<v>", "pub_date": "<ISO 8601 now>",
   "platforms": { "windows-x86_64": {
     "signature": "<contents of the .msi.sig>",
-    "url": "https://mypass-luca.tail7687c9.ts.net/download/MyPass_<v>_x64_en-US.msi" } } }
+    "url": "https://<host>.<tailnet>.ts.net/download/MyPass_<v>_x64_en-US.msi" } } }
 ```
 
 - [ ] **Step 1: Single version source**

@@ -16,7 +16,7 @@
 - Parité desktop des formes JSON : ne rien changer aux shapes émises par `web.ts` (SyncStatus camelCase, `lastSync` = secondes epoch en string).
 - Gates front : `npx tsc -b` sans erreur + `npm run lint` (max-warnings 0). Pas de test runner front — la vérification comportementale est faite par le contrôleur (Playwright) après les tâches front.
 - Gates serveur : `cargo test` dans `server/` (20 tests existants + les nouveaux), `cargo clippy` sans nouveau warning.
-- Le desktop sync continue d'utiliser `http://100.64.46.117:8787` — ne pas changer le bind du serveur (`0.0.0.0:8787` reste).
+- Le desktop sync continue d'utiliser `http://<container-ip>:8787` — ne pas changer le bind du serveur (`0.0.0.0:8787` reste).
 - Commits fréquents, messages `feat(web):`/`fix(web):`/`fix(server):`/`docs:` comme l'historique.
 
 ---
@@ -463,7 +463,7 @@ git commit -m "docs: metas PWA iOS + mode web/sync documenté dans CLAUDE.md"
 
 **Exécutée par le contrôleur (pas de subagent) — accès SSH au LXC requis.**
 
-**Files:** aucun changement de code. Infra : LXC `100.64.46.117` (SSH root par clé), binaire `/usr/local/bin/mypass-server`, sources `/opt/mypass-src`, statiques `/opt/mypass-web`, service systemd `mypass-server`.
+**Files:** aucun changement de code. Infra : LXC `<container-ip>` (SSH root par clé), binaire `/usr/local/bin/mypass-server`, sources `/opt/mypass-src`, statiques `/opt/mypass-web`, service systemd `mypass-server`.
 
 - [ ] **Step 1: E2E local Playwright (vérif des tasks 1-2)**
 
@@ -483,7 +483,7 @@ Sur le LXC : `tailscale serve --bg 8787` (proxy `https://<host>.<tailnet>.ts.net
 
 **Précondition possible :** MagicDNS + « HTTPS Certificates » doivent être activés sur le tailnet. Si la commande échoue avec un message le demandant → **action Luca** : console admin Tailscale (https://login.tailscale.com/admin/dns) → activer HTTPS Certificates. Reprendre ensuite.
 
-Récupérer le nom DNS exact (`tailscale status --json` ou la sortie de serve). Vérifier depuis le PC : `curl https://<host>.<tailnet>.ts.net/api/health` → `ok` (la première requête peut prendre ~30 s, provisioning du cert). Le desktop reste sur `http://100.64.46.117:8787` — rien à reconfigurer.
+Récupérer le nom DNS exact (`tailscale status --json` ou la sortie de serve). Vérifier depuis le PC : `curl https://<host>.<tailnet>.ts.net/api/health` → `ok` (la première requête peut prendre ~30 s, provisioning du cert). Le desktop reste sur `http://<container-ip>:8787` — rien à reconfigurer.
 
 - [ ] **Step 5: Ledger + point d'étape**
 

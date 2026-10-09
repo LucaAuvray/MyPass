@@ -313,7 +313,7 @@ git commit -m "docs: roadmap — sub-project 6 delivered"
 
 ### Task 6: Production (only after Luca's explicit go to merge, push and deploy)
 
-**Files:** none in the repo. All the work happens on the container `root@100.64.46.117`.
+**Files:** none in the repo. All the work happens on the container `root@<container-ip>`.
 
 - [ ] **Step 1: Server binary**
   - Sync `server/` into `/opt/mypass-src/server-build`, then run `cargo build --release` there.

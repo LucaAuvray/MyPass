@@ -15,7 +15,7 @@ MyPass : gestionnaire de mots de passe auto-hébergé. App desktop Tauri v2 (Rea
 
 ## Infrastructure : le conteneur LXC (prod / sync)
 
-Tout ce qui est « serveur » vit sur un conteneur Proxmox (CT 107, Ubuntu 24.04), **hostname `mypass-luca`, IP Tailscale `100.64.46.117`**, accès `ssh root@100.64.46.117` (clé `id_ed25519`). URL publique tailnet uniquement : `https://mypass-luca.tail7687c9.ts.net` (`tailscale serve` → `http://127.0.0.1:8787`).
+Tout ce qui est « serveur » vit sur un conteneur Proxmox (CT 107, Ubuntu 24.04), **hostname `mypass-luca`, IP Tailscale `<container-ip>`**, accès `ssh root@<container-ip>` (clé `id_ed25519`). URL publique tailnet uniquement : `https://<host>.<tailnet>.ts.net` (`tailscale serve` → `http://127.0.0.1:8787`). Le dépôt est public : les vraies valeurs n'y figurent pas, elles sont dans la mémoire locale de Claude (`container-address`) et dans `src-tauri/tauri.conf.json` (endpoint de l'updater).
 
 | Chemin sur le conteneur | Contenu |
 |---|---|
@@ -40,7 +40,7 @@ Règles pour toute opération sur le conteneur :
 
 ## Release desktop
 
-Au démarrage, l'app (build release) lit `https://mypass-luca.tail7687c9.ts.net/download/latest.json` ; si la version annoncée est plus récente, elle propose de l'installer (boîte native), vérifie la signature du `.msi`, se ferme, et le MSI la relance.
+Au démarrage, l'app (build release) lit `https://<host>.<tailnet>.ts.net/download/latest.json` ; si la version annoncée est plus récente, elle propose de l'installer (boîte native), vérifie la signature du `.msi`, se ferme, et le MSI la relance.
 
 1. Incrémenter `version` dans `src-tauri/Cargo.toml` (seule source de la version), committer.
 2. `npm run release` : construit le `.msi` signé et écrit `src-tauri/target/release/bundle/msi/latest.json`.

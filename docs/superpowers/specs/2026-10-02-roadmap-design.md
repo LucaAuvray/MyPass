@@ -330,7 +330,7 @@ mais aucun plugin updater n'est configuré dans `src-tauri/tauri.conf.json`.
 
 **Périmètre :** `tauri-plugin-updater`, paire de clés de signature (clé privée **hors dépôt**),
 artefacts de mise à jour générés au build, endpoint
-`https://mypass-luca.tail7687c9.ts.net/download/latest.json`, vérification au démarrage, et
+`https://<host>.<tailnet>.ts.net/download/latest.json`, vérification au démarrage, et
 procédure de release écrite (bump de version → build → copie sur le conteneur).
 À trancher : signature Authenticode (ex. Azure Trusted Signing) seulement si un PC cible doit
 garder Smart App Control actif ; la signature updater Tauri, elle, est gratuite et indépendante.

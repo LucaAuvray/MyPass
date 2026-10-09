@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** L'app desktop Tauri se synchronise avec `mypass-server` (déployé sur `http://100.64.46.117:8787`) : pull+merge au déverrouillage, push après modification, résolution de conflit automatique par fusion KDBX entrée par entrée.
+**Goal:** L'app desktop Tauri se synchronise avec `mypass-server` (déployé sur `http://<container-ip>:8787`) : pull+merge au déverrouillage, push après modification, résolution de conflit automatique par fusion KDBX entrée par entrée.
 
 **Architecture:** Trois couches. (1) `mypass-core` gagne la correction du timestamp (`chrono_now` retournait une date figée 2024-01-01 — bloquant pour la fusion), des API sur octets (`read_database_bytes`/`write_database_bytes`) et le module `merge.rs` (LWW par `LastModificationTime`, perdants dans l'historique d'entrée, suppressions via `DeletedObjects`). (2) `src-tauri/src/commands/sync.rs` : config `%APPDATA%\MyPass\sync.json` (URL+token+etag), moteur GET→merge→PUT avec boucle 409, statut en mémoire. (3) Frontend : vue `SyncView` (réglages+statut), déclenchement après déverrouillage + boucle périodique 60 s, indicateur « non synchronisé ».
 
@@ -12,7 +12,7 @@
 
 - Spec de référence : `docs/superpowers/specs/2026-07-09-sync-backend-design.md` (sections « Flux de données » et « 4. Module de sync desktop »).
 - **Contrat serveur acté** (revue finale sous-projet 2) : l'ETag reçu est ré-envoyé **verbatim** dans `If-Match` (jamais reformaté) ; sur 409 → re-GET + re-merge + re-PUT (max 3 tentatives) ; sur 5xx au PUT → l'état serveur est inconnu → re-GET avant tout retry ; premier PUT (serveur 404) = **sans** `If-Match`.
-- Le serveur de prod tourne : `http://100.64.46.117:8787` (Tailscale), token détenu par Luca. Les tests automatisés n'y touchent JAMAIS (tests unitaires uniquement ; le E2E manuel de la Task 6 est le seul à parler au vrai serveur).
+- Le serveur de prod tourne : `http://<container-ip>:8787` (Tailscale), token détenu par Luca. Les tests automatisés n'y touchent JAMAIS (tests unitaires uniquement ; le E2E manuel de la Task 6 est le seul à parler au vrai serveur).
 - Fusion : la plus récente gagne par comparaison **lexicographique** des `LastModificationTime` (format fixe `AAAA-MM-JJThh:mm:ssZ` → ordre lexicographique = ordre chronologique) ; égalité ou local plus récent → local conservé ; l'entrée perdante (débarrassée de son propre historique) est ajoutée à `history` de la gagnante.
 - Suppression vs modification : une tombstone (`DeletedObject.deletion_time`) ne supprime que si `deletion_time >= LastModificationTime` de l'entrée ; sinon la modification gagne et l'entrée survit.
 - Les groupes ne sont jamais supprimés par la fusion en v1 (`// ponytail:` requis dans le code). Les entrées orphelines (groupe parent inconnu localement) vont dans le groupe racine.
@@ -1208,10 +1208,10 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 Pré-requis : `npm run tauri dev` (vrai backend Rust), le token du serveur (détenu par Luca — la tâche s'exécute AVEC lui), et `curl` pour observer côté serveur.
 
-- [ ] **Step 1: Configuration** — ouvrir `/sync` dans l'app, saisir `http://100.64.46.117:8787` + le token, activer, « Synchroniser maintenant ». Attendu : état « Synchronisé », version serveur affichée. Vérifier côté serveur que la version a AVANCÉ d'exactement 1 si l'app a poussé (fusion coffre local + v1 déjà sur le serveur), sinon inchangée :
+- [ ] **Step 1: Configuration** — ouvrir `/sync` dans l'app, saisir `http://<container-ip>:8787` + le token, activer, « Synchroniser maintenant ». Attendu : état « Synchronisé », version serveur affichée. Vérifier côté serveur que la version a AVANCÉ d'exactement 1 si l'app a poussé (fusion coffre local + v1 déjà sur le serveur), sinon inchangée :
 
 ```powershell
-curl.exe -s -H "Authorization: Bearer <TOKEN>" http://100.64.46.117:8787/api/vault/versions
+curl.exe -s -H "Authorization: Bearer <TOKEN>" http://<container-ip>:8787/api/vault/versions
 ```
 
 - [ ] **Step 2: Push après modification** — créer une entrée `e2e-sync-test` dans l'app, attendre ≤ 60 s (boucle) ou cliquer « Synchroniser maintenant ». Attendu : version serveur +1.
@@ -1219,8 +1219,8 @@ curl.exe -s -H "Authorization: Bearer <TOKEN>" http://100.64.46.117:8787/api/vau
 - [ ] **Step 3: Conflit (409)** — bumper artificiellement la version serveur pour périmer l'etag local :
 
 ```powershell
-curl.exe -s -o vault.tmp -H "Authorization: Bearer <TOKEN>" http://100.64.46.117:8787/api/vault
-curl.exe -s -w "%{http_code}" -X PUT -H "Authorization: Bearer <TOKEN>" -H "If-Match: \"<VERSION_COURANTE>\"" --data-binary "@vault.tmp" http://100.64.46.117:8787/api/vault
+curl.exe -s -o vault.tmp -H "Authorization: Bearer <TOKEN>" http://<container-ip>:8787/api/vault
+curl.exe -s -w "%{http_code}" -X PUT -H "Authorization: Bearer <TOKEN>" -H "If-Match: \"<VERSION_COURANTE>\"" --data-binary "@vault.tmp" http://<container-ip>:8787/api/vault
 ```
 
 puis modifier une entrée dans l'app et synchroniser. Attendu : la sync converge sans erreur (boucle 409 → re-GET → merge → re-PUT), version finale = bump + 1, aucune donnée perdue.
@@ -1230,8 +1230,8 @@ puis modifier une entrée dans l'app et synchroniser. Attendu : la sync converge
 - [ ] **Step 5: Pull** — supprimer l'entrée `e2e-sync-test` dans l'app, sync (version +1). Puis restaurer une ancienne version pour simuler un deuxième appareil en retard :
 
 ```powershell
-curl.exe -s -o old.tmp -H "Authorization: Bearer <TOKEN>" http://100.64.46.117:8787/api/vault/versions/<VERSION_AVANT_SUPPRESSION>
-curl.exe -s -X PUT -H "Authorization: Bearer <TOKEN>" -H "If-Match: \"<VERSION_COURANTE>\"" --data-binary "@old.tmp" http://100.64.46.117:8787/api/vault
+curl.exe -s -o old.tmp -H "Authorization: Bearer <TOKEN>" http://<container-ip>:8787/api/vault/versions/<VERSION_AVANT_SUPPRESSION>
+curl.exe -s -X PUT -H "Authorization: Bearer <TOKEN>" -H "If-Match: \"<VERSION_COURANTE>\"" --data-binary "@old.tmp" http://<container-ip>:8787/api/vault
 ```
 
 sync dans l'app. Attendu : l'entrée `e2e-sync-test` NE revient PAS (tombstone plus récente que sa dernière modification) — c'est le test « delete vs modify » en conditions réelles.

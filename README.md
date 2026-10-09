@@ -10,6 +10,7 @@
 ![Rust](https://img.shields.io/badge/Rust-10244d?logo=rust&logoColor=93c5fd&style=for-the-badge)
 ![Tauri](https://img.shields.io/badge/Tauri-10244d?logo=tauri&logoColor=93c5fd&style=for-the-badge)
 ![React](https://img.shields.io/badge/React-10244d?logo=react&logoColor=93c5fd&style=for-the-badge)
+![Licence MIT](https://img.shields.io/badge/Licence-MIT-10244d?style=for-the-badge)
 
 **Français** · [English](README.en.md)
 
@@ -289,6 +290,11 @@ Décompresser sur le serveur une archive créée sous Windows :
 ```bash
 tar xzf dist.tgz --no-same-owner -C /opt/mypass-web
 ```
+
+## Licence
+
+MyPass est open source sous [licence MIT](LICENSE) : vous pouvez l'utiliser, le modifier et le redistribuer librement.
+Le dossier `keepassxc-browser/` est une version adaptée de [KeePassXC-Browser](https://github.com/keepassxreboot/keepassxc-browser) et reste sous [GPL-3.0](keepassxc-browser/keepassxc-browser/LICENSE).
 
 <br>
 

@@ -10,6 +10,7 @@
 ![Rust](https://img.shields.io/badge/Rust-10244d?logo=rust&logoColor=93c5fd&style=for-the-badge)
 ![Tauri](https://img.shields.io/badge/Tauri-10244d?logo=tauri&logoColor=93c5fd&style=for-the-badge)
 ![React](https://img.shields.io/badge/React-10244d?logo=react&logoColor=93c5fd&style=for-the-badge)
+![License MIT](https://img.shields.io/badge/License-MIT-10244d?style=for-the-badge)
 
 [Français](README.md) · **English**
 
@@ -289,6 +290,11 @@ Extract on the server an archive made on Windows:
 ```bash
 tar xzf dist.tgz --no-same-owner -C /opt/mypass-web
 ```
+
+## License
+
+MyPass is open source under the [MIT license](LICENSE): you may use, modify and redistribute it freely.
+The `keepassxc-browser/` directory is an adapted version of [KeePassXC-Browser](https://github.com/keepassxreboot/keepassxc-browser) and stays under [GPL-3.0](keepassxc-browser/keepassxc-browser/LICENSE).
 
 <br>
 
