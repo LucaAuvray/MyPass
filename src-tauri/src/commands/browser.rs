@@ -242,13 +242,15 @@ pub fn handle_set_login(
     Ok(())
 }
 
-/// True if `key` appears in any field (title, password, notes, custom...) of any entry.
+/// True if some field of an entry equals `key` (trimmed), or its notes contain it.
 pub fn api_key_exists(kf: &crate::kdbx::xml::KeePassFile, key: &str) -> bool {
     let key = key.trim();
     !key.is_empty()
-        && collect_all_entries(&kf.root.group)
-            .iter()
-            .any(|e| e.strings.iter().any(|s| s.value.content.contains(key)))
+        && collect_all_entries(&kf.root.group).iter().any(|e| {
+            e.strings.iter().any(|s| {
+                if s.key == "Notes" { s.value.content.contains(key) } else { s.value.content.trim() == key }
+            })
+        })
 }
 
 /// Service label from a URL: the registrable label (second-to-last, e.g. `console.mistral.ai`
@@ -460,6 +462,10 @@ mod tests {
         set_string_field(&mut e, "Notes", &format!("clé prod : {MISTRAL}"));
         kf2.root.group.entries.push(e);
         assert!(api_key_exists(&kf2, MISTRAL));
+        // a key that is only a substring of a password is not "already stored"
+        let mut kf3 = KeePassFile::new("test");
+        kf3.root.group.entries.push(Entry::new("Other", "u", &format!("x{MISTRAL}y"), ""));
+        assert!(!api_key_exists(&kf3, MISTRAL));
     }
 
     #[test]

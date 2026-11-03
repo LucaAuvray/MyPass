@@ -710,6 +710,10 @@ fn handle_save_api_key(req: &NativeRequest, session: &SessionState, db_state: &A
 
     if created {
         if let Err(e) = db.save() {
+            // Drop the unsaved entry (lock held, so it is the last one) or a retry would report it as stored.
+            if let Some(kf) = db.keepass_file.as_mut() {
+                kf.root.group.entries.pop();
+            }
             return error_response(req, 4, &format!("Failed to save API key: {e}"));
         }
         notify_vault_changed();
