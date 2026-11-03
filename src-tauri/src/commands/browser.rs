@@ -242,6 +242,48 @@ pub fn handle_set_login(
     Ok(())
 }
 
+/// True if `key` appears in any field (title, password, notes, custom...) of any entry.
+pub fn api_key_exists(kf: &crate::kdbx::xml::KeePassFile, key: &str) -> bool {
+    let key = key.trim();
+    !key.is_empty()
+        && collect_all_entries(&kf.root.group)
+            .iter()
+            .any(|e| e.strings.iter().any(|s| s.value.content.contains(key)))
+}
+
+/// Service label from a URL: the registrable label (second-to-last, e.g. `console.mistral.ai`
+/// gives `Mistral`), capitalised. shortcut: no public-suffix list, so `x.co.uk` gives `Co`.
+pub fn service_name(url: &str) -> String {
+    let host = extract_domain(url).unwrap_or_default();
+    let labels: Vec<&str> = host.split('.').collect();
+    let label = if labels.len() >= 2 { labels[labels.len() - 2] } else { host.as_str() };
+    let mut chars = label.chars();
+    match chars.next() {
+        Some(c) => c.to_uppercase().chain(chars).collect(),
+        None => url.to_string(),
+    }
+}
+
+/// Store an API key as a typed, protected entry. `Ok(false)` if the key is already in the vault.
+pub fn handle_save_api_key(kf: &mut crate::kdbx::xml::KeePassFile, key: &str, url: &str) -> Result<bool, String> {
+    let key = key.trim();
+    if key.is_empty() {
+        return Err("Empty API key".to_string());
+    }
+    if api_key_exists(kf, key) {
+        return Ok(false);
+    }
+    let mut entry = crate::kdbx::xml::Entry::new(&service_name(url), "", "", "");
+    let fields = std::collections::HashMap::from([
+        ("MyPass_Type".to_string(), "api_key".to_string()),
+        ("API_Key".to_string(), key.to_string()),
+        ("API_URL".to_string(), url.to_string()),
+    ]);
+    crate::kdbx::ops::entries::apply_custom_fields(&mut entry, &fields);
+    kf.root.group.entries.push(entry);
+    Ok(true)
+}
+
 // =============================================================================
 // Helpers
 // =============================================================================
@@ -403,6 +445,45 @@ mod tests {
         let e = &kf.root.group.entries[0];
         assert_eq!(e.title(), "github.com");
         assert_eq!(e.url(), "https://www.github.com/signup?x=1");
+    }
+
+    const MISTRAL: &str = "Xq7bR2kLm9TzP4wV8nC1sD6fG3hJ5aYe";
+
+    #[test]
+    fn api_key_exists_finds_it_in_any_field_or_notes() {
+        let mut kf = KeePassFile::new("test");
+        assert!(!api_key_exists(&kf, MISTRAL));
+        kf.root.group.entries.push(Entry::new("Old", "u", MISTRAL, "")); // rangée comme mot de passe
+        assert!(api_key_exists(&kf, MISTRAL));
+        let mut kf2 = KeePassFile::new("test");
+        let mut e = Entry::new("Notes", "", "", "");
+        set_string_field(&mut e, "Notes", &format!("clé prod : {MISTRAL}"));
+        kf2.root.group.entries.push(e);
+        assert!(api_key_exists(&kf2, MISTRAL));
+    }
+
+    #[test]
+    fn save_api_key_creates_typed_protected_entry_once() {
+        let mut kf = KeePassFile::new("test");
+        assert_eq!(handle_save_api_key(&mut kf, MISTRAL, "https://console.mistral.ai/api-keys"), Ok(true));
+        assert_eq!(handle_save_api_key(&mut kf, MISTRAL, "https://console.mistral.ai/api-keys"), Ok(false));
+        assert_eq!(kf.root.group.entries.len(), 1);
+        let e = &kf.root.group.entries[0];
+        assert_eq!(e.title(), "Mistral");
+        assert_eq!(e.get_field("MyPass_Type"), Some("api_key"));
+        assert_eq!(e.get_field("API_URL"), Some("https://console.mistral.ai/api-keys"));
+        let key = e.strings.iter().find(|s| s.key == "API_Key").unwrap();
+        assert_eq!(key.value.content, MISTRAL);
+        assert_eq!(key.value.protected.as_deref(), Some("True"));
+        assert!(handle_save_api_key(&mut kf, "  ", "https://x.io").is_err());
+    }
+
+    #[test]
+    fn service_name_is_the_registrable_label() {
+        assert_eq!(service_name("https://console.mistral.ai/api-keys"), "Mistral");
+        assert_eq!(service_name("https://platform.openai.com"), "Openai");
+        assert_eq!(service_name("https://www.github.com/settings/tokens"), "Github");
+        assert_eq!(service_name("http://localhost:5180/apikey-dialog.html"), "Localhost");
     }
 
     fn six_digits(s: &str) -> bool {

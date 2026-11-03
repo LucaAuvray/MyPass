@@ -391,6 +391,8 @@ fn handle_action(
         "set-login" => handle_set_login(req, session, db_state),
         "get-totp" => handle_get_totp(req, session, db_state),
         "get-identities" => handle_get_identities_action(req, session, db_state),
+        "check-api-key" => handle_check_api_key(req, session, db_state),
+        "save-api-key" => handle_save_api_key(req, session, db_state),
         "generate-password" => handle_generate_password(req, session),
         "lock-database" => handle_lock_database(req, session, db_state),
         "get-databasehash" => handle_get_databasehash(req, session, db_state),
@@ -642,6 +644,89 @@ fn handle_get_identities_action(
             let mut map = HashMap::new();
             map.insert("success".to_string(), serde_json::Value::String("true".to_string()));
             map.insert("identities".to_string(), serde_json::json!(identities));
+            map
+        },
+    }
+}
+
+/// MyPass-specific: does this API key already exist in the vault? (never logs the key)
+fn handle_check_api_key(req: &NativeRequest, session: &SessionState, db_state: &Arc<Mutex<DbState>>) -> NativeResponse {
+    let inner = match decrypt_message(req, session) {
+        Ok(msg) => msg,
+        Err(e) => return error_response(req, 1, &format!("Decrypt error: {e}")),
+    };
+    let key = inner.get("key").and_then(|v| v.as_str()).unwrap_or("");
+
+    let db = match db_state.lock() {
+        Ok(db) => db,
+        Err(_) => return error_response(req, 3, "Database lock error"),
+    };
+    let kf = match db.keepass_file.as_ref() {
+        Some(kf) => kf,
+        None => return error_response(req, 2, "No open database"),
+    };
+
+    let exists = browser::api_key_exists(kf, key);
+
+    NativeResponse {
+        action: Some("check-api-key".to_string()),
+        message: None,
+        nonce: None,
+        client_id: Some(req.client_id.clone()),
+        error: None,
+        error_code: None,
+        version: None,
+        extra: {
+            let mut map = HashMap::new();
+            map.insert("success".to_string(), serde_json::Value::String("true".to_string()));
+            map.insert("exists".to_string(), serde_json::json!(exists));
+            map
+        },
+    }
+}
+
+/// MyPass-specific: store an API key as a typed entry. Persists and notifies the UI if created.
+fn handle_save_api_key(req: &NativeRequest, session: &SessionState, db_state: &Arc<Mutex<DbState>>) -> NativeResponse {
+    let inner = match decrypt_message(req, session) {
+        Ok(msg) => msg,
+        Err(e) => return error_response(req, 1, &format!("Decrypt error: {e}")),
+    };
+    let key = inner.get("key").and_then(|v| v.as_str()).unwrap_or("");
+    let url = inner.get("url").and_then(|v| v.as_str()).unwrap_or("");
+
+    let mut db = match db_state.lock() {
+        Ok(db) => db,
+        Err(_) => return error_response(req, 3, "Database lock error"),
+    };
+    let kf = match db.keepass_file.as_mut() {
+        Some(kf) => kf,
+        None => return error_response(req, 2, "No open database"),
+    };
+
+    let created = match browser::handle_save_api_key(kf, key, url) {
+        Ok(created) => created,
+        Err(e) => return error_response(req, 4, &format!("Save API key error: {e}")),
+    };
+
+    if created {
+        if let Err(e) = db.save() {
+            return error_response(req, 4, &format!("Failed to save API key: {e}"));
+        }
+        notify_vault_changed();
+    }
+
+    NativeResponse {
+        action: Some("save-api-key".to_string()),
+        message: None,
+        nonce: None,
+        client_id: Some(req.client_id.clone()),
+        error: None,
+        error_code: None,
+        version: None,
+        extra: {
+            let mut map = HashMap::new();
+            map.insert("success".to_string(), serde_json::Value::String("true".to_string()));
+            map.insert("created".to_string(), serde_json::json!(created));
             map
         },
     }
