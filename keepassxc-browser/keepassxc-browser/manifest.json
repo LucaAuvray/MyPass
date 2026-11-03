@@ -57,6 +57,7 @@
                 "content/observer-helper.js",
                 "content/detect.js",
                 "content/pwgen.js",
+                "content/password-suggestion.js",
                 "content/totp-autocomplete.js",
                 "content/totp-field.js",
                 "content/username-field.js",

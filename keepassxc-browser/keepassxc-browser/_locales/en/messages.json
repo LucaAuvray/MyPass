@@ -1485,5 +1485,13 @@
     "gettingStartedNewUser": {
         "message": "Are you a new user? Check links to our documentation.",
         "description": "Are you a new user? Check links to our documentation."
+    },
+    "passwordSuggestionTitle": {
+        "message": "Use a strong password",
+        "description": "Title of the generated password suggestion shown under a sign-up password field."
+    },
+    "passwordSuggestionHint": {
+        "message": "MyPass · 20 characters · fills both fields",
+        "description": "Hint line of the generated password suggestion."
     }
 }

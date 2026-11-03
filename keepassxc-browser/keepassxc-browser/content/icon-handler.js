@@ -65,6 +65,12 @@ kpxcIcons.addIconsFromForm = async function(form) {
     };
 
     const addPasswordIcons = async function(c) {
+        for (const input of c.passwordInputs ?? []) {
+            if (kpxcSignup.isSignupField(input, c)) {
+                kpxcPasswordSuggestion.attach(input);
+            }
+        }
+
         // Show password icons also with forms without any username field
         if (kpxc.settings.usePasswordGeneratorIcons
             && ((c.username && c.password) || (!c.username && c.passwordInputs.length > 0))) {
