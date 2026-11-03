@@ -33,10 +33,13 @@ export default function AppShell({ children }: AppShellProps) {
   useEffect(() => {
     if (!("__TAURI_INTERNALS__" in window)) return;
     const unlisten = listen("vault-changed-externally", () => {
+      // Invalider d'abord : syncNowAndRefresh échoue (sync absente/hors ligne) avant de le faire.
+      void queryClient.invalidateQueries({ queryKey: ["entries"] });
+      void queryClient.invalidateQueries({ queryKey: ["groups"] });
       void syncNowAndRefresh(queryClient).catch(() => {});
     });
     return () => {
-      void unlisten.then((f) => f());
+      void unlisten.then((f) => f()).catch(() => {});
     };
   }, [queryClient]);
 
