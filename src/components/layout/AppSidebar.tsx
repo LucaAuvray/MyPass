@@ -128,6 +128,9 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                   <DropdownMenuItem onClick={() => setNewItemKind("ssh_key")}>
                     <Terminal className="size-4" /> {t("items.new.ssh_key")}
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setNewItemKind("api_key")}>
+                    <KeyRound className="size-4" /> {t("items.new.api_key")}
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -187,6 +190,15 @@ export function AppSidebar({ className, onNavigate }: AppSidebarProps) {
                   onClick={() => {
                     navigate("/");
                     setKindFilter("ssh_key");
+                  }}
+                />
+                <SidebarItem
+                  icon={KeyRound}
+                  label={t("nav.apiKeys")}
+                  active={location.pathname === "/" && kindFilter === "api_key"}
+                  onClick={() => {
+                    navigate("/");
+                    setKindFilter("api_key");
                   }}
                 />
                 <SidebarItem

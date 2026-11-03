@@ -55,6 +55,7 @@ import {
   CARD_FIELDS,
   DOCUMENT_FIELDS,
   SSH_FIELDS,
+  API_KEY_FIELDS,
   SECRET_FIELDS,
 } from "@/lib/items";
 import { EntryForm } from "./EntryForm";
@@ -114,6 +115,8 @@ export function EntryDetail({ className }: EntryDetailProps) {
               <CreditCard className="size-6" />
             ) : kind === "ssh_key" ? (
               <Terminal className="size-6" />
+            ) : kind === "api_key" ? (
+              <KeyRound className="size-6" />
             ) : (
               <FileText className="size-6" />
             )}
@@ -302,13 +305,14 @@ const KIND_FIELDS = {
   card: CARD_FIELDS,
   document: DOCUMENT_FIELDS,
   ssh_key: [...SSH_FIELDS, "SSH_PrivateKey"],
+  api_key: API_KEY_FIELDS,
 } as const;
 
 function ItemFields({
   kind,
   customFields,
 }: {
-  kind: "identity" | "card" | "document" | "ssh_key";
+  kind: "identity" | "card" | "document" | "ssh_key" | "api_key";
   customFields: Record<string, string>;
 }) {
   const { t } = useTranslation();
@@ -333,6 +337,8 @@ function ItemFields({
                   <CreditCard className="size-4" />
                 ) : kind === "ssh_key" ? (
                   <Terminal className="size-4" />
+                ) : kind === "api_key" ? (
+                  <KeyRound className="size-4" />
                 ) : (
                   <FileText className="size-4" />
                 )

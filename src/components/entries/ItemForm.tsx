@@ -27,6 +27,8 @@ import {
   IDENTITY_FIELDS,
   CARD_FIELDS,
   DOCUMENT_FIELDS,
+  API_KEY_FIELDS,
+  SECRET_FIELDS,
   DOC_KINDS,
   MYPASS_TYPE_KEY,
 } from "@/lib/items";
@@ -47,6 +49,7 @@ const KIND_FIELDS: Record<Exclude<ItemKind, "login">, readonly string[]> = {
   // Édition d'une clé SSH : titre/commentaire/notes seulement — le matériel
   // de clé (privée/publique/fingerprint) n'est jamais éditable à la main.
   ssh_key: ["SSH_Comment"],
+  api_key: API_KEY_FIELDS,
 };
 
 export function ItemForm({ kind, open, onOpenChange, editEntry }: ItemFormProps) {
@@ -160,9 +163,13 @@ function ItemField({
   t: (key: string) => string;
 }) {
   const label = t(`items.fields.${fieldKey}`);
-  const wide = fieldKey === "ID_Address" || fieldKey === "CC_Number";
+  const wide =
+    fieldKey === "ID_Address" ||
+    fieldKey === "CC_Number" ||
+    fieldKey === "API_Key" ||
+    fieldKey === "API_URL";
   const isDate = fieldKey.endsWith("Date");
-  const isSecret = fieldKey === "CC_Number" || fieldKey === "CC_CVC" || fieldKey === "DOC_Number";
+  const isSecret = SECRET_FIELDS.includes(fieldKey);
 
   if (fieldKey === "DOC_Kind") {
     return (

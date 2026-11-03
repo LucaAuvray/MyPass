@@ -59,6 +59,7 @@
     "cards": "Cartes",
     "documents": "Documents",
     "sshKeys": "Clés SSH",
+    "apiKeys": "Clés API",
     "sshAgent": "Agent SSH",
     "sync": "Synchronisation"
   },
@@ -309,36 +310,42 @@
     "card": "Carte bancaire",
     "document": "Document",
     "ssh_key": "Clé SSH",
+    "api_key": "Clé API",
     "editTitle": "Modifier {{kind}}",
     "empty": {
       "identity": "Aucune identité",
       "card": "Aucune carte",
       "document": "Aucun document",
-      "ssh_key": "Aucune clé SSH"
+      "ssh_key": "Aucune clé SSH",
+      "api_key": "Aucune clé API"
     },
     "emptyDesc": {
       "identity": "Enregistrez vos coordonnées pour remplir les formulaires d'inscription en un clic.",
       "card": "Enregistrez une carte bancaire pour remplir les paiements en un clic.",
       "document": "Conservez passeports, cartes d'identité et autres papiers officiels en sécurité.",
-      "ssh_key": "Importez ou générez une clé pour vous connecter à vos machines depuis le terminal ou VS Code."
+      "ssh_key": "Importez ou générez une clé pour vous connecter à vos machines depuis le terminal ou VS Code.",
+      "api_key": "MyPass propose de ranger une clé quand un site te l'affiche, ou ajoute-la ici."
     },
     "new": {
       "identity": "Nouvelle identité",
       "card": "Nouvelle carte",
       "document": "Nouveau document",
-      "ssh_key": "Nouvelle clé SSH"
+      "ssh_key": "Nouvelle clé SSH",
+      "api_key": "Nouvelle clé API"
     },
     "desc": {
       "identity": "Coordonnées personnelles pour remplir les formulaires d'inscription.",
       "card": "Informations de carte pour remplir les formulaires de paiement.",
       "document": "Papiers officiels, stockés chiffrés.",
-      "ssh_key": "Importez une clé existante ou générez une clé Ed25519. La clé privée reste dans le coffre."
+      "ssh_key": "Importez une clé existante ou générez une clé Ed25519. La clé privée reste dans le coffre.",
+      "api_key": "La clé API d'un service, stockée chiffrée."
     },
     "titlePlaceholder": {
       "identity": "Identité perso",
       "card": "Visa perso",
       "document": "Passeport",
-      "ssh_key": "ex. Serveur prod"
+      "ssh_key": "ex. Serveur prod",
+      "api_key": "ex. Mistral"
     },
     "fields": {
       "ID_FirstName": "Prénom",
@@ -365,7 +372,9 @@
       "SSH_Fingerprint": "Empreinte",
       "SSH_Algorithm": "Algorithme",
       "SSH_Comment": "Commentaire",
-      "SSH_PrivateKey": "Clé privée"
+      "SSH_PrivateKey": "Clé privée",
+      "API_Key": "Clé",
+      "API_URL": "Créée sur"
     },
     "docKinds": {
       "passport": "Passeport",

@@ -344,7 +344,13 @@ pub(crate) fn set_string_field_protected(entry: &mut Entry, key: &str, value: &s
 }
 
 /// Champs personnalisés stockés avec le flag Protected (comme les mots de passe).
-const PROTECTED_CUSTOM_KEYS: &[&str] = &["CC_Number", "CC_CVC", "DOC_Number", "SSH_PrivateKey"];
+const PROTECTED_CUSTOM_KEYS: &[&str] = &[
+    "CC_Number",
+    "CC_CVC",
+    "DOC_Number",
+    "SSH_PrivateKey",
+    "API_Key",
+];
 
 /// Upsert des champs personnalisés ; une valeur vide supprime la clé.
 pub fn apply_custom_fields(entry: &mut Entry, fields: &HashMap<String, String>) {
@@ -438,6 +444,19 @@ mod tests {
         let get = |key: &str| entry.strings.iter().find(|s| s.key == key).unwrap();
         assert_eq!(get("SSH_PrivateKey").value.protected.as_deref(), Some("True"));
         assert_eq!(get("SSH_PublicKey").value.protected, None);
+    }
+
+    #[test]
+    fn apply_custom_fields_protects_api_key() {
+        let mut entry = Entry::new("Mistral", "", "", "");
+        let mut f = HashMap::new();
+        f.insert("MyPass_Type".to_string(), "api_key".to_string());
+        f.insert("API_Key".to_string(), "Xq7bR2kLm9TzP4wV8nC1sD6fG3hJ5aYe".to_string());
+        f.insert("API_URL".to_string(), "https://console.mistral.ai/api-keys".to_string());
+        apply_custom_fields(&mut entry, &f);
+        let get = |key: &str| entry.strings.iter().find(|s| s.key == key).unwrap();
+        assert_eq!(get("API_Key").value.protected.as_deref(), Some("True"));
+        assert_eq!(get("API_URL").value.protected, None);
     }
 
     /// Reproduit le corps de `update()` en appelant directement le helper mutable,

@@ -8,7 +8,7 @@ import { EntryCard } from "./EntryCard";
 import { ItemForm } from "./ItemForm";
 import { SshKeyForm } from "./SshKeyForm";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Key, Contact, CreditCard, FileText, Terminal, Plus } from "lucide-react";
+import { Key, KeyRound, Contact, CreditCard, FileText, Terminal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -17,6 +17,7 @@ const EMPTY_ICONS = {
   card: CreditCard,
   document: FileText,
   ssh_key: Terminal,
+  api_key: KeyRound,
 } as const;
 
 interface EntryListProps {

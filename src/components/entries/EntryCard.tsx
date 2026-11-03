@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { EntryIcon } from "@/components/shared/EntryIcon";
 import { cn } from "@/lib/utils";
 import { itemKind, maskCardNumber, cardBrand } from "@/lib/items";
-import { Contact, CreditCard, FileText, Terminal } from "lucide-react";
+import { Contact, CreditCard, FileText, KeyRound, Terminal } from "lucide-react";
 import type { Entry } from "@/stores/entriesStore";
 
 const BRAND_LABELS = { visa: "Visa", mastercard: "Mastercard", amex: "Amex", other: "" } as const;
@@ -29,7 +29,9 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
           ? t(`items.docKinds.${cf.DOC_Kind || "other"}`)
           : kind === "ssh_key"
             ? cf.SSH_Fingerprint || cf.SSH_Algorithm || ""
-            : entry.username || t("entries.noUsername");
+            : kind === "api_key"
+              ? hostOf(cf.API_URL)
+              : entry.username || t("entries.noUsername");
 
   return (
     <Card
@@ -51,6 +53,8 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
               <CreditCard className="size-5" />
             ) : kind === "ssh_key" ? (
               <Terminal className="size-5" />
+            ) : kind === "api_key" ? (
+              <KeyRound className="size-5" />
             ) : (
               <FileText className="size-5" />
             )}
@@ -85,6 +89,14 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
       </div>
     </Card>
   );
+}
+
+function hostOf(url: string | undefined): string {
+  try {
+    return url ? new URL(url).hostname : "";
+  } catch {
+    return "";
+  }
 }
 
 function formatDate(dateStr: string, _t: ReturnType<typeof useTranslation>["t"]): string {

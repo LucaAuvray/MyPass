@@ -1,7 +1,7 @@
 /** Types d'éléments MyPass (identités / cartes / documents), stockés en
  *  entrées KDBX discriminées par le champ personnalisé MyPass_Type. */
 
-export type ItemKind = "login" | "identity" | "card" | "document" | "ssh_key";
+export type ItemKind = "login" | "identity" | "card" | "document" | "ssh_key" | "api_key";
 
 export const MYPASS_TYPE_KEY = "MyPass_Type";
 
@@ -43,8 +43,17 @@ export const SSH_FIELDS = [
   "SSH_Comment",
 ] as const;
 
+/** Clé API d'un service : API_Key est secrète, API_URL est la page où elle a été créée. */
+export const API_KEY_FIELDS = ["API_Key", "API_URL"] as const;
+
 /** Masqués par défaut dans l'UI ; protégés côté KDBX (voir entries.rs). */
-export const SECRET_FIELDS: string[] = ["CC_Number", "CC_CVC", "DOC_Number", "SSH_PrivateKey"];
+export const SECRET_FIELDS: string[] = [
+  "CC_Number",
+  "CC_CVC",
+  "DOC_Number",
+  "SSH_PrivateKey",
+  "API_Key",
+];
 
 export const DOC_KINDS = [
   "passport",
@@ -56,7 +65,9 @@ export const DOC_KINDS = [
 
 export function itemKind(entry: { customFields?: Record<string, string> }): ItemKind {
   const t = entry.customFields?.[MYPASS_TYPE_KEY];
-  return t === "identity" || t === "card" || t === "document" || t === "ssh_key" ? t : "login";
+  return t === "identity" || t === "card" || t === "document" || t === "ssh_key" || t === "api_key"
+    ? t
+    : "login";
 }
 
 export function cardBrand(number: string): "visa" | "mastercard" | "amex" | "other" {
