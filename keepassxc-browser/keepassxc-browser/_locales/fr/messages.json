@@ -1493,5 +1493,41 @@
     "passwordSuggestionHint": {
         "message": "MyPass · 20 caractères · remplit les deux champs",
         "description": "Hint line of the generated password suggestion."
+    },
+    "apiKeyDetected": {
+        "message": "Clé API détectée sur $HOST$",
+        "description": "Banner text when an API key appears or is copied on a page.",
+        "placeholders": {
+            "host": {
+                "content": "$1",
+                "example": "console.mistral.ai"
+            }
+        }
+    },
+    "apiKeyLocked": {
+        "message": "Clé API détectée sur $HOST$ — déverrouille MyPass pour l'enregistrer",
+        "description": "Banner text when an API key is detected while the vault is locked.",
+        "placeholders": {
+            "host": {
+                "content": "$1",
+                "example": "console.mistral.ai"
+            }
+        }
+    },
+    "apiKeySave": {
+        "message": "Enregistrer",
+        "description": "Button of the API key banner that saves the key in MyPass."
+    },
+    "apiKeyIgnore": {
+        "message": "Ignorer",
+        "description": "Button of the API key banner that stops proposing this key until the browser closes."
+    },
+    "apiKeySaved": {
+        "message": "Clé API enregistrée dans MyPass",
+        "description": "Notification after the API key was saved."
+    },
+    "apiKeyAlreadySaved": {
+        "message": "Cette clé API est déjà dans MyPass",
+        "description": "Notification when the API key to save was already in the vault."
     }
 }

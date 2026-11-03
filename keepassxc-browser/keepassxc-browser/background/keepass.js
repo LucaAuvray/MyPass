@@ -46,7 +46,9 @@ const kpActions = {
     GET_IDENTITIES: 'get-identities',
     REQUEST_AUTOTYPE: 'request-autotype',
     PASSKEYS_REGISTER: 'passkeys-register',
-    PASSKEYS_GET: 'passkeys-get'
+    PASSKEYS_GET: 'passkeys-get',
+    CHECK_API_KEY: 'check-api-key',
+    SAVE_API_KEY: 'save-api-key'
 };
 
 browser.storage.local.get({ 'latestKeePassXC': { 'version': '', 'lastChecked': null }, 'keyRing': {} }).then((item) => {
@@ -618,6 +620,51 @@ keepass.getIdentities = async function(tab, args = []) {
     } catch (err) {
         logError(`getIdentities failed: ${err}`);
         return [];
+    }
+};
+
+// MyPass-specific: is this API key already in the vault? false also when the vault is locked. Never log the key.
+keepass.checkApiKey = async function(tab, args = []) {
+    const [ key ] = args;
+    const taResponse = await keepass.testAssociation(tab, [ false ]);
+    if (!key || !taResponse || !keepass.isConnected) {
+        return false;
+    }
+
+    const kpAction = kpActions.CHECK_API_KEY;
+    const nonce = keepassClient.getNonce();
+
+    try {
+        const response = await keepassClient.sendMessage(kpAction, tab, { action: kpAction, key: key }, nonce);
+        return response?.exists === true;
+    } catch (err) {
+        logError(`checkApiKey failed: ${err}`);
+        return false;
+    }
+};
+
+// MyPass-specific: stores an API key as an "API key" item. Returns 'created', 'exists' or 'error'. Never log the key.
+keepass.saveApiKey = async function(tab, args = []) {
+    const [ key, url ] = args;
+    const taResponse = await keepass.testAssociation(tab, [ false ]);
+    if (!key || !taResponse || !keepass.isConnected) {
+        return 'error';
+    }
+
+    const kpAction = kpActions.SAVE_API_KEY;
+    const nonce = keepassClient.getNonce();
+
+    try {
+        const response = await keepassClient.sendMessage(kpAction, tab, { action: kpAction, key: key, url: url }, nonce);
+        if (!response) {
+            return 'error';
+        }
+
+        keepass.updateLastUsed(keepass.databaseHash);
+        return response.created ? 'created' : 'exists';
+    } catch (err) {
+        logError(`saveApiKey failed: ${err}`);
+        return 'error';
     }
 };
 

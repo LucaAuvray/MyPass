@@ -14,6 +14,7 @@ kpxcBanner.destroy = async function() {
     }
 
     kpxcBanner.credentials = {};
+    kpxcBanner.apiKey = undefined;
 
     const dialog = kpxcBanner.shadowSelector('.kpxc-banner-dialog');
     if (dialog) {
@@ -152,12 +153,19 @@ kpxcBanner.build = async function(credentials = {}) {
         }
     });
 
-    kpxcBanner.banner = banner;
     bannerInfo.appendMultiple(icon, infoText, usernameText, usernameSpan);
     bannerButtons.appendMultiple(newButton, updateButton, separator, ignoreCheckbox, checkboxLabel, dismissButton);
     banner.appendMultiple(bannerInfo, bannerButtons);
 
     initColorTheme(banner);
+    kpxcBanner.mount(banner);
+};
+
+// Shows a banner element in a closed shadow DOM of the top document. Returns false if a banner is already shown.
+kpxcBanner.mount = function(banner) {
+    if (kpxcBanner.created) {
+        return false;
+    }
 
     const styleSheet = createStylesheet('css/banner.css');
     const buttonStyleSheet = createStylesheet('css/button.css');
@@ -167,18 +175,89 @@ kpxcBanner.build = async function(credentials = {}) {
     wrapper.style.all = 'unset';
     wrapper.style.display = 'none';
     styleSheet.addEventListener('load', () => wrapper.style.display = 'block');
-    this.shadowRoot = wrapper.attachShadow({ mode: 'closed' });
-    this.shadowRoot.append(colorStyleSheet);
-    this.shadowRoot.append(styleSheet);
-    this.shadowRoot.append(buttonStyleSheet);
-    this.shadowRoot.append(banner);
+    kpxcBanner.shadowRoot = wrapper.attachShadow({ mode: 'closed' });
+    kpxcBanner.shadowRoot.append(colorStyleSheet);
+    kpxcBanner.shadowRoot.append(styleSheet);
+    kpxcBanner.shadowRoot.append(buttonStyleSheet);
+    kpxcBanner.shadowRoot.append(banner);
+    kpxcBanner.banner = banner;
     kpxcBanner.wrapper = wrapper;
 
     // Always create the banner to the top document. Useful if we are inside an iframe.
-    if (!kpxcBanner.created) {
-        window.top.document.body.appendChild(wrapper);
-        kpxcUI.observeWrapper(wrapper);
-        kpxcBanner.created = true;
+    window.top.document.body.appendChild(wrapper);
+    kpxcUI.observeWrapper(wrapper);
+    kpxcBanner.created = true;
+    return true;
+};
+
+// "API key detected" banner. Save is disabled while the vault is locked (kpxcApiKey switches it on unlock).
+// A login banner gives way: its pending save survives and comes back, while the key may never be shown again.
+kpxcBanner.createApiKey = async function(item, locked) {
+    if (kpxcBanner.apiKey) {
+        return;
+    }
+    if (kpxcBanner.created) {
+        await kpxcBanner.destroy();
+    }
+
+    const bannerPosition = await sendMessage('banner_get_position');
+    const bannerClass =
+        bannerPosition === BannerPosition.TOP ? 'kpxc-banner kpxc-banner-on-top' : 'kpxc-banner kpxc-banner-on-bottom';
+    const banner = kpxcUI.createElement('div', bannerClass, { 'id': 'kpxc-banner-container' });
+    banner.style.zIndex = '2147483646';
+
+    const bannerInfo = kpxcUI.createElement('div', 'banner-info');
+    const bannerButtons = kpxcUI.createElement('div', 'banner-buttons');
+    const icon = kpxcUI.createElement('span', getIconClass('kpxc-banner-icon'), { 'alt': 'logo' });
+    const host = new URL(item.url).hostname;
+    const infoText = kpxcUI.createElement('span', 'banner-info-text', {}, tr(locked ? 'apiKeyLocked' : 'apiKeyDetected', [ host ]));
+    const saveButton = kpxcUI.createElement('button', GREEN_BUTTON, {}, tr('apiKeySave'));
+    const ignoreButton = kpxcUI.createElement('button', RED_BUTTON, {}, tr('apiKeyIgnore'));
+
+    if (locked) {
+        saveButton.classList.remove('kpxc-green-button');
+        saveButton.disabled = true;
+    }
+
+    saveButton.addEventListener('click', async function(e) {
+        if (!e.isTrusted) {
+            return;
+        }
+
+        saveButton.disabled = true;
+        const result = await sendMessage('save_api_key', [ item.key, item.url ]);
+        if (result === 'error') {
+            // Keep the banner: the key may never be shown again
+            kpxcUI.createNotification('error', tr('rememberErrorCannotSaveCredentials'));
+            saveButton.disabled = false;
+            return;
+        }
+
+        kpxcUI.createNotification(result === 'created' ? 'success' : 'info',
+            tr(result === 'created' ? 'apiKeySaved' : 'apiKeyAlreadySaved'));
+        kpxcBanner.destroy();
+    });
+
+    ignoreButton.addEventListener('click', async function(e) {
+        if (!e.isTrusted) {
+            return;
+        }
+
+        if (kpxcApiKey.pending === item) {
+            kpxcApiKey.pending = undefined;
+        }
+        await sendMessage('apikey_ignore', [ item.hash ]);
+        kpxcBanner.destroy();
+    });
+
+    kpxcUI.makeBannerDraggable(banner);
+    bannerInfo.appendMultiple(icon, infoText);
+    bannerButtons.appendMultiple(saveButton, ignoreButton);
+    banner.appendMultiple(bannerInfo, bannerButtons);
+    initColorTheme(banner);
+
+    if (kpxcBanner.mount(banner)) {
+        kpxcBanner.apiKey = item;
     }
 };
 

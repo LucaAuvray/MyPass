@@ -133,6 +133,8 @@ kpxc.detectDatabaseChange = async function(response) {
                 await kpxcFill.fillInFromActiveElement(manualFill === ManualFill.PASSWORD);
                 await sendMessage('page_set_manual_fill', ManualFill.NONE);
             }
+
+            await kpxcApiKey.onUnlocked();
         } else if (!response.connected) {
             kpxc.databaseState = DatabaseState.DISCONNECTED;
             kpxcIcons.switchIcons();
@@ -894,6 +896,7 @@ const initContentScript = async function() {
         }
 
         kpxcIcons.switchIcons();
+        kpxcApiKey.init(); // Last: it can never get in the way of filling
     } catch (err) {
         logError('initContentScript error: ' + err);
     }

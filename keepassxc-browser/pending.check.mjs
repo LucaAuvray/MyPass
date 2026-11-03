@@ -75,5 +75,14 @@ await page.clearSubmittedCredentials(site);
 await page.updateSubmittedUsername(site, ["luca@x.fr", "GEN"]);
 check(!store.has("pending_7"), "unload re-read never revives a cleared pending save");
 
+// Ignored API keys: SHA-256 fingerprints in session storage, shared by every tab
+const fp = "ab".repeat(32);
+check(!(await page.isApiKeyIgnored(site, [fp])), "unknown fingerprint is not ignored");
+await page.ignoreApiKey(site, [fp]);
+await page.ignoreApiKey(tab("https://other.org/", 9), [fp]);
+check(await page.isApiKeyIgnored({ id: 3 }, [fp]) && store.get("ignored_api_keys").length === 1, "ignored in every tab, stored once");
+await page.ignoreApiKey(site, ["sk-proj-ThisIsAClearKeyNotAHash1234"]);
+check(store.get("ignored_api_keys").length === 1, "only SHA-256 hex fingerprints are stored, never a clear key");
+
 console.log(failed ? `\n${failed} check(s) failed` : "\nall checks passed");
 process.exit(failed ? 1 : 0);

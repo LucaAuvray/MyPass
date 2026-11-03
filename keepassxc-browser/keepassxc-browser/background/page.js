@@ -299,6 +299,21 @@ page.updateSubmittedUsername = async function(tab, args = []) {
     }
 };
 
+// API keys ignored until the browser closes: SHA-256 hex fingerprints in session storage, never the key itself
+page.ignoreApiKey = async function(tab, args = []) {
+    const [ hash ] = args;
+    const { ignored_api_keys: ignored = [] } = await browser.storage.session.get('ignored_api_keys');
+    if (/^[0-9a-f]{64}$/.test(hash) && !ignored.includes(hash)) {
+        await browser.storage.session.set({ ignored_api_keys: [ ...ignored, hash ] });
+    }
+};
+
+page.isApiKeyIgnored = async function(tab, args = []) {
+    const [ hash ] = args;
+    const { ignored_api_keys: ignored = [] } = await browser.storage.session.get('ignored_api_keys');
+    return ignored.includes(hash);
+};
+
 page.getAutoSubmitPerformed = async function(tab) {
     return page.autoSubmitPerformed;
 };

@@ -244,9 +244,12 @@ kpxcEvent.getFeaturesList = async function() {
 // All methods named in this object have to be declared BEFORE this!
 kpxcEvent.messageHandlers = {
     'add_credentials': keepass.addCredentials,
+    'apikey_ignore': page.ignoreApiKey,
+    'apikey_is_ignored': page.isApiKeyIgnored,
     'associate': keepass.associate,
     'banner_get_position': page.getBannerPosition,
     'banner_set_position': page.setBannerPosition,
+    'check_api_key': keepass.checkApiKey,
     'check_database_hash': keepass.checkDatabaseHash,
     'check_update_keepassxc': kpxcEvent.onCheckUpdateKeePassXC,
     'create_new_group': keepass.createNewGroup,
@@ -303,6 +306,7 @@ kpxcEvent.messageHandlers = {
     'show_default_browseraction': browserAction.showDefault,
     'update_credentials': keepass.updateCredentials,
     'username_field_detected': kpxcEvent.onUsernameFieldDetected,
+    'save_api_key': keepass.saveApiKey,
     'save_settings': kpxcEvent.onSaveSettings,
     'update_available_keepassxc': kpxcEvent.onUpdateAvailableKeePassXC,
     'update_context_menu': page.updateContextMenu,
