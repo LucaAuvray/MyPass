@@ -157,6 +157,16 @@ kpxcPasswordGenerator.fill = async function(elem, password) {
     const combination = kpxc.combinations.find(c => c.password === elem || c.passwordInputs?.includes(elem));
     const url = trimURL(kpxc.settings.saveDomainOnlyNewCreds ? window.top.location.origin : window.top.location.href);
     await sendMessage('page_set_submitted', [ true, combination?.username?.value ?? '', password, url, kpxc.credentials, true ]);
+
+    // The username may be typed after the fill: re-read it when leaving the page
+    const usernameField = combination?.username;
+    if (usernameField && window.self === window.top) {
+        window.addEventListener('beforeunload', () => {
+            if (usernameField.value) {
+                sendMessage('page_update_submitted_username', [ usernameField.value, password ]);
+            }
+        });
+    }
 };
 
 const isPasswordGeneratorSupported = async function() {

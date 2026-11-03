@@ -270,6 +270,11 @@ page.getSubmitted = async function(tab) {
 page.setSubmitted = async function(tab, args = []) {
     const [ submitted, username, password, url, oldCredentials, generated = false ] = args;
     const previous = await page.getSubmitted(tab);
+    // A submit without a password (another form, a username-only step) must not wipe a pending password
+    if (!password && previous.password) {
+        return;
+    }
+
     await browser.storage.session.set({
         [`pending_${tab?.id}`]: {
             submitted,
@@ -283,6 +288,15 @@ page.setSubmitted = async function(tab, args = []) {
             time: Date.now()
         }
     });
+};
+
+// Username re-read at unload: updates only a pending save that still holds this password, never creates or revives one
+page.updateSubmittedUsername = async function(tab, args = []) {
+    const [ username, password ] = args;
+    const pending = await page.getSubmitted(tab);
+    if (username && pending.password && pending.password === password) {
+        await browser.storage.session.set({ [`pending_${tab?.id}`]: { ...pending, username } });
+    }
 };
 
 page.getAutoSubmitPerformed = async function(tab) {

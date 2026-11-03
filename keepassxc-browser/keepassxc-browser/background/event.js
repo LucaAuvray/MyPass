@@ -289,6 +289,7 @@ kpxcEvent.messageHandlers = {
     'page_set_login_id': page.setLoginId,
     'page_set_manual_fill': page.setManualFill,
     'page_set_submitted': page.setSubmitted,
+    'page_update_submitted_username': page.updateSubmittedUsername,
     'passkeys_get': keepass.passkeysGet,
     'passkeys_register': keepass.passkeysRegister,
     'password_get_filled': kpxcEvent.passwordGetFilled,

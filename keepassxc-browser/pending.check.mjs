@@ -58,5 +58,22 @@ await page.clearSubmittedCredentials(tab("https://www.example.com/"));
 check(!store.has("pending_7"), "page_clear_submitted removes it");
 check(Object.keys(await page.getSubmitted({ id: 7 })).length === 0, "missing tab.url does not throw");
 
+const site = tab("https://www.example.com/x");
+await page.setSubmitted(site, [true, "step1@x.fr", "", "https://www.example.com", []]);
+check((await page.getSubmitted(site)).username === "step1@x.fr", "username-only step is stored when nothing is pending");
+await page.setSubmitted(site, [true, "", "GEN", "https://www.example.com", [], true]);
+await page.setSubmitted(site, [true, "", "", "https://www.example.com", []]);
+p = await page.getSubmitted(site);
+check(p.password === "GEN" && p.generated && p.username === "step1@x.fr", "a password-less submit does not wipe the pending password");
+
+await page.updateSubmittedUsername(site, ["luca@x.fr", "GEN"]);
+p = await page.getSubmitted(site);
+check(p.username === "luca@x.fr" && p.password === "GEN" && p.generated, "unload re-read updates the username of the same pending password");
+await page.updateSubmittedUsername(site, ["other@x.fr", "OTHER"]);
+check((await page.getSubmitted(site)).username === "luca@x.fr", "unload re-read with another password is a no-op");
+await page.clearSubmittedCredentials(site);
+await page.updateSubmittedUsername(site, ["luca@x.fr", "GEN"]);
+check(!store.has("pending_7"), "unload re-read never revives a cleared pending save");
+
 console.log(failed ? `\n${failed} check(s) failed` : "\nall checks passed");
 process.exit(failed ? 1 : 0);

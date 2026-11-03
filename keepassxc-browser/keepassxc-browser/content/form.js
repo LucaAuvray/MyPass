@@ -21,8 +21,9 @@ kpxcForm.activateCredentialBanner = async function(usernameValue, passwordInputs
         passwordValue = passwordField.value;
     }
 
-    // Return if credentials are already found
+    // Return if credentials are already found, dropping any stale pending save (e.g. an earlier typo)
     if (kpxc.credentials.some(c => c.login === usernameValue && c.password === passwordValue)) {
+        await sendMessage('page_clear_submitted');
         kpxcForm.submitTriggered = false;
         return;
     }
