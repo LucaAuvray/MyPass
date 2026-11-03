@@ -36,7 +36,7 @@ class PasswordSuggestion extends Autocomplete {
         this.loading = false;
     }
 
-    // Single listener set per field; Task 7 adds its submit hooks here too
+    // Single listener set per field
     attach(field) {
         if (field.readOnly || this.autocompleteList.includes(field)) {
             return;
@@ -47,6 +47,13 @@ class PasswordSuggestion extends Autocomplete {
         field.addEventListener('click', e => this.open(e));
         field.addEventListener('keydown', e => this.keyDown(e));
         field.addEventListener('keyup', e => this.keyUp(e));
+
+        // Sign-up outside a <form> (kpxcForm.initForm covers forms): hook the submit buttons of the closest
+        // ancestor, up to 4 levels, that has some
+        let container = field.form ? null : field.parentElement;
+        for (let level = 0; container && level < 4 && !kpxcForm.hookSubmitButtons(container); level++) {
+            container = container.parentElement;
+        }
     }
 
     async open(e) {

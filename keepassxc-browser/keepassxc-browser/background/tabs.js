@@ -46,7 +46,6 @@ tabs.createTabEntry = function(tabId) {
     }
 
     tabs.tabList.set(tabId, structuredClone(TAB_OBJECT));
-    page.clearSubmittedCredentials();
     page.setFillAttributeContextMenuItemVisible(false);
 };
 
@@ -149,6 +148,7 @@ tabs.onRemoved = async function(tabId, _removeInfo) {
     }
     tabs.deleteTabEntry(tabId);
     tabs.clearTimeout(tabId);
+    page.clearSubmittedCredentials({ id: tabId });
 };
 
 /**

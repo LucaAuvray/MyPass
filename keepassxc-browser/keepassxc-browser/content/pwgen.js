@@ -113,7 +113,7 @@ kpxcPasswordGenerator.generate = async function(field) {
     kpxcPasswordGenerator.fill(field, await sendMessage('generate_password'));
 };
 
-kpxcPasswordGenerator.fill = function(elem, password) {
+kpxcPasswordGenerator.fill = async function(elem, password) {
     if (!elem || !password) {
         return;
     }
@@ -131,7 +131,6 @@ kpxcPasswordGenerator.fill = function(elem, password) {
                 tr('passwordGeneratorErrorTooLongCut') +
                 '\r\n' +
                 tr('passwordGeneratorErrorTooLongRemember');
-            message.style.whiteSpace = 'pre';
             kpxcUI.createNotification('error', message);
             return;
         }
@@ -153,6 +152,11 @@ kpxcPasswordGenerator.fill = function(elem, password) {
             nextField.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
+
+    // Remember the generated password for this tab: the save banner follows the sign-up across pages
+    const combination = kpxc.combinations.find(c => c.password === elem || c.passwordInputs?.includes(elem));
+    const url = trimURL(kpxc.settings.saveDomainOnlyNewCreds ? window.top.location.origin : window.top.location.href);
+    await sendMessage('page_set_submitted', [ true, combination?.username?.value ?? '', password, url, kpxc.credentials, true ]);
 };
 
 const isPasswordGeneratorSupported = async function() {

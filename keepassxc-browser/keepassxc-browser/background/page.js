@@ -47,6 +47,7 @@ const defaultSettings = {
 };
 
 const AUTO_SUBMIT_TIMEOUT = 5000;
+const PENDING_SAVE_TIMEOUT = 15 * 60 * 1000;
 
 /**
  * @Object page
@@ -63,8 +64,6 @@ page.manualFill = ManualFill.NONE;
 page.menuContexts = [ 'editable' ];
 page.passwordFilled = false;
 page.redirectCount = 0;
-page.submitted = false;
-page.submittedCredentials = {};
 
 page.popupData = {
     iconType: 'normal',
@@ -175,18 +174,19 @@ page.clearAllLogins = function() {
     });
 };
 
-page.setSubmittedCredentials = function(submitted, username, password, url, oldCredentials, tabId) {
-    page.submittedCredentials.submitted = submitted;
-    page.submittedCredentials.username = username;
-    page.submittedCredentials.password = password;
-    page.submittedCredentials.url = url;
-    page.submittedCredentials.oldCredentials = oldCredentials;
-    page.submittedCredentials.tabId = tabId;
+// The pending save of a tab lives in session storage (pending_<tabId>): it survives the service worker being stopped
+page.clearSubmittedCredentials = async function(tab) {
+    await browser.storage.session.remove(`pending_${tab?.id}`);
 };
 
-page.clearSubmittedCredentials = async function() {
-    page.submitted = false;
-    page.submittedCredentials = {};
+page.isSameSite = async function(url1, url2) {
+    try {
+        const [ host1, host2 ] = [ new URL(url1).hostname, new URL(url2).hostname ];
+        return host1 === host2
+            || await page.getBaseDomainFromUrl(host1, url1) === await page.getBaseDomainFromUrl(host2, url2);
+    } catch (_e) {
+        return false;
+    }
 };
 
 // Retrieves the credentials. Returns cached values when found.
@@ -251,18 +251,38 @@ page.setBannerPosition = async function(tab, position) {
     await browser.storage.local.set({ 'settings': page.settings });
 };
 
+// Returns the tab's pending save, or {} once it is older than 15 minutes or the tab has left its site
 page.getSubmitted = async function(tab) {
-    // Do not return any credentials if the tab ID does not match.
-    if (tab?.id !== page.submittedCredentials.tabId) {
+    const key = `pending_${tab?.id}`;
+    const pending = (await browser.storage.session.get(key))[key];
+    if (!pending) {
         return {};
     }
 
-    return page.submittedCredentials;
+    if (Date.now() - pending.time > PENDING_SAVE_TIMEOUT || !await page.isSameSite(tab?.url, pending.url)) {
+        await browser.storage.session.remove(key);
+        return {};
+    }
+
+    return pending;
 };
 
 page.setSubmitted = async function(tab, args = []) {
-    const [ submitted, username, password, url, oldCredentials ] = args;
-    page.setSubmittedCredentials(submitted, username, password, url, oldCredentials, tab.id);
+    const [ submitted, username, password, url, oldCredentials, generated = false ] = args;
+    const previous = await page.getSubmitted(tab);
+    await browser.storage.session.set({
+        [`pending_${tab?.id}`]: {
+            submitted,
+            // A later step without a username field (multi-page sign-up) keeps the earlier one
+            username: username || previous.username || '',
+            password,
+            url,
+            oldCredentials,
+            // Submitting the generated password keeps it marked as generated
+            generated: generated || (previous.generated === true && previous.password === password),
+            time: Date.now()
+        }
+    });
 };
 
 page.getAutoSubmitPerformed = async function(tab) {

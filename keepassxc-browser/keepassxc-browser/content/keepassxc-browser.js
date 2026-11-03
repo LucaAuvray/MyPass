@@ -679,11 +679,19 @@ kpxc.retrieveCredentialsCallback = async function(credentials) {
         await sendMessage('update_context_menu', credentials);
     }
 
-    // Retrieve submitted credentials if available
-    const creds = await sendMessage('page_get_submitted');
-    if (creds?.submitted) {
-        await sendMessage('page_clear_submitted');
-        kpxc.rememberCredentials(creds.username, creds.password, creds.url, creds.oldCredentials);
+    // Retrieve submitted credentials if available (top frame only: an iframe would duplicate the banner)
+    if (window.self === window.top && !kpxcBanner.created) {
+        const creds = await sendMessage('page_get_submitted');
+        if (creds?.submitted) {
+            await kpxc.showSubmittedBanner(creds);
+        }
+    }
+};
+
+// Shows the banner for the tab's pending save. Displaying it does not consume it: only a click on the banner does.
+kpxc.showSubmittedBanner = async function(creds) {
+    if (await kpxc.rememberCredentials(creds.username, creds.password, creds.url, creds.oldCredentials) === false) {
+        await sendMessage('page_clear_submitted'); // Already in the database
     }
 };
 
@@ -867,23 +875,22 @@ const initContentScript = async function() {
             await kpxcObserverHelper.initObserver();
         }
 
-        // Retrieve submitted credentials if available.
-        const [ creds, redirectCount ] = await Promise.all([
-            await sendMessage('page_get_submitted'),
-            await sendMessage('page_get_redirect_count')
-        ]);
+        // Retrieve submitted credentials if available, even on a page without fields or without a username.
+        // Top frame only: an iframe would duplicate the banner.
+        if (window.self === window.top) {
+            const [ creds, redirectCount ] = await Promise.all([
+                await sendMessage('page_get_submitted'),
+                await sendMessage('page_get_redirect_count')
+            ]);
 
-        if (creds && creds.submitted) {
-            // If username field is not set, wait for credentials in kpxc.retrieveCredentialsCallback.
-            if (!creds.username) {
-                return;
+            if (creds?.submitted) {
+                // Shown one last time; a generated password survives redirects (sign-up flows redirect a lot)
+                if (redirectCount >= kpxc.settings.redirectAllowance && !creds.generated) {
+                    await sendMessage('page_clear_submitted');
+                }
+
+                await kpxc.showSubmittedBanner(creds);
             }
-
-            if (redirectCount >= kpxc.settings.redirectAllowance) {
-                await sendMessage('page_clear_submitted');
-            }
-
-            kpxc.rememberCredentials(creds.username, creds.password, creds.url, creds.oldCredentials);
         }
 
         kpxcIcons.switchIcons();

@@ -35,7 +35,15 @@ kpxcBanner.destroy = async function() {
     kpxcBanner.created = false;
 };
 
-kpxcBanner.create = async function(credentials = {}) {
+// One banner at a time: concurrent calls (page load, credential retrieval, submit) share the creation in progress
+kpxcBanner.create = function(credentials) {
+    kpxcBanner.creating ??= kpxcBanner.build(credentials).finally(() => {
+        kpxcBanner.creating = undefined;
+    });
+    return kpxcBanner.creating;
+};
+
+kpxcBanner.build = async function(credentials = {}) {
     const connectedDatabase = await sendMessage('get_connected_database');
     if (!kpxc.settings.showLoginNotifications
         || kpxcBanner.created
@@ -102,10 +110,12 @@ kpxcBanner.create = async function(credentials = {}) {
         updateButton.disabled = true;
     }
 
-    newButton.addEventListener('click', function(e) {
+    // Only a click consumes the tab's pending save
+    newButton.addEventListener('click', async function(e) {
         if (!e.isTrusted) {
             return;
         }
+        await sendMessage('page_clear_submitted');
         kpxcBanner.saveNewCredentials(credentials);
     });
 
@@ -119,7 +129,7 @@ kpxcBanner.create = async function(credentials = {}) {
 
     kpxcUI.makeBannerDraggable(banner);
 
-    dismissButton.addEventListener('click', function(e) {
+    dismissButton.addEventListener('click', async function(e) {
         if (!e.isTrusted) {
             return;
         }
@@ -133,6 +143,7 @@ kpxcBanner.create = async function(credentials = {}) {
             kpxcBanner.banner.removeChild(dialog);
             dismissButton.textContent = tr('popupButtonCancel');
         } else {
+            await sendMessage('page_clear_submitted');
             if (ignoreCheckbox.checked) {
                 const ignoreUrl = window.location.href.slice(0, window.location.href.lastIndexOf('/') + 1) + '*';
                 kpxc.ignoreSite([ ignoreUrl ]);
@@ -294,6 +305,7 @@ kpxcBanner.updateCredentials = async function(credentials = {}) {
         // Use the current username if it's empty
         credentials.username ??= credentials.list[0].login;
 
+        await sendMessage('page_clear_submitted');
         const res = await sendMessage('update_credentials', [
             credentials.list[0].uuid,
             credentials.username,
@@ -336,6 +348,8 @@ kpxcBanner.updateCredentials = async function(credentials = {}) {
 
                 let url = credentials.url;
                 url = (url.length > 50) ? url.substring(0, 50) + '...' : url;
+
+                sendMessage('page_clear_submitted');
 
                 // Check if the password has changed for the updated credentials
                 browser.runtime.sendMessage({

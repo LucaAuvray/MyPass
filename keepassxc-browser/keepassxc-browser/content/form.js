@@ -176,8 +176,25 @@ kpxcForm.initForm = function(form, credentialFields) {
             submitButton.addEventListener('click', kpxcForm.onSubmit);
         }
 
+        // Forms submitted in JavaScript: Enter in a field, or a button/link whose text submits
+        form.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && matchesWithNodeName(e.target, 'INPUT')) {
+                kpxcForm.onSubmit.call(form, e);
+            }
+        });
+        kpxcForm.hookSubmitButtons(form);
+
         kpxcUI.pageObserver.observe(form, OBSERVER_OPTIONS);
     }
+};
+
+// Returns true when a submit-like button/link of the container was hooked (adding the same listener twice is a no-op)
+kpxcForm.hookSubmitButtons = function(container) {
+    const buttons = Array.from(container.querySelectorAll(
+        'button, a, [role=button], input[type=submit], input[type=button]'
+    )).filter(b => kpxcDetect.isSubmitText(b.textContent || b.value));
+    buttons.forEach(b => b.addEventListener('click', kpxcForm.onSubmit));
+    return buttons.length > 0;
 };
 
 // Initialize a "form" where three different password input fields are in a combination
@@ -271,9 +288,10 @@ kpxcForm.onSubmit = async function(e) {
         ? form?.querySelector('input[type=text]')
         : usernameField);
 
-    // If the form username differs (input has removed etc.) use the username stored in the submitted object
+    // If the form username differs (input has removed etc.) use the username stored in the submitted object.
+    // A generated password's username was read when filling: the live field wins over it.
     const creds = await sendMessage('page_get_submitted');
-    if (creds?.username && creds.username !== usernameValue) {
+    if (creds?.username && creds.username !== usernameValue && (!creds.generated || !usernameValue)) {
         usernameValue = creds.username;
     }
 
