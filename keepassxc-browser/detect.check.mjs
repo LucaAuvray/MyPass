@@ -12,6 +12,7 @@ check(d.isApiKeyToken("sk-proj-" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8s9T0", "
 check(d.isApiKeyToken("ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8", ""), "GitHub token without context");
 check(d.isApiKeyToken(MISTRAL, CTX), "prefix-less Mistral key inside an API key dialog");
 check(!d.isApiKeyToken(MISTRAL, "Order reference"), "same string without key context");
+check(d.isApiKeyToken(MISTRAL, "API keys — Create new key") && d.isApiKeyToken(MISTRAL, "Personal access tokens"), "plural key context");
 check(!d.isApiKeyToken("3f786850e387550fdab836ed7e6dc881de23001b", "token"), "40-hex commit SHA");
 check(!d.isApiKeyToken("123e4567-e89b-12d3-a456-426614174000", "API key"), "UUID");
 check(!d.isApiKeyToken("averyveryverylongwordwithoutanydigits", "API key"), "no digit");

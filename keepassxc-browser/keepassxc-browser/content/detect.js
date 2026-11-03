@@ -8,8 +8,9 @@
 const kpxcDetect = {};
 
 kpxcDetect.KEY_PREFIX = /^(?:sk-|sk-proj-|sk-ant-|ghp_|gho_|github_pat_|glpat-|hf_|gsk_|xoxb-|xoxp-|AIza|AKIA|sk_live_|rk_live_|sk_test_)[A-Za-z0-9_-]{16,}$/;
-kpxcDetect.KEY_CONTEXT = ['api key', 'api-key', 'apikey', 'clé api', 'clé d\'api', 'secret', 'token', 'jeton', 'access key',
-    'copy it now', 'won\'t be able to see', 'ne sera plus affichée'];
+// Regex fragments (optional plural "s" on the noun)
+kpxcDetect.KEY_CONTEXT = ['api keys?', 'api-keys?', 'apikeys?', 'clés? api', 'clés? d\'api', 'secrets?', 'tokens?', 'jetons?',
+    'access keys?', 'copy it now', 'won\'t be able to see', 'ne sera plus affichée'];
 kpxcDetect.SIGNUP_WORDS = ['sign up', 'signup', 'register', 'create account', 'create an account', 'create your account', 'join',
     'inscription', 's\'inscrire', 'créer un compte', 'créer mon compte'];
 kpxcDetect.LOGIN_WORDS = ['sign in', 'log in', 'login', 'welcome back', 'connexion', 'se connecter', 'forgot password',
