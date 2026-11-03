@@ -162,7 +162,7 @@ pub fn handle_get_logins(
     let now = crate::kdbx::time::unix_now();
     let matching: Vec<serde_json::Value> = entries
         .iter()
-        .filter(|e| url_matches(e, url))
+        .filter(|e| is_login(e) && url_matches(e, url))
         .map(|e| {
             let mut login = serde_json::json!({
                 "uuid": e.uuid,
@@ -237,7 +237,7 @@ pub fn handle_set_login(
     }
 
     // Create new entry
-    let entry = crate::kdbx::xml::Entry::new(url, login, password, url);
+    let entry = crate::kdbx::xml::Entry::new(&site_title(url), login, password, url);
     kf.root.group.entries.push(entry);
     Ok(())
 }
@@ -246,7 +246,19 @@ pub fn handle_set_login(
 // Helpers
 // =============================================================================
 
+/// Plain login: no `MyPass_Type`, or `"login"` (cards, identities, API keys... are not).
+fn is_login(entry: &crate::kdbx::xml::Entry) -> bool {
+    matches!(entry.get_field("MyPass_Type"), None | Some("login"))
+}
+
+/// Title for an entry created from a page: its host, else the URL as given.
+fn site_title(url: &str) -> String {
+    extract_domain(url).filter(|d| !d.is_empty()).unwrap_or_else(|| url.to_string())
+}
+
 fn url_matches(entry: &crate::kdbx::xml::Entry, target_url: &str) -> bool {
+    // An entry without URL would match everything through the "contains" test below.
+    if entry.url().trim().is_empty() { return false; }
     let entry_url = entry.url().to_lowercase();
     let target = target_url.to_lowercase();
 
@@ -370,6 +382,27 @@ mod tests {
         let (ua, ub) = (a.uuid.clone(), b.uuid.clone());
         kf.root.group.entries.extend([a, b]);
         (kf, ua, ub)
+    }
+
+    #[test]
+    fn get_logins_ignores_typed_items_and_empty_urls() {
+        let mut kf = KeePassFile::new("test");
+        kf.root.group.entries.push(Entry::new("GitHub", "dev", "pw", "https://github.com"));
+        kf.root.group.entries.push(Entry::new("Sans URL", "u", "p", ""));
+        kf.root.group.entries.push(entry_with_type("Visa", "card", &[("CC_Number", "4242")]));
+        kf.root.group.entries.push(entry_with_type("Mistral", "api_key", &[("API_Key", "k")]));
+        let logins = handle_get_logins(&kf, "https://github.com/login").unwrap();
+        let names: Vec<&str> = logins.iter().map(|l| l["name"].as_str().unwrap()).collect();
+        assert_eq!(names, vec!["GitHub"]);
+    }
+
+    #[test]
+    fn set_login_titles_new_entry_with_host() {
+        let mut kf = KeePassFile::new("test");
+        handle_set_login(&mut kf, "https://www.github.com/signup?x=1", "dev", "pw", None).unwrap();
+        let e = &kf.root.group.entries[0];
+        assert_eq!(e.title(), "github.com");
+        assert_eq!(e.url(), "https://www.github.com/signup?x=1");
     }
 
     fn six_digits(s: &str) -> bool {

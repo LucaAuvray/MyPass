@@ -25,7 +25,6 @@
 use crate::commands::browser;
 use crate::commands::database::DbState;
 use crate::security::nacl;
-use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::io::{Read, Write};
@@ -726,16 +725,19 @@ fn handle_get_totp(req: &NativeRequest, session: &SessionState, db_state: &Arc<M
     }
 }
 
-fn handle_generate_password(_req: &NativeRequest, _session: &SessionState) -> NativeResponse {
-    // Generate a random 20-char password
-    let charset = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    let mut rng = rand::thread_rng();
-    let password: String = (0..20)
-        .map(|_| {
-            let idx = rng.gen_range(0..charset.len());
-            charset[idx] as char
-        })
-        .collect();
+fn handle_generate_password(req: &NativeRequest, _session: &SessionState) -> NativeResponse {
+    use crate::kdbx::generator::{generate_password, PasswordConfig};
+    let Ok(password) = generate_password(PasswordConfig {
+        length: 20,
+        uppercase: true,
+        lowercase: true,
+        digits: true,
+        symbols: true,
+        exclude_similar: false,
+        exclude_ambiguous: false,
+    }) else {
+        return error_response(req, 5, "Password generation failed");
+    };
 
     NativeResponse {
         action: Some("generate-password".to_string()),
