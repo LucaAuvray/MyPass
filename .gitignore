@@ -20,3 +20,4 @@ crates/mypass-wasm/pkg/
 extension/dev-key.pem
 server/target/
 *.pem
+.claude/worktrees/
