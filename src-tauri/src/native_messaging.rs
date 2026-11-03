@@ -67,6 +67,15 @@ fn focus_main_window() {
     }
 }
 
+/// Tells the UI the vault was written from the browser side, so it re-syncs
+/// and refreshes its lists. No-op in the `--native-messaging` proxy process.
+pub(crate) fn notify_vault_changed() {
+    use tauri::Emitter;
+    if let Some(app) = APP_HANDLE.get() {
+        let _ = app.emit("vault-changed-externally", ());
+    }
+}
+
 /// Last-activity time (Unix seconds) per associated browser id, so
 /// `commands::browser::get_browser_status` can show *when* a browser was
 /// last seen, not just whether one is connected right now.
@@ -667,6 +676,7 @@ fn handle_set_login(req: &NativeRequest, session: &SessionState, db_state: &Arc<
     if let Err(e) = db.save() {
         return error_response(req, 4, &format!("Failed to save credential: {e}"));
     }
+    notify_vault_changed();
 
     NativeResponse {
         action: Some("set-login".to_string()),

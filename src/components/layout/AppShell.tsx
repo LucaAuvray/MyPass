@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
+import { listen } from "@tauri-apps/api/event";
 import { AppSidebar } from "./AppSidebar";
 import { MobileNav } from "./MobileNav";
 import { AppHeader } from "./AppHeader";
@@ -25,6 +26,18 @@ export default function AppShell({ children }: AppShellProps) {
       void syncNowAndRefresh(queryClient).catch(() => {});
     }, 60_000);
     return () => clearInterval(id);
+  }, [queryClient]);
+
+  // Desktop : le navigateur vient d'écrire dans le coffre (set-login), on
+  // synchronise et on rafraîchit sans attendre le tick de 60 s.
+  useEffect(() => {
+    if (!("__TAURI_INTERNALS__" in window)) return;
+    const unlisten = listen("vault-changed-externally", () => {
+      void syncNowAndRefresh(queryClient).catch(() => {});
+    });
+    return () => {
+      void unlisten.then((f) => f());
+    };
   }, [queryClient]);
 
   // Mode web : verrouiller après 60 s onglet masqué (rien ne doit rester
