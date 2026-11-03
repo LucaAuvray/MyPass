@@ -6,6 +6,7 @@ src-tauri/target/
 keepassxc/
 keepassxc-browser/*
 !keepassxc-browser/keepassxc-browser/
+!keepassxc-browser/detect.check.mjs
 .playwright-mcp/
 Google Passwords*.csv
 keepassxc-browser/.git-upstream/

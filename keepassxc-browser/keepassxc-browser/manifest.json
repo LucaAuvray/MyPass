@@ -55,6 +55,7 @@
                 "content/icon-handler.js",
                 "content/keepassxc-browser.js",
                 "content/observer-helper.js",
+                "content/detect.js",
                 "content/pwgen.js",
                 "content/totp-autocomplete.js",
                 "content/totp-field.js",
