@@ -7,16 +7,19 @@
  */
 const kpxcDetect = {};
 
-kpxcDetect.KEY_PREFIX = /^(?:sk-|sk-proj-|sk-ant-|ghp_|gho_|github_pat_|glpat-|hf_|gsk_|xoxb-|xoxp-|AIza|AKIA|sk_live_|rk_live_|sk_test_)[A-Za-z0-9_-]{20,}$/;
+kpxcDetect.KEY_PREFIX = /^(?:sk-|sk-proj-|sk-ant-|ghp_|gho_|github_pat_|glpat-|hf_|gsk_|xoxb-|xoxp-|AIza|AKIA|sk_live_|rk_live_|sk_test_)[A-Za-z0-9_-]{16,}$/;
 kpxcDetect.KEY_CONTEXT = ['api key', 'api-key', 'apikey', 'clé api', 'clé d\'api', 'secret', 'token', 'jeton', 'access key',
     'copy it now', 'won\'t be able to see', 'ne sera plus affichée'];
 kpxcDetect.SIGNUP_WORDS = ['sign up', 'signup', 'register', 'create account', 'create an account', 'create your account', 'join',
     'inscription', 's\'inscrire', 'créer un compte', 'créer mon compte'];
-kpxcDetect.LOGIN_WORDS = ['sign in', 'log in', 'login', 'welcome back', 'connexion', 'se connecter'];
+kpxcDetect.LOGIN_WORDS = ['sign in', 'log in', 'login', 'welcome back', 'connexion', 'se connecter', 'forgot password',
+    'don\'t have an account', 'do not have an account', 'mot de passe oublié', 'pas encore de compte', 'pas de compte'];
 kpxcDetect.SUBMIT_WORDS = ['continue', 'next', 'submit', 'valider', 'continuer', 'suivant', 'envoyer'];
 
+// Case-insensitive match of whole words/phrases ("design updates" must not match "sign up"); \b is ASCII-only, so build the boundary
 kpxcDetect.hasAny = function(text, words) {
-    return words.some(w => text.includes(w));
+    const normalized = text.replace(/’/g, '\'').replace(/\s+/g, ' ');
+    return new RegExp(`(^|[^\\p{L}\\p{N}])(?:${words.join('|')})($|[^\\p{L}\\p{N}])`, 'iu').test(normalized);
 };
 
 // Shannon entropy in bits per character
@@ -29,6 +32,11 @@ kpxcDetect.entropy = function(s) {
 };
 
 kpxcDetect.isApiKeyToken = function(token, context) {
+    // Every candidate needs a digit and enough entropy (rules out prefixed slugs like "hf_get_model_config")
+    if (!/\d/.test(token) || kpxcDetect.entropy(token) < 3.5) {
+        return false;
+    }
+
     // Known vendor prefix: no context needed
     if (kpxcDetect.KEY_PREFIX.test(token)) {
         return true;
@@ -36,11 +44,10 @@ kpxcDetect.isApiKeyToken = function(token, context) {
 
     // Prefix-less: needs a key-like shape and a key-like context
     return /^[A-Za-z0-9_.-]{24,200}$/.test(token)
-        && /[A-Za-z]/.test(token) && /\d/.test(token)
+        && /[A-Za-z]/.test(token)
         && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token)
         && !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/i.test(token)
-        && kpxcDetect.entropy(token) >= 3.5
-        && kpxcDetect.hasAny((context || '').toLowerCase(), kpxcDetect.KEY_CONTEXT);
+        && kpxcDetect.hasAny(context || '', kpxcDetect.KEY_CONTEXT);
 };
 
 // First whitespace/quote-separated token of the text that looks like an API key
@@ -50,7 +57,7 @@ kpxcDetect.findApiKey = function(text, context) {
 };
 
 // Rules are checked in order; the first one that decides wins
-kpxcDetect.isSignupPasswordField = function({ autocomplete, passwordCount, index, buttonText, text, path }) {
+kpxcDetect.isSignupPasswordField = function({ autocomplete, passwordCount, index, buttonText, text, path } = {}) {
     if (autocomplete === 'current-password') {
         return false;
     }

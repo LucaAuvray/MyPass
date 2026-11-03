@@ -16,6 +16,8 @@ check(!d.isApiKeyToken("3f786850e387550fdab836ed7e6dc881de23001b", "token"), "40
 check(!d.isApiKeyToken("123e4567-e89b-12d3-a456-426614174000", "API key"), "UUID");
 check(!d.isApiKeyToken("averyveryverylongwordwithoutanydigits", "API key"), "no digit");
 check(!d.isApiKeyToken("sk-abc12", ""), "prefix too short");
+check(!d.isApiKeyToken("sk-circle-notification-banner-large", "") && !d.isApiKeyToken("hf_get_model_config_for_task", ""), "prefixed slugs");
+check(d.isApiKeyToken("AKIAIOSFODNN7EXAMPLE", ""), "20-char AWS key ID");
 check(d.findApiKey(`Your new key: ${MISTRAL} Copy`, CTX) === MISTRAL, "findApiKey extracts the key from text");
 check(d.findApiKey("Welcome to the console", CTX) === null, "findApiKey on plain text");
 
@@ -29,9 +31,12 @@ check(!f({ buttonText: "Continue", text: "Welcome back. Don't have an account? S
 check(f({ buttonText: "Créer un compte" }), "French signup button");
 check(f({ path: "/signup" }) && !f({ path: "/login" }), "signup / login paths");
 check(f({ text: "Create your account" }), "signup heading only");
+check(!f({ buttonText: "Continue", text: "Enter your password. Don't have an account? Sign up" }), "login page with Continue + Sign up link");
+check(!f({ text: "Get design updates by email" }) && !f({ text: "Registered trademark of Acme" }), "signup words only as whole words");
 
 check(d.isSubmitText("Create account") && d.isSubmitText("Continuer"), "submit words");
 check(!d.isSubmitText("Forgot password?"), "non-submit link");
+check(!d.isSubmitText("Discontinue") && !d.isSubmitText("Joint account"), "submit words only as whole words");
 
 console.log(failed ? `\n${failed} check(s) failed` : "\nall checks passed");
 process.exit(failed ? 1 : 0);
