@@ -18,7 +18,11 @@ check(!d.isApiKeyToken("123e4567-e89b-12d3-a456-426614174000", "API key"), "UUID
 check(!d.isApiKeyToken("averyveryverylongwordwithoutanydigits", "API key"), "no digit");
 check(!d.isApiKeyToken("sk-abc12", ""), "prefix too short");
 check(!d.isApiKeyToken("sk-circle-notification-banner-large", "") && !d.isApiKeyToken("hf_get_model_config_for_task", ""), "prefixed slugs");
-check(d.isApiKeyToken("AKIAIOSFODNN7EXAMPLE", ""), "20-char AWS key ID");
+check(d.isApiKeyToken("AKIA2OGYBAH6QXZ4N7RT", ""), "20-char AWS key ID");
+check(!d.isApiKeyToken("AKIAIOSFODNN7EXAMPLE", ""), "AWS docs sample key ID");
+check(!d.isApiKeyToken("0x71C7656EC7ab88b098defB751B7401B5f6d8976F", "Token Contract"), "Ethereum address next to Token");
+check(!d.isApiKeyToken("0x5c504ed432cb51138bcf09aa5e8a410dd4a1e204ef84bfed1be16dfba1b22060", "Tokens Transferred"),
+    "66-char tx hash next to Tokens");
 check(d.findApiKey(`Your new key: ${MISTRAL} Copy`, CTX) === MISTRAL, "findApiKey extracts the key from text");
 check(d.findApiKey("Welcome to the console", CTX) === null, "findApiKey on plain text");
 

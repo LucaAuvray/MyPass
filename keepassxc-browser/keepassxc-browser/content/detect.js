@@ -33,8 +33,9 @@ kpxcDetect.entropy = function(s) {
 };
 
 kpxcDetect.isApiKeyToken = function(token, context) {
-    // Every candidate needs a digit and enough entropy (rules out prefixed slugs like "hf_get_model_config")
-    if (!/\d/.test(token) || kpxcDetect.entropy(token) < 3.5) {
+    // Every candidate needs a digit and enough entropy (rules out prefixed slugs like "hf_get_model_config").
+    // Never docs samples (AKIAIOSFODNN7EXAMPLE) nor 0x hex (Ethereum addresses and tx hashes next to "Tokens").
+    if (!/\d/.test(token) || kpxcDetect.entropy(token) < 3.5 || token.includes('EXAMPLE') || /^0x[0-9a-f]+$/i.test(token)) {
         return false;
     }
 
