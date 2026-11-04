@@ -275,7 +275,8 @@ kpxcBanner.createApiKey = async function(item, locked) {
     };
 };
 
-// Closes the API key banner, then brings back the tab's pending login save it may have replaced (as on a page load)
+// Closes the API key banner, then brings back the tab's pending login save it may have replaced (as on a page load).
+// A key found while it was shown comes next: it takes the place of the login banner again.
 kpxcBanner.destroyApiKey = async function() {
     await kpxcBanner.destroy();
     if (window.self === window.top && !kpxcBanner.created) {
@@ -284,6 +285,7 @@ kpxcBanner.destroyApiKey = async function() {
             await kpxc.showSubmittedBanner(creds);
         }
     }
+    kpxcApiKey.proposeWaiting();
 };
 
 kpxcBanner.saveNewCredentials = async function(credentials = {}) {

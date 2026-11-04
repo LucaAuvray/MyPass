@@ -22,6 +22,7 @@ const APIKEY_SHAPE = /[\w.-]{19,}/; // cheap gate: a text without a long token c
  */
 const kpxcApiKey = {};
 kpxcApiKey.seen = new Set(); // keys already proposed on this page (capped by APIKEY_MAX_CANDIDATES)
+kpxcApiKey.waiting = new Set(); // keys found while a banner was shown: proposed again once it closes
 kpxcApiKey.chain = Promise.resolve(); // offers run one at a time
 kpxcApiKey.typed = new WeakSet(); // fields the user typed or pasted into: never proposed
 kpxcApiKey.queue = new Set();
@@ -209,17 +210,37 @@ kpxcApiKey.sha256 = async function(text) {
 // Candidates are offered one at a time, at most APIKEY_MAX_CANDIDATES per page: a hostile page cannot flood the local app.
 // crypto.subtle needs a secure context: API key consoles are all HTTPS.
 kpxcApiKey.propose = function(key) {
-    if (kpxcBanner.apiKey || kpxcApiKey.seen.has(key) || kpxcApiKey.seen.size >= APIKEY_MAX_CANDIDATES || !crypto.subtle) {
+    if (kpxcApiKey.seen.has(key) || kpxcApiKey.seen.size >= APIKEY_MAX_CANDIDATES || !crypto.subtle) {
+        return;
+    }
+    if (kpxcBanner.apiKey) {
+        kpxcApiKey.defer(key);
         return;
     }
     kpxcApiKey.seen.add(key);
     kpxcApiKey.chain = kpxcApiKey.chain.then(() => kpxcApiKey.offer(key));
 };
 
+// One banner at a time: a key found meanwhile waits for it to close (the dialog showing it may be gone by then)
+kpxcApiKey.defer = function(key) {
+    kpxcApiKey.seen.delete(key);
+    if (kpxcApiKey.waiting.size < APIKEY_MAX_CANDIDATES) {
+        kpxcApiKey.waiting.add(key);
+    }
+};
+
+// Called when the key banner closes
+kpxcApiKey.proposeWaiting = function() {
+    const keys = [ ...kpxcApiKey.waiting ];
+    kpxcApiKey.waiting.clear();
+    keys.forEach(kpxcApiKey.propose);
+};
+
 // Already stored: nothing. Ignored this session: nothing. Locked: a banner anyway (the key may never show again).
 kpxcApiKey.offer = async function(key) {
     if (kpxcBanner.apiKey) {
-        return; // One banner at a time: the first key keeps it
+        kpxcApiKey.defer(key); // One banner at a time: the first key keeps it
+        return;
     }
 
     try {
@@ -242,6 +263,7 @@ kpxcApiKey.offer = async function(key) {
         }
         await kpxcBanner.createApiKey(item, locked);
     } catch (err) {
+        kpxcApiKey.seen.delete(key); // Offered again on a later scan or Copy
         logError('kpxcApiKey.offer error: ' + err);
     }
 };
