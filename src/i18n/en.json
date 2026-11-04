@@ -107,6 +107,8 @@
     "selectEntry": "Select an entry to view details",
     "today": "Today",
     "yesterday": "Yesterday",
+    "daysAgo": "{{count}}d",
+    "weeksAgo": "{{count}}w",
     "untitled": "Untitled",
     "noUsername": "No username",
     "titleRequired": "Title is required",

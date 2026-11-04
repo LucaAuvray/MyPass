@@ -16,7 +16,7 @@ interface EntryCardProps {
 }
 
 export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const kind = itemKind(entry);
   const cf = entry.customFields ?? {};
@@ -84,7 +84,9 @@ export function EntryCard({ entry, isSelected, onClick }: EntryCardProps) {
         </div>
 
         <div className="shrink-0 text-right">
-          <span className="text-muted-foreground text-[10px]">{formatDate(entry.modified, t)}</span>
+          <span className="text-muted-foreground text-[10px]">
+            {formatDate(entry.modified, t, i18n.language)}
+          </span>
         </div>
       </div>
     </Card>
@@ -99,18 +101,22 @@ function hostOf(url: string | undefined): string {
   }
 }
 
-function formatDate(dateStr: string, _t: ReturnType<typeof useTranslation>["t"]): string {
+function formatDate(
+  dateStr: string,
+  t: ReturnType<typeof useTranslation>["t"],
+  locale: string,
+): string {
   if (!dateStr) return "";
   try {
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const days = Math.floor(diff / 86400000);
-    if (days === 0) return "Today";
-    if (days === 1) return "Yesterday";
-    if (days < 7) return `${days}d`;
-    if (days < 30) return `${Math.floor(days / 7)}w`;
-    return date.toLocaleDateString();
+    if (days === 0) return t("entries.today");
+    if (days === 1) return t("entries.yesterday");
+    if (days < 7) return t("entries.daysAgo", { count: days });
+    if (days < 30) return t("entries.weeksAgo", { count: Math.floor(days / 7) });
+    return date.toLocaleDateString(locale);
   } catch {
     return dateStr.slice(0, 10);
   }

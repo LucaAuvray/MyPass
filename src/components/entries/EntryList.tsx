@@ -115,7 +115,7 @@ export function EntryList({ onCreateClick }: EntryListProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))] gap-3">
       {filtered.map((entry) => (
         <EntryCard
           key={entry.uuid}
@@ -130,7 +130,7 @@ export function EntryList({ onCreateClick }: EntryListProps) {
 
 export function EntryListSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))] gap-3">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="border-border rounded-xl border p-4">
           <div className="flex items-start gap-3">

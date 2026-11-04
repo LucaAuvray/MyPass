@@ -107,6 +107,8 @@
     "selectEntry": "Sélectionnez une entrée pour voir les détails",
     "today": "Aujourd'hui",
     "yesterday": "Hier",
+    "daysAgo": "il y a {{count}} j",
+    "weeksAgo": "il y a {{count}} sem.",
     "untitled": "Sans titre",
     "noUsername": "Aucun identifiant",
     "titleRequired": "Le titre est requis",
