@@ -140,17 +140,12 @@ kpxcPasswordGenerator.fill = async function(elem, password) {
     elem.dispatchEvent(new Event('input', { bubbles: true }));
     elem.dispatchEvent(new Event('change', { bubbles: true }));
 
-    // Fill next password field if found
-    if (kpxc.inputs.length > 0) {
-        const index = kpxc.inputs.indexOf(elem);
-        const next = kpxc.inputs[index + 1];
-
-        const nextField = next && next.getLowerCaseAttribute('type') === 'password' ? next : undefined;
-        if (nextField) {
-            setNativeValue(nextField, password);
-            nextField.dispatchEvent(new Event('input', { bubbles: true }));
-            nextField.dispatchEvent(new Event('change', { bubbles: true }));
-        }
+    // Fill the confirmation field if found
+    const nextField = kpxcPasswordGenerator.nextPasswordField(elem);
+    if (nextField) {
+        setNativeValue(nextField, password);
+        nextField.dispatchEvent(new Event('input', { bubbles: true }));
+        nextField.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
     // Remember the generated password for this tab: the save banner follows the sign-up across pages
@@ -167,6 +162,25 @@ kpxcPasswordGenerator.fill = async function(elem, password) {
             }
         });
     }
+};
+
+// The next usable password field after elem in document order, within its form, else within the closest ancestor
+// (up to 6 levels) holding two or more. Not kpxc.inputs: detection skips or drops a field covered at that time (this menu).
+kpxcPasswordGenerator.nextPasswordField = function(elem) {
+    let scope = elem.form;
+    let node = elem.parentNode;
+    for (let level = 0; !scope && node?.querySelectorAll && level < 6; level++, node = node.parentNode) {
+        if (node.querySelectorAll('input[type=password]').length >= 2) {
+            scope = node;
+        }
+    }
+
+    return [ ...(scope?.querySelectorAll('input[type=password]') ?? []) ].find(f =>
+        elem.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING
+        && !f.disabled
+        && !f.readOnly
+        && !f.getAttribute('autocomplete')?.includes('current-password')
+        && f.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }));
 };
 
 const isPasswordGeneratorSupported = async function() {
