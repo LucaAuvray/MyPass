@@ -301,23 +301,13 @@ fn site_title(url: &str) -> String {
 }
 
 fn url_matches(entry: &crate::kdbx::xml::Entry, target_url: &str) -> bool {
-    // An entry without URL would match everything through the "contains" test below.
-    if entry.url().trim().is_empty() { return false; }
-    let entry_url = entry.url().to_lowercase();
-    let target = target_url.to_lowercase();
-
-    // Exact match
-    if entry_url == target { return true; }
-
-    // Domain match
-    if let (Some(entry_domain), Some(target_domain)) = (extract_domain(&entry_url), extract_domain(&target)) {
-        if entry_domain == target_domain { return true; }
-    }
-
-    // Contains match
-    if entry_url.contains(&target) || target.contains(&entry_url) { return true; }
-
-    false
+    // Hosts only, never substrings: "github.com.evil.example" must not get github.com logins.
+    let entry_host = extract_domain(&entry.url().to_lowercase());
+    let (Some(entry_host), Some(target_host)) = (entry_host, extract_domain(&target_url.to_lowercase())) else {
+        return false;
+    };
+    !entry_host.is_empty()
+        && (target_host == entry_host || target_host.ends_with(&format!(".{entry_host}")))
 }
 
 fn extract_domain(url: &str) -> Option<String> {
@@ -438,6 +428,25 @@ mod tests {
         let logins = handle_get_logins(&kf, "https://github.com/login").unwrap();
         let names: Vec<&str> = logins.iter().map(|l| l["name"].as_str().unwrap()).collect();
         assert_eq!(names, vec!["GitHub"]);
+    }
+
+    #[test]
+    fn get_logins_matches_by_host_not_by_substring() {
+        let mut kf = KeePassFile::new("test");
+        kf.root.group.entries.push(Entry::new("GitHub", "dev", "pw", "https://github.com"));
+        kf.root.group.entries.push(Entry::new("Google", "me", "pw", "google.com"));
+        let names = |url: &str| -> Vec<String> {
+            handle_get_logins(&kf, url).unwrap().iter().map(|l| l["name"].as_str().unwrap().to_string()).collect()
+        };
+        assert_eq!(names("https://github.com/login"), vec!["GitHub"]);
+        assert_eq!(names("https://www.github.com/"), vec!["GitHub"]);
+        assert_eq!(names("https://gist.github.com/"), vec!["GitHub"]); // subdomain of the entry's host
+        assert!(names("https://github.com.evil.example/login").is_empty());
+        assert!(names("https://evilgithub.com/").is_empty());
+        assert!(names("https://evil.example/?u=https://github.com").is_empty());
+        assert_eq!(names("https://accounts.google.com/signin"), vec!["Google"]);
+        assert!(names("https://google.com.evil.example/").is_empty());
+        assert!(names("file:///C:/page.html").is_empty());
     }
 
     #[test]
