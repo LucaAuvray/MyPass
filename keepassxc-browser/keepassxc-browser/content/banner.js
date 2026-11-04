@@ -225,17 +225,17 @@ kpxcBanner.createApiKey = async function(item, locked) {
         }
 
         saveButton.disabled = true;
-        const result = await sendMessage('save_api_key', [ item.key, item.url ]);
-        if (result === 'error') {
-            // Keep the banner: the key may never be shown again
+        const result = await sendMessage('save_api_key', [ item.key, item.url ]).catch(() => 'error');
+        saveButton.disabled = false;
+        if (result !== 'created' && result !== 'exists') {
+            // Anything unexpected keeps the banner: the key may never be shown again
             kpxcUI.createNotification('error', tr('rememberErrorCannotSaveCredentials'));
-            saveButton.disabled = false;
             return;
         }
 
         kpxcUI.createNotification(result === 'created' ? 'success' : 'info',
             tr(result === 'created' ? 'apiKeySaved' : 'apiKeyAlreadySaved'));
-        kpxcBanner.destroy();
+        kpxcBanner.destroyApiKey();
     });
 
     ignoreButton.addEventListener('click', async function(e) {
@@ -247,7 +247,7 @@ kpxcBanner.createApiKey = async function(item, locked) {
             kpxcApiKey.pending = undefined;
         }
         await sendMessage('apikey_ignore', [ item.hash ]);
-        kpxcBanner.destroy();
+        kpxcBanner.destroyApiKey();
     });
 
     kpxcUI.makeBannerDraggable(banner);
@@ -256,8 +256,34 @@ kpxcBanner.createApiKey = async function(item, locked) {
     banner.appendMultiple(bannerInfo, bannerButtons);
     initColorTheme(banner);
 
-    if (kpxcBanner.mount(banner)) {
-        kpxcBanner.apiKey = item;
+    // A login banner built meanwhile mounted first: it gives way too, once. Another key banner keeps its place.
+    if (!kpxcBanner.mount(banner)) {
+        if (kpxcBanner.apiKey) {
+            return;
+        }
+        await kpxcBanner.destroy();
+        if (!kpxcBanner.mount(banner)) {
+            return;
+        }
+    }
+
+    kpxcBanner.apiKey = item;
+    // Vault unlocked while shown: switch to Save in place
+    kpxcBanner.unlockApiKey = function() {
+        infoText.textContent = tr('apiKeyDetected', [ host ]);
+        saveButton.classList.add('kpxc-green-button');
+        saveButton.disabled = false;
+    };
+};
+
+// Closes the API key banner, then brings back the tab's pending login save it may have replaced (as on a page load)
+kpxcBanner.destroyApiKey = async function() {
+    await kpxcBanner.destroy();
+    if (window.self === window.top && !kpxcBanner.created) {
+        const creds = await sendMessage('page_get_submitted');
+        if (creds?.submitted) {
+            await kpxc.showSubmittedBanner(creds);
+        }
     }
 };
 

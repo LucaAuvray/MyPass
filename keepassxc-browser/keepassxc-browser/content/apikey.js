@@ -11,6 +11,7 @@ const APIKEY_DIALOG = '[role=dialog], dialog, [aria-modal=true]';
 const APIKEY_DIALOG_RESCAN_MS = 500;
 const APIKEY_DIALOG_RESCANS = 6; // ~3 s: the key often lands in an already mounted field after the network call
 const APIKEY_UNLOCK_POLL_MS = 3000;
+const APIKEY_MAX_CANDIDATES = 50; // per page: each one costs the local app 3 round trips
 const APIKEY_SHAPE = /[\w.-]{19,}/; // cheap gate: a text without a long token costs nothing more
 
 /**
@@ -20,7 +21,8 @@ const APIKEY_SHAPE = /[\w.-]{19,}/; // cheap gate: a text without a long token c
  * messages to the local MyPass app. Never log it.
  */
 const kpxcApiKey = {};
-kpxcApiKey.seen = new Set(); // keys already proposed on this page
+kpxcApiKey.seen = new Set(); // keys already proposed on this page (capped by APIKEY_MAX_CANDIDATES)
+kpxcApiKey.chain = Promise.resolve(); // offers run one at a time
 kpxcApiKey.typed = new WeakSet(); // fields the user typed or pasted into: never proposed
 kpxcApiKey.queue = new Set();
 kpxcApiKey.dialogs = new Map(); // dialog -> rescans left
@@ -204,13 +206,21 @@ kpxcApiKey.sha256 = async function(text) {
     return [ ...new Uint8Array(digest) ].map(b => b.toString(16).padStart(2, '0')).join('');
 };
 
-// Already stored: nothing. Ignored this session: nothing. Locked: a banner anyway (the key may never show again).
-kpxcApiKey.propose = async function(key) {
-    // crypto.subtle needs a secure context: API key consoles are all HTTPS
-    if (kpxcApiKey.seen.has(key) || !crypto.subtle) {
+// Candidates are offered one at a time, at most APIKEY_MAX_CANDIDATES per page: a hostile page cannot flood the local app.
+// crypto.subtle needs a secure context: API key consoles are all HTTPS.
+kpxcApiKey.propose = function(key) {
+    if (kpxcBanner.apiKey || kpxcApiKey.seen.has(key) || kpxcApiKey.seen.size >= APIKEY_MAX_CANDIDATES || !crypto.subtle) {
         return;
     }
     kpxcApiKey.seen.add(key);
+    kpxcApiKey.chain = kpxcApiKey.chain.then(() => kpxcApiKey.offer(key));
+};
+
+// Already stored: nothing. Ignored this session: nothing. Locked: a banner anyway (the key may never show again).
+kpxcApiKey.offer = async function(key) {
+    if (kpxcBanner.apiKey) {
+        return; // One banner at a time: the first key keeps it
+    }
 
     try {
         const hash = await kpxcApiKey.sha256(key);
@@ -232,7 +242,7 @@ kpxcApiKey.propose = async function(key) {
         }
         await kpxcBanner.createApiKey(item, locked);
     } catch (err) {
-        logError('kpxcApiKey.propose error: ' + err);
+        logError('kpxcApiKey.offer error: ' + err);
     }
 };
 
@@ -257,10 +267,13 @@ kpxcApiKey.onUnlocked = async function() {
     kpxcApiKey.pending = undefined;
 
     const exists = await sendMessage('check_api_key', [ item.key ]);
-    if (kpxcBanner.apiKey === item) {
-        await kpxcBanner.destroy();
-    }
-    if (!exists) {
-        await kpxcBanner.createApiKey(item, false);
+    if (kpxcBanner.apiKey !== item) {
+        if (!exists) {
+            await kpxcBanner.createApiKey(item, false);
+        }
+    } else if (exists) {
+        await kpxcBanner.destroyApiKey();
+    } else {
+        kpxcBanner.unlockApiKey();
     }
 };
