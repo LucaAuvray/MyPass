@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API key dialog (Mistral-like)</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>API key dialog (Mistral-like)</h1>
+<p><small>Expect: about 1 s after Create key, a banner "API key detected on localhost" appears. Save creates the item (key masked and protected). Reopening the dialog shows no banner. Reload for a new fake key; ?same keeps the same key between reloads. Typing in the fields below never triggers a banner. With the vault locked, the banner asks to unlock MyPass.</small></p>
+<button id="mkb">Create key</button>
+<div id="host"></div>
+<h2>Paste here</h2>
+<label>API key <input id="paste" type="text" size="40"></label>
+<div id="ce" contenteditable="true" style="border:1px solid #888;padding:.4em;min-height:1.5em" aria-label="Editable area"></div>
+<script>
+var A='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',SAME=/[?&]same/.test(location.search),seed=20261104;
+function rand(){if(!SAME)return Math.random();seed=(seed+0x6D2B79F5)|0;var t=Math.imul(seed^seed>>>15,1|seed);t=(t+Math.imul(t^t>>>7,61|t))^t;return((t^t>>>14)>>>0)/4294967296;}
+function mk(n,p){var s='',i;for(i=0;i<n;i++)s+=A[Math.floor(rand()*A.length)];return (p||'')+s.slice(0,3)+'7'+s.slice(4);}
+function openDialog(host,key){
+host.innerHTML='<div role="dialog" aria-label="API key created"><h2>Your API key</h2><p>Your API key — copy it now, you won&#39;t be able to see it again</p><input id="k" readonly size="40" aria-label="New key"> <button id="copy">Copy</button><button id="close">Close</button></div>';
+var k=host.querySelector('#k');
+setTimeout(function(){k.value=key;},800); // set as a property, no DOM mutation
+host.querySelector('#copy').onclick=function(){navigator.clipboard.writeText(k.value).catch(function(){});};
+host.querySelector('#close').onclick=function(){host.innerHTML='';};}
+var key=mk(32);document.getElementById('mkb').onclick=function(){openDialog(document.getElementById('host'),key);};
+</script>
+</body>
+</html>

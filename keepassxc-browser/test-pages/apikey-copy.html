@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Copy mechanisms for an API key</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>Copy mechanisms for an API key</h1>
+<p><small>The fake key is never displayed except in scenario 3. Expect a banner for 1, 2 and 3 (reload between scenarios). 4 is a known limit (clipboardData.setData only): nothing. 5 floods the page with 5000 copy events: one banner at most, no slowdown, and none once ignored.</small></p>
+<div><span>API key (hidden)</span> <button id="c1">1. Copy with navigator.clipboard.writeText</button></div>
+<div><span>API key (hidden)</span> <button id="c2">2. Copy with execCommand on a temporary textarea</button></div>
+<div><span>API key: <span id="sel" style="opacity:0"></span></span> <button id="c3">3. Select the key, then press Ctrl+C</button></div>
+<div><span>API key (hidden)</span> <button id="c4">4. Arm a copy handler using clipboardData.setData, then press Ctrl+C</button></div>
+<div><span>API key (hidden)</span> <button id="c5">5. Flood with 5000 copy events</button></div>
+<script>
+var A='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',SAME=/[?&]same/.test(location.search),seed=20261104;
+function rand(){if(!SAME)return Math.random();seed=(seed+0x6D2B79F5)|0;var t=Math.imul(seed^seed>>>15,1|seed);t=(t+Math.imul(t^t>>>7,61|t))^t;return((t^t>>>14)>>>0)/4294967296;}
+function mk(n,p){var s='',i;for(i=0;i<n;i++)s+=A[Math.floor(rand()*A.length)];return (p||'')+s.slice(0,3)+'7'+s.slice(4);}
+var $=function(i){return document.getElementById(i);};
+$('c1').onclick=function(){navigator.clipboard.writeText(mk(32)).catch(function(){});};
+$('c2').onclick=function(){var t=document.createElement('textarea');t.value=mk(32);document.body.appendChild(t);t.focus();t.select();document.execCommand('copy');t.remove();};
+$('sel').textContent=mk(32);
+$('c3').onclick=function(){var r=document.createRange();r.selectNodeContents($('sel'));var s=getSelection();s.removeAllRanges();s.addRange(r);};
+$('c4').onclick=function(){var k=mk(32);document.addEventListener('copy',function(e){e.clipboardData.setData('text/plain',k);e.preventDefault();},{once:true});};
+$('c5').onclick=function(){for(var i=0;i<5000;i++)document.dispatchEvent(new CustomEvent('mypass-copy',{detail:'sk-proj-'+crypto.randomUUID().replaceAll('-','')}));};
+</script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Long strings without key-like words</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>Long strings without key-like words</h1>
+<p><small>Expect: no banner at load. The button shows a vendor-prefixed fake string with no label around it: a banner appears (a known vendor prefix needs no context). The first string below is a plain 32-character string with no label: nothing.</small></p>
+<p>Reference: <code>cEv7H0lm5PdYnqOLmARwvaWfPS0RkD2q</code></p>
+<p>Build id: <code>3f786850e387550fdab836ed7e6dc881de23001b</code></p>
+<p>Digest: <code>9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08</code></p>
+<p>Request: <code>123e4567-e89b-12d3-a456-426614174000</code></p>
+<button id="b">Show a prefixed string</button><div id="out"></div>
+<script>
+document.getElementById('b').onclick=function(){document.getElementById('out').innerHTML='<p><code>sk-proj-bKz7NcwWAaG9Rjk3s8POeYwf6wf4Yk3cUu32LPVD</code></p>';};
+</script>
+</body>
+</html>

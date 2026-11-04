@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign-up, single password field</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>Sign-up, single password field</h1>
+<p><small>No autocomplete hint: the decision comes from the button and the URL. Expect: the menu opens at Password.</small></p>
+<form id="f"><label>Email <input type="email" name="email"></label>
+<label>Password <input type="password" name="password"></label>
+<button type="submit">Sign up</button></form>
+<script>
+document.getElementById('f').onsubmit=function(e){e.preventDefault();setTimeout(function(){location.href='dashboard.html';},100);};
+</script>
+</body>
+</html>

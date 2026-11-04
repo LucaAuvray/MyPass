@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Long article</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>Long article</h1>
+<p><small>Performance check: open DevTools, Performance panel, reload. Expect: no long task from apikey.js, and no banner.</small></p>
+<div id="a"></div>
+<script>
+var a=document.getElementById('a'),w='token secret access keys session cookie lorem ipsum dolor sit amet consectetur adipiscing elit'.split(' '),i,j,s;
+for(i=0;i<600;i++){s='';for(j=0;j<80;j++)s+=w[(i*7+j*3)%w.length]+' ';var p=document.createElement('p');p.textContent=s;a.appendChild(p);}
+</script>
+</body>
+</html>

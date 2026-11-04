@@ -9,6 +9,7 @@ keepassxc-browser/*
 !keepassxc-browser/detect.check.mjs
 !keepassxc-browser/pending.check.mjs
 !keepassxc-browser/apikey.check.mjs
+!keepassxc-browser/test-pages/
 .playwright-mcp/
 Google Passwords*.csv
 keepassxc-browser/.git-upstream/

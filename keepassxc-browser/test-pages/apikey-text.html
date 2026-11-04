@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API key shown as text</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>API key shown as text</h1>
+<p><small>Each button renders a fake key with key-like words around it. Expect a banner for the first key of each scenario (reload between scenarios, a key is proposed once per page and per session). Scenario 3 has two keys: only the first one (the access key ID) is proposed.</small></p>
+<button data-s="code">1. Key in a code element</button>
+<button data-s="github">2. Fine-grained GitHub-style token</button>
+<button data-s="aws">3. Access key ID and secret</button>
+<div id="out"></div>
+<script>
+var A='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',SAME=/[?&]same/.test(location.search),seed=20261104;
+function rand(){if(!SAME)return Math.random();seed=(seed+0x6D2B79F5)|0;var t=Math.imul(seed^seed>>>15,1|seed);t=(t+Math.imul(t^t>>>7,61|t))^t;return((t^t>>>14)>>>0)/4294967296;}
+function mk(n,p){var s='',i;for(i=0;i<n;i++)s+=A[Math.floor(rand()*A.length)];return (p||'')+s.slice(0,3)+'7'+s.slice(4);}
+var out=document.getElementById('out');
+var S={
+code:function(){return '<div role="dialog"><h2>New secret key</h2><p>Your API key — copy it now, you won&#39;t be able to see it again</p><code>'+mk(32)+'</code></div>';},
+github:function(){return '<div role="dialog"><h2>Personal access token generated</h2><p>Make sure to copy your personal access token now.</p><code>'+mk(82,'github_pat_')+'</code></div>';},
+aws:function(){return '<div role="dialog"><h2>Access key created</h2><p>Access key ID: <code>'+mk(16,'AKIA')+'</code></p><p>Secret access key: <code>'+mk(40)+'</code></p></div>';}};
+document.querySelectorAll('button').forEach(function(b){b.onclick=function(){out.innerHTML=S[b.dataset.s]();};});
+</script>
+</body>
+</html>

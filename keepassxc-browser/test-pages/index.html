@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extension test pages</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>Extension test pages</h1>
+<p><small>Serve with: npx vite keepassxc-browser/test-pages --port 5180 (add --host for the cross-origin iframe). All keys are fake. Keys saved while testing are real vault items: delete them afterwards. Site-change checks (T7 8) need the same pages on localhost and 127.0.0.1.</small></p>
+<table border="1" cellpadding="6" style="border-collapse:collapse"><tr><th>Page</th><th>Scenario</th><th>Expect</th><th>Checklist</th></tr>
+<tr><td><a href="signup-form.html">signup-form.html</a></td><td>Sign-up, 3 fields; also ?next=dashboard-key.html and ?next=dashboard-frames.html</td><td>Menu on Password only, one click fills both; banner after submit, back after one reload; New creates an entry titled localhost; service worker stopped: banner still on the dashboard.</td><td>T6, T7 1/3/4/6/7/8/14/19</td></tr>
+<tr><td><a href="signup-js.html">signup-js.html</a></td><td>No form, div role=button, fake fetch</td><td>Menu and banner as above.</td><td>T7 12</td></tr>
+<tr><td><a href="signup-steps.html">signup-steps.html</a></td><td>Email, then step 2 with the password</td><td>Banner on step 2 shows the step 1 email.</td><td>T7 11</td></tr>
+<tr><td><a href="signup-enter.html">signup-enter.html</a></td><td>No submit button, Enter in JS</td><td>Banner after Enter.</td><td>T7 12</td></tr>
+<tr><td><a href="signup-redirect.html">signup-redirect.html</a></td><td>Landing on onboarding.html, then redirect</td><td>Banner on the dashboard.</td><td>T7 1</td></tr>
+<tr><td><a href="signup-chain.html">signup-chain.html</a></td><td>Three client redirects before the dashboard</td><td>Banner still shows.</td><td>T7 2</td></tr>
+<tr><td><a href="signup-spa.html">signup-spa.html</a></td><td>No navigation; also holds a Create key button</td><td>Banner stays on the same page; Cancel/New then no banner; key banner replaces then restores it.</td><td>T7 3/4/21, T9 11</td></tr>
+<tr><td><a href="signup-nouser.html">signup-nouser.html</a></td><td>Password only</td><td>Banner with an empty username.</td><td>T7 9</td></tr>
+<tr><td><a href="signup-iconnav.html">signup-iconnav.html</a></td><td>Icon-only exit</td><td>Banner shows the email typed after the fill.</td><td>T7 20</td></tr>
+<tr><td><a href="signup-maxlength.html">signup-maxlength.html</a></td><td>maxlength 12</td><td>Notification, fields stay empty, no console error.</td><td>T7 16</td></tr>
+<tr><td><a href="signup-single.html">signup-single.html</a></td><td>One password field, Sign up button</td><td>Menu opens (decided by the button).</td><td>T6</td></tr>
+<tr><td><a href="signup-change.html">signup-change.html</a></td><td>Current, new, repeat</td><td>No menu on field 1; menu on field 2 fills 2 and 3.</td><td>T6 fix 1</td></tr>
+<tr><td><a href="newsletter.html">newsletter.html</a></td><td>Username-only form</td><td>Pending generated password is kept.</td><td>T7 23</td></tr>
+<tr><td><a href="login.html">login.html</a></td><td>Sign in form with Sign up link</td><td>No suggestion; new credentials offer a save banner.</td><td>T6, T7 17/22</td></tr>
+<tr><td><a href="dashboard.html">dashboard.html</a></td><td>No field</td><td>Where banners land.</td><td>T7</td></tr>
+<tr><td><a href="dashboard-frames.html">dashboard-frames.html</a></td><td>Field-less page with two iframes</td><td>Exactly one banner after a sign-up.</td><td>T7 13</td></tr>
+<tr><td><a href="dashboard-key.html">dashboard-key.html</a></td><td>Key rendered by the server, no field</td><td>After a sign-up only the key banner; login banner comes back after Save/Ignore.</td><td>T9 11/18</td></tr>
+<tr><td><a href="apikey-dialog.html">apikey-dialog.html</a></td><td>Create key: dialog, value set after 800 ms, Copy; Paste here fields</td><td>Banner after about 1 s; Save creates the item; reopen: none; Ignore not repeated; typing: none; locked vault flow.</td><td>T9 2/3/6/7/9/13/14</td></tr>
+<tr><td><a href="apikey-text.html">apikey-text.html</a></td><td>Key in code, GitHub-style token, access key ID + secret</td><td>Banner for the first key.</td><td>T9 4</td></tr>
+<tr><td><a href="apikey-copy.html">apikey-copy.html</a></td><td>writeText, execCommand, Ctrl+C, setData (limit), flood</td><td>Banner for 1-3; none for 4; one banner for the flood.</td><td>T9 1/5/17</td></tr>
+<tr><td><a href="apikey-present.html">apikey-present.html</a></td><td>Key in the HTML at load</td><td>Banner within about 3 s; locked and app-closed behaviours.</td><td>T9 7/8</td></tr>
+<tr><td><a href="apikey-nocontext.html">apikey-nocontext.html</a></td><td>Plain string, hashes, UUID; prefixed key on demand</td><td>Nothing at load; banner only for the prefixed key.</td><td>T9 4/10</td></tr>
+<tr><td><a href="apikey-frames.html">apikey-frames.html</a></td><td>Dialog in same-origin and cross-origin iframes</td><td>Banner for the same-origin one only.</td><td>T9 12</td></tr>
+<tr><td><a href="commit-page.html">commit-page.html</a></td><td>Access tokens title, hashes, UUIDs, csrf</td><td>No banner.</td><td>T9 10</td></tr>
+<tr><td><a href="long-article.html">long-article.html</a></td><td>48k words with key-like words</td><td>No long task from apikey.js.</td><td>T9 10</td></tr>
+</table>
+</body>
+</html>

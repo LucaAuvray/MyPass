@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign-up without a form element</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;max-width:640px;margin:2em auto;padding:0 1em}label{display:block;margin:.6em 0}input{padding:.3em;margin-left:.4em}button,[role=button]{padding:.4em .9em;margin:.3em .3em .3em 0;cursor:pointer;border:1px solid #888;border-radius:4px;background:#eee;display:inline-block}small{color:#555}[role=dialog]{border:2px solid #36c;padding:1em;margin:1em 0;background:#f4f8ff}</style>
+</head>
+<body>
+<h1>Sign-up without a form element</h1>
+<p><small>Expect: same menu as the form version. The button is a div with a fake fetch, then a redirect. A save banner appears on the next page.</small></p>
+<div>
+<label>Email <input type="email" name="email" autocomplete="username"></label>
+<label>Password <input type="password" name="password" autocomplete="new-password"></label>
+<label>Confirm password <input type="password" name="confirm" autocomplete="new-password"></label>
+<div role="button" id="b" tabindex="0">Sign up</div>
+</div>
+<script>
+document.getElementById('b').onclick=function(){fetch('/api/none',{method:'POST'}).catch(function(){}).then(function(){location.href='dashboard.html';});};
+</script>
+</body>
+</html>
