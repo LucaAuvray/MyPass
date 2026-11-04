@@ -65,9 +65,16 @@ kpxcIcons.addIconsFromForm = async function(form) {
     };
 
     const addPasswordIcons = async function(c) {
-        // Only the first signup field of the group: pwgen.fill writes that field and the next one (confirmation)
-        const signup = (c.passwordInputs ?? []).map(input => kpxcSignup.isSignupField(input, c));
-        signup.forEach((isSignup, i) => isSignup && !signup[i - 1] && kpxcPasswordSuggestion.attach(c.passwordInputs[i]));
+        // Only the first signup field of its group: pwgen.fill writes that field and the next one (confirmation).
+        // A form's combination lists all its detected fields; outside a <form> each field is its own combination,
+        // so the group comes from the DOM, as for the fill.
+        for (const input of c.passwordInputs ?? []) {
+            const group = c.form ? c.passwordInputs : kpxcPasswordGenerator.passwordGroup(input);
+            const previous = group[group.indexOf(input) - 1];
+            if (kpxcSignup.isSignupField(input, group) && !(previous && kpxcSignup.isSignupField(previous, group))) {
+                kpxcPasswordSuggestion.attach(input);
+            }
+        }
 
         // Show password icons also with forms without any username field
         if (kpxc.settings.usePasswordGeneratorIcons

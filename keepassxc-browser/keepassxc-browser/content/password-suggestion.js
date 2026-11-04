@@ -6,13 +6,13 @@
  */
 const kpxcSignup = {};
 
-kpxcSignup.isSignupField = function(field, combination) {
+// passwordInputs: the field's group (kpxcPasswordGenerator.passwordGroup)
+kpxcSignup.isSignupField = function(field, passwordInputs) {
     const tokens = (field.getAttribute('autocomplete') || '').toLowerCase().split(/\s+/);
     const autocomplete = tokens.includes('new-password') ? 'new-password'
         : tokens.includes('current-password') ? 'current-password' : '';
 
-    const passwordInputs = combination?.passwordInputs || [];
-    const form = combination?.form || field.form;
+    const form = field.form;
     const submit = kpxcForm.getFormSubmitButton(form);
     const container = form || field.closest('main, section, [role="dialog"]') || document.body;
 

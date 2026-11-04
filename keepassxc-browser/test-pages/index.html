@@ -11,7 +11,7 @@
 <p><small>Serve with: npx vite keepassxc-browser/test-pages --port 5180 (add --host for the cross-origin iframe). All keys are fake. Keys saved while testing are real vault items: delete them afterwards. Site-change checks (T7 8) need the same pages on localhost and 127.0.0.1.</small></p>
 <table border="1" cellpadding="6" style="border-collapse:collapse"><tr><th>Page</th><th>Scenario</th><th>Expect</th><th>Checklist</th></tr>
 <tr><td><a href="signup-form.html">signup-form.html</a></td><td>Sign-up, 3 fields; also ?next=dashboard-key.html and ?next=dashboard-frames.html</td><td>Menu on Password only, one click fills both; banner after submit, back after one reload; New creates an entry titled localhost; service worker stopped: banner still on the dashboard.</td><td>T6, T7 1/3/4/6/7/8/14/19</td></tr>
-<tr><td><a href="signup-js.html">signup-js.html</a></td><td>No form, div role=button, fake fetch</td><td>Menu and banner as above.</td><td>T7 12</td></tr>
+<tr><td><a href="signup-js.html">signup-js.html</a></td><td>No form, div role=button, fake fetch</td><td>Menu on Password only (never on Confirm), banner as above.</td><td>T7 12</td></tr>
 <tr><td><a href="signup-steps.html">signup-steps.html</a></td><td>Email, then step 2 with the password</td><td>Banner on step 2 shows the step 1 email.</td><td>T7 11</td></tr>
 <tr><td><a href="signup-enter.html">signup-enter.html</a></td><td>No submit button, Enter in JS</td><td>Banner after Enter.</td><td>T7 12</td></tr>
 <tr><td><a href="signup-redirect.html">signup-redirect.html</a></td><td>Landing on onboarding.html, then redirect</td><td>Banner on the dashboard.</td><td>T7 1</td></tr>
@@ -21,7 +21,8 @@
 <tr><td><a href="signup-iconnav.html">signup-iconnav.html</a></td><td>Icon-only exit</td><td>Banner shows the email typed after the fill.</td><td>T7 20</td></tr>
 <tr><td><a href="signup-maxlength.html">signup-maxlength.html</a></td><td>maxlength 12</td><td>Notification, fields stay empty, no console error.</td><td>T7 16</td></tr>
 <tr><td><a href="signup-single.html">signup-single.html</a></td><td>One password field, Sign up button</td><td>Menu opens (decided by the button).</td><td>T6</td></tr>
-<tr><td><a href="signup-change.html">signup-change.html</a></td><td>Current, new, repeat</td><td>No menu on field 1; menu on field 2 fills 2 and 3.</td><td>T6 fix 1</td></tr>
+<tr><td><a href="change-password.html">change-password.html</a></td><td>Current, new, repeat; no sign-up word in the path</td><td>No menu on field 1; menu on field 2 fills 2 and 3.</td><td>T6 fix 1</td></tr>
+<tr><td><a href="password-pair.html">password-pair.html</a></td><td>No form, no hints, two password fields; neutral path and text</td><td>Menu on the first password field only, one click fills both; none on the second.</td><td>Final fix 1</td></tr>
 <tr><td><a href="newsletter.html">newsletter.html</a></td><td>Username-only form</td><td>Pending generated password is kept.</td><td>T7 23</td></tr>
 <tr><td><a href="login.html">login.html</a></td><td>Sign in form with Sign up link</td><td>No suggestion; new credentials offer a save banner.</td><td>T6, T7 17/22</td></tr>
 <tr><td><a href="dashboard.html">dashboard.html</a></td><td>No field</td><td>Where banners land.</td><td>T7</td></tr>

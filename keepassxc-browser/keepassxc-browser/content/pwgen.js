@@ -166,9 +166,11 @@ kpxcPasswordGenerator.fill = async function(elem, password) {
     }
 };
 
-// The next usable password field after elem in document order, within its form, else within the closest ancestor
-// (up to 6 levels) holding two or more. Not kpxc.inputs: detection skips or drops a field covered at that time (this menu).
-kpxcPasswordGenerator.nextPasswordField = function(elem) {
+// The visible password fields grouped with elem (always included), in document order: its form's, else those of the
+// closest ancestor (up to 6 levels) holding two or more. Read from the DOM, not kpxc.inputs: detection skips or drops
+// a field covered at that time (the suggestion menu), and outside a <form> each field is its own combination.
+// checkVisibility, not kpxcFields.isVisible: the menu covers the confirmation field while fill runs.
+kpxcPasswordGenerator.passwordGroup = function(elem) {
     let scope = elem.form;
     let node = elem.parentNode;
     for (let level = 0; !scope && node?.querySelectorAll && level < 6; level++, node = node.parentNode) {
@@ -177,12 +179,17 @@ kpxcPasswordGenerator.nextPasswordField = function(elem) {
         }
     }
 
-    return [ ...(scope?.querySelectorAll('input[type=password]') ?? []) ].find(f =>
+    return [ ...(scope?.querySelectorAll('input[type=password]') ?? [ elem ]) ]
+        .filter(f => f === elem || f.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }));
+};
+
+// The next usable password field after elem in its group (the confirmation to fill)
+kpxcPasswordGenerator.nextPasswordField = function(elem) {
+    return kpxcPasswordGenerator.passwordGroup(elem).find(f =>
         elem.compareDocumentPosition(f) & Node.DOCUMENT_POSITION_FOLLOWING
         && !f.disabled
         && !f.readOnly
-        && !f.getAttribute('autocomplete')?.includes('current-password')
-        && f.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }));
+        && !f.getAttribute('autocomplete')?.includes('current-password'));
 };
 
 const isPasswordGeneratorSupported = async function() {
