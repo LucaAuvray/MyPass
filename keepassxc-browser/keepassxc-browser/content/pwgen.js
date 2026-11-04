@@ -152,8 +152,8 @@ kpxcPasswordGenerator.fill = async function(elem, password) {
     // On this page it waits for the submit (set before the message: a retrieval may read the pending save meanwhile).
     kpxcPasswordGenerator.awaitingSubmit = password;
     const combination = kpxc.combinations.find(c => c.password === elem || c.passwordInputs?.includes(elem));
-    const url = trimURL(kpxc.settings.saveDomainOnlyNewCreds ? window.top.location.origin : window.top.location.href);
-    await sendMessage('page_set_submitted', [ true, combination?.username?.value ?? '', password, url, kpxc.credentials, true ]);
+    await sendMessage('page_set_submitted',
+        [ true, combination?.username?.value ?? '', password, kpxcForm.pendingSaveUrl(), kpxc.credentials, true ]);
 
     // The username may be typed after the fill: re-read it when leaving the page
     const usernameField = combination?.username;

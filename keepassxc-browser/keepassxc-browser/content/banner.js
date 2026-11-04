@@ -111,12 +111,11 @@ kpxcBanner.build = async function(credentials = {}) {
         updateButton.disabled = true;
     }
 
-    // Only a click consumes the tab's pending save
-    newButton.addEventListener('click', async function(e) {
+    // The tab's pending save is consumed by Cancel, or by a confirmed save (verifyResult)
+    newButton.addEventListener('click', function(e) {
         if (!e.isTrusted) {
             return;
         }
-        await sendMessage('page_clear_submitted');
         kpxcBanner.saveNewCredentials(credentials);
     });
 
@@ -410,7 +409,6 @@ kpxcBanner.updateCredentials = async function(credentials = {}) {
         // Use the current username if it's empty
         credentials.username ??= credentials.list[0].login;
 
-        await sendMessage('page_clear_submitted');
         const res = await sendMessage('update_credentials', [
             credentials.list[0].uuid,
             credentials.username,
@@ -454,8 +452,6 @@ kpxcBanner.updateCredentials = async function(credentials = {}) {
                 let url = credentials.url;
                 url = (url.length > 50) ? url.substring(0, 50) + '...' : url;
 
-                sendMessage('page_clear_submitted');
-
                 // Check if the password has changed for the updated credentials
                 browser.runtime.sendMessage({
                     action: 'retrieve_credentials',
@@ -488,6 +484,11 @@ kpxcBanner.updateCredentials = async function(credentials = {}) {
 };
 
 kpxcBanner.verifyResult = async function(code) {
+    // Only a confirmed save consumes the pending save: on an error (vault locked meanwhile) the banner comes back later
+    if (code === 'created' || code === 'updated') {
+        await sendMessage('page_clear_submitted');
+    }
+
     if (code === 'error') {
         kpxcUI.createNotification('error', tr('rememberErrorCannotSaveCredentials'));
     } else if (code === 'created') {

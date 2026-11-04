@@ -33,12 +33,22 @@ kpxcForm.activateCredentialBanner = async function(usernameValue, passwordInputs
         await kpxc.setPasswordFilled(true);
     }
 
-    const url = trimURL(kpxc.settings.saveDomainOnlyNewCreds ? window.top.location.origin : window.top.location.href);
-    await sendMessage('page_set_submitted', [ true, usernameValue, passwordValue, url, kpxc.credentials ]);
+    await sendMessage('page_set_submitted', [ true, usernameValue, passwordValue, kpxcForm.pendingSaveUrl(), kpxc.credentials ]);
 
     // Show the banner if the page does not reload
     kpxc.rememberCredentials(usernameValue, passwordValue);
     kpxcForm.submitTriggered = false;
+};
+
+// URL of a pending save: the top page's, or this frame's in a cross-origin frame (reading window.top.location throws).
+// shortcut: a frame from another site gets its pending dropped by page.getSubmitted's same-site check; key it on the tab URL if that matters.
+kpxcForm.pendingSaveUrl = function() {
+    const part = kpxc.settings.saveDomainOnlyNewCreds ? 'origin' : 'href';
+    try {
+        return trimURL(window.top.location[part]);
+    } catch (_e) {
+        return trimURL(document.location[part]);
+    }
 };
 
 // Returns true if form has been already saved
