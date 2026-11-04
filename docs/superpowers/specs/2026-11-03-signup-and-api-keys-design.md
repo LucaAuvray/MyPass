@@ -244,3 +244,16 @@ Dans A, Luca a retenu l'**interception des boutons « Copier »** faits en JavaS
 Seuils exacts (longueur, entropie), liste finale des préfixes et mots-clés, distance de recherche
 du mot-clé, style du menu de suggestion (réutiliser `css/autocomplete.css`), nom de l'événement
 Tauri, approximation du « même site » pour la bannière différée, découpage des fichiers JS.
+
+## Annexe — relevé console Mistral (2026-11-04)
+
+- La console (`console.mistral.ai/api-keys`, « Vos clés API - Mistral Studio ») est en français pour
+  Luca : titre « Vos clés API », bouton « Nouvelle clé ». Les clés existantes sont affichées masquées
+  (`**...L24M`) : aucun candidat, donc aucune bannière sur la liste.
+- Sur le plan Free, « Nouvelle clé » est désactivé : impossible de créer une clé de test, le dialogue
+  de création n'a pas pu être relevé. Ne pas utiliser « régénérer » (↻) sur une clé existante :
+  cela casserait ce qui l'utilise.
+- Décision (Luca, 2026-11-04) : le relevé est remplacé par un essai réel pendant la vérification de
+  bout en bout, avec l'extension modifiée, sur un jeton GitHub (Settings → Developer settings →
+  Personal access tokens : affiché une seule fois, bouton Copier), supprimé juste après. Le cas
+  « clé sans préfixe façon Mistral » reste couvert par la page de test locale.
