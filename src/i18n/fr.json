@@ -326,7 +326,7 @@
       "card": "Enregistrez une carte bancaire pour remplir les paiements en un clic.",
       "document": "Conservez passeports, cartes d'identité et autres papiers officiels en sécurité.",
       "ssh_key": "Importez ou générez une clé pour vous connecter à vos machines depuis le terminal ou VS Code.",
-      "api_key": "MyPass propose de ranger une clé quand un site te l'affiche, ou ajoute-la ici."
+      "api_key": "MyPass propose de ranger une clé quand un site vous l'affiche, ou ajoutez-la ici."
     },
     "new": {
       "identity": "Nouvelle identité",
