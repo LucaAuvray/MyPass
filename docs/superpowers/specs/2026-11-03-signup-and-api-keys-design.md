@@ -203,7 +203,8 @@ Dans A, Luca a retenu l'**interception des boutons « Copier »** faits en JavaS
   détectée — déverrouille MyPass pour l'enregistrer ») ; la clé est gardée en mémoire du script de
   contenu de la page, et la bannière passe à « Enregistrer » dès que la base se déverrouille. La
   clé n'apparaissant qu'une fois, ne rien montrer la ferait perdre.
-- ★ **Une bannière à la fois** ; une page qui affiche plusieurs candidats propose le premier.
+- ★ **Une bannière à la fois** ; une page qui affiche plusieurs candidats propose le premier, puis
+  les suivants (3 au plus en attente, ex. identifiant + secret AWS) à mesure que les bannières se ferment.
 
 ## Contraintes
 

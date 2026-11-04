@@ -12,6 +12,7 @@ const APIKEY_DIALOG_RESCAN_MS = 500;
 const APIKEY_DIALOG_RESCANS = 6; // ~3 s: the key often lands in an already mounted field after the network call
 const APIKEY_UNLOCK_POLL_MS = 3000;
 const APIKEY_MAX_CANDIDATES = 50; // per page: each one costs the local app 3 round trips
+const APIKEY_MAX_WAITING = 3; // behind a shown banner: a dialog shows a few secrets (key ID + secret); a flood stops there
 const APIKEY_SHAPE = /[\w.-]{19,}/; // cheap gate: a text without a long token costs nothing more
 
 /**
@@ -224,7 +225,7 @@ kpxcApiKey.propose = function(key) {
 // One banner at a time: a key found meanwhile waits for it to close (the dialog showing it may be gone by then)
 kpxcApiKey.defer = function(key) {
     kpxcApiKey.seen.delete(key);
-    if (kpxcApiKey.waiting.size < APIKEY_MAX_CANDIDATES) {
+    if (kpxcApiKey.waiting.size < APIKEY_MAX_WAITING) {
         kpxcApiKey.waiting.add(key);
     }
 };

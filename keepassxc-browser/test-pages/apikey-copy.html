@@ -8,7 +8,7 @@
 </head>
 <body>
 <h1>Copy mechanisms for an API key</h1>
-<p><small>The fake key is never displayed except in scenario 3. Expect a banner for 1, 2 and 3 (reload between scenarios). 4 is a known limit (clipboardData.setData only): nothing. 5 floods the page with 5000 copy events: one banner at most, no slowdown, and none once ignored.</small></p>
+<p><small>The fake key is never displayed except in scenario 3. Expect a banner for 1, 2 and 3 (reload between scenarios). 4 is a known limit (clipboardData.setData only): nothing. 5 floods the page with 5000 copy events: one banner at a time, no slowdown; at most 3 more follow as each is ignored, then none.</small></p>
 <div><span>API key (hidden)</span> <button id="c1">1. Copy with navigator.clipboard.writeText</button></div>
 <div><span>API key (hidden)</span> <button id="c2">2. Copy with execCommand on a temporary textarea</button></div>
 <div><span>API key: <span id="sel" style="opacity:0"></span></span> <button id="c3">3. Select the key, then press Ctrl+C</button></div>
