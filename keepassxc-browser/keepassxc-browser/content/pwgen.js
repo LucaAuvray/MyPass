@@ -148,7 +148,9 @@ kpxcPasswordGenerator.fill = async function(elem, password) {
         nextField.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Remember the generated password for this tab: the save banner follows the sign-up across pages
+    // Remember the generated password for this tab: the save banner follows the sign-up across pages.
+    // On this page it waits for the submit (set before the message: a retrieval may read the pending save meanwhile).
+    kpxcPasswordGenerator.awaitingSubmit = password;
     const combination = kpxc.combinations.find(c => c.password === elem || c.passwordInputs?.includes(elem));
     const url = trimURL(kpxc.settings.saveDomainOnlyNewCreds ? window.top.location.origin : window.top.location.href);
     await sendMessage('page_set_submitted', [ true, combination?.username?.value ?? '', password, url, kpxc.credentials, true ]);

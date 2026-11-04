@@ -692,6 +692,11 @@ kpxc.retrieveCredentialsCallback = async function(credentials) {
 
 // Shows the banner for the tab's pending save. Displaying it does not consume it: only a click on the banner does.
 kpxc.showSubmittedBanner = async function(creds) {
+    // A password generated on this page shows here only once its submit is detected (kpxcForm.activateCredentialBanner)
+    if (creds.generated && creds.password === kpxcPasswordGenerator.awaitingSubmit) {
+        return;
+    }
+
     if (await kpxc.rememberCredentials(creds.username, creds.password, creds.url, creds.oldCredentials) === false) {
         await sendMessage('page_clear_submitted'); // Already in the database
     }
