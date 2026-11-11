@@ -694,7 +694,8 @@ keepass.requestAutotype = async function(tab, args = []) {
 
 keepass.passkeysRegister = async function(tab, args = []) {
     try {
-        const taResponse = await keepass.testAssociation(tab, [ false ]);
+        // MyPass: triggerUnlock brings a locked MyPass forward instead of a silent fallback to Windows.
+        const taResponse = await keepass.testAssociation(tab, [ false, true ]);
         if (!taResponse || !keepass.isConnected || args.length < 2) {
             browserAction.showDefault(tab);
             return [];
@@ -730,7 +731,8 @@ keepass.passkeysRegister = async function(tab, args = []) {
 
 keepass.passkeysGet = async function(tab, args = []) {
     try {
-        const taResponse = await keepass.testAssociation(tab, [ false ]);
+        // MyPass: triggerUnlock brings a locked MyPass forward instead of a silent fallback to Windows.
+        const taResponse = await keepass.testAssociation(tab, [ false, true ]);
         if (!taResponse || !keepass.isConnected || args.length < 2) {
             browserAction.showDefault(tab);
             return [];

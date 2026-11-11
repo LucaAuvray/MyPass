@@ -33,7 +33,7 @@ risque de perte de données ni fonction factice à l'écran.
 | Sujet | Décision |
 |---|---|
 | Appareils cibles | 2 PC Windows (desktop Tauri) + téléphone (PWA), tous synchronisés |
-| Passkeys | **Retirées.** Pas d'implémentation WebAuthn. |
+| Passkeys | **Retirées.** Pas d'implémentation WebAuthn. (Revu le 2026-11-11 : clés d'accès par l'extension, `specs/2026-11-11-passkeys-design.md`.) |
 | Navigateur | **Chrome** (Edge suit gratuitement, même mécanisme). Firefox hors périmètre. |
 | Sauvegardes | Pas de nouveau mécanisme : vzdump nocturne + historique versionné du serveur + copie locale sur chaque PC. |
 | CLAUDE.md | Réécrit par Luca (non commité) : corrections reportées au sous-projet 8 (faites le 2026-10-05). |
