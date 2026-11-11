@@ -2,6 +2,7 @@ mod commands;
 pub use mypass_core as kdbx;
 pub mod security;
 pub mod native_messaging;
+mod passkeys;
 pub mod ssh;
 mod updater;
 

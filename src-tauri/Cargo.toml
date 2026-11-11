@@ -43,3 +43,5 @@ base64 = "0.22"
 ssh-key = { version = "0.6", features = ["ed25519", "rsa", "ecdsa", "encryption", "getrandom"] }
 ssh-agent-lib = "0.5"
 signature = "2"
+# Passkeys (ES256). Already in Cargo.lock through ssh-key.
+p256 = { version = "0.13", features = ["ecdsa", "pkcs8", "pem"] }
