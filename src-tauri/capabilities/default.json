@@ -4,6 +4,10 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-unminimize",
+    "core:window:allow-show",
+    "core:window:allow-set-focus",
+    "core:window:allow-minimize",
     "clipboard-manager:allow-write-text",
     "clipboard-manager:allow-clear",
     "opener:default"

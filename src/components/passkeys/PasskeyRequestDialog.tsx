@@ -48,7 +48,8 @@ export function PasskeyRequestDialog() {
       : (request?.accounts[0]?.id ?? null);
 
   useEffect(() => {
-    if (!("__TAURI__" in window)) return;
+    // __TAURI__ only exists with withGlobalTauri; __TAURI_INTERNALS__ always does.
+    if (!("__TAURI_INTERNALS__" in window)) return;
     const unlistenRequest = listen<PasskeyRequest>("passkey-request", async (e) => {
       setRequests((r) => [...r, e.payload]);
       const w = getCurrentWindow();
