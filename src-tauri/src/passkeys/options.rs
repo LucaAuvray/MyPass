@@ -124,13 +124,15 @@ fn challenge(options: &Value) -> Result<String, u8> {
     }
 }
 
+/// An unreadable id stays in the list as an empty id, which matches no stored
+/// passkey: a non-empty allow list never turns into "any account of the site".
 fn credential_ids(options: &Value, key: &str) -> Vec<Vec<u8>> {
     options
         .get(key)
         .and_then(Value::as_array)
         .into_iter()
         .flatten()
-        .filter_map(|c| c.get("id").and_then(Value::as_str).and_then(from_b64url))
+        .map(|c| c.get("id").and_then(Value::as_str).and_then(from_b64url).unwrap_or_default())
         .collect()
 }
 

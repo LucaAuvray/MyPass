@@ -172,7 +172,7 @@ pub fn get(
 
     let pem = {
         let Ok(guard) = db.lock() else { return Outcome::Error(UNKNOWN_ERROR) };
-        guard.keepass_file.as_ref().and_then(|kf| vault::private_key_pem(kf, &chosen.entry_uuid, &req.rp_id))
+        guard.keepass_file.as_ref().and_then(|kf| vault::private_key_pem(kf, &chosen.entry_uuid, &req.rp_id, &chosen.credential_id))
     };
     // Vault locked or entry gone (sync, deletion) while the user was deciding.
     let Some(pem) = pem else { return Outcome::Error(UNKNOWN_ERROR) };
@@ -332,6 +332,39 @@ mod tests {
         let kept = vault::find_for_rp(guard.keepass_file.as_ref().unwrap(), "binance.com");
         assert_eq!(kept.len(), 1);
         assert_eq!(kept[0].credential_id, b64(&first["id"]));
+    }
+
+    #[test]
+    fn key_replaced_during_confirmation_returns_no_credential() {
+        let db = open_db();
+        register(&db, &reg_opts(), "https://accounts.binance.com", |_| Some("new".into()));
+        let out = get(&db, &json!({"rpId": "binance.com", "challenge": "Z2V0"}), "https://www.binance.com", |p| {
+            // A sync brings a new key for the same account into the same entry.
+            let mut guard = db.try_lock().expect("mutex held");
+            let kf = guard.keepass_file.as_mut().unwrap();
+            vault::upsert(
+                kf,
+                &vault::NewPasskey {
+                    rp_id: "binance.com",
+                    rp_name: "Binance",
+                    origin: "https://accounts.binance.com",
+                    username: "luca@example.com",
+                    credential_id: "BAUG",
+                    user_handle: "dXNlcjE",
+                    private_key_pem: "pem",
+                },
+            );
+            Some(p.accounts[0].id.clone())
+        });
+        assert!(matches!(out, Outcome::Error(31)));
+    }
+
+    #[test]
+    fn unreadable_allow_list_offers_no_account() {
+        let db = open_db();
+        register(&db, &reg_opts(), "https://accounts.binance.com", |_| Some("new".into()));
+        let opts = json!({"rpId": "binance.com", "challenge": "Z2V0", "allowCredentials": [{"id": "%%", "type": "public-key"}]});
+        assert!(matches!(get(&db, &opts, "https://www.binance.com", |_| panic!("asked")), Outcome::Fallback));
     }
 
     #[test]

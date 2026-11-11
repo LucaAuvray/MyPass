@@ -892,6 +892,7 @@ fn handle_lock_database(req: &NativeRequest, _session: &SessionState, db_state: 
     // Same lock as the app's own button: wipes the master password and keyfile too.
     crate::ssh::agent::clear_session_approvals();
     db.lock_vault();
+    crate::passkeys::confirm::cancel_all();
 
     NativeResponse {
         action: Some("lock-database".to_string()),

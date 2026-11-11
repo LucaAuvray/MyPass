@@ -46,6 +46,16 @@ export function PasskeyRequestDialog() {
     choice && choice.requestId === request?.requestId
       ? choice.id
       : (request?.accounts[0]?.id ?? null);
+  // Boutons inertes un instant à chaque nouvelle demande affichée : un
+  // double-clic ne doit pas valider la suivante (peut-être un autre site).
+  const [armedFor, setArmedFor] = useState<string | null>(null);
+  const requestId = request?.requestId;
+  const armed = !!requestId && armedFor === requestId;
+  useEffect(() => {
+    if (!requestId) return;
+    const timer = setTimeout(() => setArmedFor(requestId), 400);
+    return () => clearTimeout(timer);
+  }, [requestId]);
 
   useEffect(() => {
     // __TAURI__ only exists with withGlobalTauri; __TAURI_INTERNALS__ always does.
@@ -138,10 +148,10 @@ export function PasskeyRequestDialog() {
           ))}
         <p className="text-muted-foreground text-xs">{t("passkeys.cancelHint")}</p>
         <DialogFooter>
-          <Button variant="outline" onClick={() => respond(false)}>
+          <Button variant="outline" disabled={!armed} onClick={() => respond(false)}>
             {t("passkeys.cancel")}
           </Button>
-          <Button onClick={() => respond(true)}>
+          <Button disabled={!armed} onClick={() => respond(true)}>
             {isRegister ? t("passkeys.create") : t("passkeys.signIn")}
           </Button>
         </DialogFooter>

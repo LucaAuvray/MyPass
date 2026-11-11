@@ -11,6 +11,8 @@ const CREDENTIAL_ID: &str = "KPEX_PASSKEY_CREDENTIAL_ID";
 const PRIVATE_KEY_PEM: &str = "KPEX_PASSKEY_PRIVATE_KEY_PEM";
 const RELYING_PARTY: &str = "KPEX_PASSKEY_RELYING_PARTY";
 const USER_HANDLE: &str = "KPEX_PASSKEY_USER_HANDLE";
+/// Credential id field of KeePassXC versions before 2.7.7.
+const GENERATED_USER_ID: &str = "KPEX_PASSKEY_GENERATED_USER_ID";
 
 /// A passkey found in the vault, without its private key.
 pub struct StoredPasskey {
@@ -46,7 +48,7 @@ pub fn find_for_rp(kf: &KeePassFile, rp_id: &str) -> Vec<StoredPasskey> {
                 entry_uuid: e.uuid.clone(),
                 title: e.title().to_string(),
                 username: e.get_field(USERNAME).filter(|u| !u.is_empty()).unwrap_or(e.username()).to_string(),
-                credential_id: from_b64url(e.get_field(CREDENTIAL_ID)?).filter(|id| !id.is_empty())?,
+                credential_id: credential_id(e)?,
                 user_handle: e.get_field(USER_HANDLE).unwrap_or("").to_string(),
             })
         })
@@ -54,12 +56,22 @@ pub fn find_for_rp(kf: &KeePassFile, rp_id: &str) -> Vec<StoredPasskey> {
 }
 
 /// Read only once the user has confirmed, so the key never waits in memory.
-pub fn private_key_pem(kf: &KeePassFile, entry_uuid: &str, rp_id: &str) -> Option<Zeroizing<String>> {
+/// `id` is the credential the user picked: `None` if the entry's passkey was
+/// replaced since (sync), rather than signing with another key under that id.
+pub fn private_key_pem(kf: &KeePassFile, entry_uuid: &str, rp_id: &str, id: &[u8]) -> Option<Zeroizing<String>> {
     collect_all_entries(&kf.root.group)
         .into_iter()
-        .find(|e| e.uuid == entry_uuid && e.get_field(RELYING_PARTY) == Some(rp_id))
+        .find(|e| {
+            e.uuid == entry_uuid && e.get_field(RELYING_PARTY) == Some(rp_id) && credential_id(e).as_deref() == Some(id)
+        })
         .and_then(|e| e.get_field(PRIVATE_KEY_PEM))
         .map(|pem| Zeroizing::new(pem.to_string()))
+}
+
+/// Like KeePassXC's `getCredentialIdFromEntry`: the legacy field wins.
+fn credential_id(e: &Entry) -> Option<Vec<u8>> {
+    let encoded = e.get_field(GENERATED_USER_ID).or_else(|| e.get_field(CREDENTIAL_ID))?;
+    from_b64url(encoded).filter(|id| !id.is_empty())
 }
 
 /// The entry already holding a passkey for this account of this site.
@@ -89,6 +101,7 @@ pub fn upsert(kf: &mut KeePassFile, p: &NewPasskey) -> (String, bool) {
 }
 
 fn write_fields(entry: &mut Entry, p: &NewPasskey) {
+    entry.strings.retain(|s| s.key != GENERATED_USER_ID);
     set_string_field(entry, USERNAME, p.username);
     set_string_field(entry, RELYING_PARTY, p.rp_id);
     set_string_field_protected(entry, CREDENTIAL_ID, p.credential_id);
@@ -158,11 +171,27 @@ mod tests {
     }
 
     #[test]
-    fn private_key_pem_requires_matching_rp() {
+    fn private_key_pem_requires_matching_rp_and_credential() {
         let mut kf = KeePassFile::new("t");
         let (uuid, _) = upsert(&mut kf, &sample());
-        assert!(private_key_pem(&kf, &uuid, "binance.com").is_some());
-        assert!(private_key_pem(&kf, &uuid, "paypal.com").is_none());
-        assert!(private_key_pem(&kf, "missing", "binance.com").is_none());
+        assert!(private_key_pem(&kf, &uuid, "binance.com", &[1, 2, 3]).is_some());
+        assert!(private_key_pem(&kf, &uuid, "paypal.com", &[1, 2, 3]).is_none());
+        assert!(private_key_pem(&kf, "missing", "binance.com", &[1, 2, 3]).is_none());
+        // The key was replaced (sync) since the user picked it.
+        assert!(private_key_pem(&kf, &uuid, "binance.com", &[9]).is_none());
+    }
+
+    #[test]
+    fn legacy_generated_user_id_is_the_credential_id() {
+        let mut kf = KeePassFile::new("t");
+        let (uuid, _) = upsert(&mut kf, &sample());
+        // Older KeePassXC 2.7.x kept the credential id here; KeePassXC reads it first.
+        let entry = find_entry_mut(&mut kf.root.group, &uuid).unwrap();
+        set_string_field_protected(entry, "KPEX_PASSKEY_GENERATED_USER_ID", "BAUG");
+        assert_eq!(find_for_rp(&kf, "binance.com")[0].credential_id, vec![4u8, 5, 6]);
+        assert!(private_key_pem(&kf, &uuid, "binance.com", &[4, 5, 6]).is_some());
+        // Replacing the passkey must not leave the old legacy id in front.
+        upsert(&mut kf, &NewPasskey { credential_id: "BwgJ", ..sample() });
+        assert_eq!(find_for_rp(&kf, "binance.com")[0].credential_id, vec![7u8, 8, 9]);
     }
 }

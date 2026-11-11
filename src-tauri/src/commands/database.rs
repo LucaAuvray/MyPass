@@ -281,6 +281,7 @@ pub async fn lock_database(state: State<'_, Arc<Mutex<DbState>>>) -> Result<(), 
     crate::ssh::agent::clear_session_approvals();
     let mut db = state.lock().map_err(|e| format!("Lock error: {e}"))?;
     db.lock_vault();
+    crate::passkeys::confirm::cancel_all();
     Ok(())
 }
 
