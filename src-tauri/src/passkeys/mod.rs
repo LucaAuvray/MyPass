@@ -3,4 +3,5 @@
 //! KeePassXC's `KPEX_PASSKEY_*` fields.
 
 pub mod options;
+pub mod vault;
 pub mod webauthn;

@@ -162,7 +162,9 @@ pub fn handle_get_logins(
     let now = crate::kdbx::time::unix_now();
     let matching: Vec<serde_json::Value> = entries
         .iter()
+        // A passkey-only entry has no password to fill.
         .filter(|e| is_login(e) && url_matches(e, url))
+        .filter(|e| !(e.password().is_empty() && crate::passkeys::vault::has_passkey(e)))
         .map(|e| {
             let mut login = serde_json::json!({
                 "uuid": e.uuid,
@@ -325,7 +327,7 @@ pub(crate) fn collect_all_entries(group: &crate::kdbx::xml::Group) -> Vec<&crate
     result
 }
 
-fn find_entry_mut<'a>(
+pub(crate) fn find_entry_mut<'a>(
     group: &'a mut crate::kdbx::xml::Group,
     uuid: &str,
 ) -> Option<&'a mut crate::kdbx::xml::Entry> {
@@ -340,7 +342,7 @@ fn find_entry_mut<'a>(
     None
 }
 
-fn set_string_field(entry: &mut crate::kdbx::xml::Entry, key: &str, value: &str) {
+pub(crate) fn set_string_field(entry: &mut crate::kdbx::xml::Entry, key: &str, value: &str) {
     if let Some(s) = entry.strings.iter_mut().find(|s| s.key == key) {
         s.value.content = value.to_string();
     } else {
@@ -354,7 +356,7 @@ fn set_string_field(entry: &mut crate::kdbx::xml::Entry, key: &str, value: &str)
     }
 }
 
-fn set_string_field_protected(entry: &mut crate::kdbx::xml::Entry, key: &str, value: &str) {
+pub(crate) fn set_string_field_protected(entry: &mut crate::kdbx::xml::Entry, key: &str, value: &str) {
     if let Some(s) = entry.strings.iter_mut().find(|s| s.key == key) {
         s.value.content = value.to_string();
         s.value.protected = Some("True".to_string());
@@ -520,5 +522,26 @@ mod tests {
         assert!(six_digits(&handle_get_totp(&kf, &ua)));
         assert_eq!(handle_get_totp(&kf, &ub), "");
         assert_eq!(handle_get_totp(&kf, "nope"), "");
+    }
+
+    #[test]
+    fn get_logins_skips_passkey_only_entries() {
+        let mut kf = KeePassFile::new("t");
+        crate::passkeys::vault::upsert(
+            &mut kf,
+            &crate::passkeys::vault::NewPasskey {
+                rp_id: "binance.com",
+                rp_name: "Binance",
+                origin: "https://accounts.binance.com",
+                username: "luca@example.com",
+                credential_id: "AQID",
+                user_handle: "dXNlcjE",
+                private_key_pem: "pem",
+            },
+        );
+        kf.root.group.entries.push(Entry::new("Binance", "luca@example.com", "pw", "https://accounts.binance.com"));
+        let logins = handle_get_logins(&kf, "https://accounts.binance.com/login").unwrap();
+        assert_eq!(logins.len(), 1);
+        assert_eq!(logins[0]["password"], "pw");
     }
 }
