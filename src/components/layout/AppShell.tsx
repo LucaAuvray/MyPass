@@ -7,6 +7,7 @@ import { MobileNav } from "./MobileNav";
 import { AppHeader } from "./AppHeader";
 import { useAppStore } from "@/stores/appStore";
 import { SshSignRequestDialog } from "@/components/ssh/SshSignRequestDialog";
+import { PasskeyRequestDialog } from "@/components/passkeys/PasskeyRequestDialog";
 import { isWebMode } from "@/lib/tauri";
 import { useSyncStatus, syncNowAndRefresh } from "@/hooks/useSync";
 import { useDatabase } from "@/hooks/useDatabase";
@@ -114,6 +115,7 @@ export default function AppShell({ children }: AppShellProps) {
       )}
 
       <SshSignRequestDialog />
+      <PasskeyRequestDialog />
     </div>
   );
 }

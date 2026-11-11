@@ -135,8 +135,14 @@ export function EntryDetail({ className }: EntryDetailProps) {
               <span className="truncate">{folder.name}</span>
             </p>
           )}
-          {entry.tags.length > 0 && (
+          {(entry.tags.length > 0 || entry.has_passkey) && (
             <div className="mt-2 flex flex-wrap gap-1">
+              {entry.has_passkey && (
+                <Badge variant="secondary" className="gap-1 text-xs">
+                  <KeyRound className="size-3" />
+                  {t("passkeys.badge")}
+                </Badge>
+              )}
               {entry.tags.map((tag) => (
                 <Badge key={tag} variant="secondary" className="text-xs">
                   {tag}

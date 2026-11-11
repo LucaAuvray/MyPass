@@ -288,6 +288,18 @@
     "encryptedDesc": "Toutes les communications avec l'extension sont chiffrées de bout en bout (NaCl box).",
     "version": "MyPass {{version}} · build du {{date}}"
   },
+  "passkeys": {
+    "registerTitle": "Créer une clé d'accès",
+    "registerDesc": "Créer une clé d'accès pour {{site}} (compte {{account}}) ?",
+    "replaces": "Elle remplacera la clé d'accès déjà enregistrée pour ce compte.",
+    "create": "Créer",
+    "getTitle": "Se connecter avec une clé d'accès",
+    "getDesc": "Se connecter à {{site}} avec :",
+    "signIn": "Se connecter",
+    "cancel": "Annuler",
+    "cancelHint": "Annuler laisse Windows proposer ses propres clés d'accès.",
+    "badge": "Clé d'accès"
+  },
   "sshAgent": {
     "title": "Agent SSH",
     "subtitle": "Utilisez les clés SSH du coffre pour vos connexions, depuis le terminal ou VS Code.",

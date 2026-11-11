@@ -281,6 +281,18 @@
     "encryptedDesc": "All communication with the extension is end-to-end encrypted (NaCl box).",
     "version": "MyPass {{version}} · built {{date}}"
   },
+  "passkeys": {
+    "registerTitle": "Create a passkey",
+    "registerDesc": "Create a passkey for {{site}} (account {{account}})?",
+    "replaces": "It will replace the passkey already saved for this account.",
+    "create": "Create",
+    "getTitle": "Sign in with a passkey",
+    "getDesc": "Sign in to {{site}} with:",
+    "signIn": "Sign in",
+    "cancel": "Cancel",
+    "cancelHint": "Cancel lets Windows offer its own passkeys.",
+    "badge": "Passkey"
+  },
   "sshAgent": {
     "title": "SSH Agent",
     "subtitle": "Use vault SSH keys for your connections, from the terminal or VS Code.",

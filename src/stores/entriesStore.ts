@@ -15,6 +15,8 @@ export interface Entry {
   customFields: Record<string, string>;
   /** 2FA `otpauth://` link, or "". */
   totp: string;
+  /** Carries KeePassXC `KPEX_PASSKEY_*` fields (snake_case like `EntryInfo`). */
+  has_passkey?: boolean;
   created: string;
   modified: string;
 }
