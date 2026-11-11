@@ -57,6 +57,10 @@ pub fn set_app_handle(handle: tauri::AppHandle) {
     let _ = APP_HANDLE.set(handle);
 }
 
+pub(crate) fn app_handle() -> Option<&'static tauri::AppHandle> {
+    APP_HANDLE.get()
+}
+
 fn focus_main_window() {
     use tauri::Manager;
     if let Some(app) = APP_HANDLE.get() {

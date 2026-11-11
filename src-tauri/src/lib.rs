@@ -74,6 +74,7 @@ pub fn run() {
             commands::browser::get_browser_status,
             commands::browser::is_browser_integration_enabled,
             commands::browser::toggle_browser_integration,
+            commands::browser::respond_passkey,
             // SSH
             commands::ssh::parse_ssh_key,
             commands::ssh::generate_ssh_key,

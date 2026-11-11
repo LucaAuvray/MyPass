@@ -2,6 +2,7 @@
 //! `passkeys-register` / `passkeys-get` actions, stored in the vault in
 //! KeePassXC's `KPEX_PASSKEY_*` fields.
 
+pub mod confirm;
 pub mod options;
 pub mod vault;
 pub mod webauthn;

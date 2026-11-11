@@ -220,6 +220,14 @@ pub fn handle_get_identities(db: &crate::kdbx::xml::KeePassFile) -> Vec<serde_js
         .collect()
 }
 
+/// Answer of the passkey confirmation dialog: the chosen account id, or
+/// `null` to cancel (the extension then falls back to the browser's own UI).
+#[tauri::command]
+pub async fn respond_passkey(request_id: String, choice: Option<String>) -> Result<(), String> {
+    crate::passkeys::confirm::respond(&request_id, choice);
+    Ok(())
+}
+
 /// Handle credential storage for browser (set-login).
 pub fn handle_set_login(
     kf: &mut crate::kdbx::xml::KeePassFile,
