@@ -156,10 +156,13 @@ de `customFields` : `KPEX_PASSKEY_USERNAME`, `KPEX_PASSKEY_RELYING_PARTY`, et en
 - Annulation, délai dépassé ou fenêtre fermée → repli silencieux sur la fenêtre Windows (§1).
 - **Coffre verrouillé** : l'extension n'envoie même pas la demande. `passkeysRegister/Get`
   (`background/keepass.js:695-764`) appellent d'abord `testAssociation(tab, [false])`, qui échoue
-  sur coffre fermé et bascule en silence sur Windows. Seule retouche de l'extension (choix de
-  Claude) : passer `[false, true]` (`triggerUnlock`) dans ces deux appels. MyPass passe alors au
-  premier plan pour qu'on le déverrouille. La fenêtre Windows s'ouvre quand même : on l'annule,
-  on déverrouille, puis on recommence. Sans ça, une clé créée pendant le verrouillage automatique
+  sur coffre fermé et bascule en silence sur Windows. Seule retouche de l'extension :
+  `keepass.passkeysTestAssociation` remplace ces deux appels. Elle passe `triggerUnlock` (MyPass
+  passe au premier plan), puis, tant que MyPass est connecté avec un coffre fermé, revérifie
+  chaque seconde jusqu'au `timeout` de la demande. Dès le déverrouillage, la demande part et la
+  fenêtre de confirmation s'affiche, sans second clic sur le site (demande de Luca, 2026-11-11).
+  Si MyPass n'est pas lancé, si le navigateur n'est pas associé ou si le délai est dépassé,
+  Windows prend le relais. Sans cette retouche, une clé créée pendant le verrouillage automatique
   partirait en douce dans Windows Hello.
 - La charge de l'événement ne contient que le `rpId`, les noms de compte et les titres d'entrée,
   jamais de clé.
@@ -176,7 +179,7 @@ partir de `has_passkey`, déjà présent dans `EntryInfo`. Aucun autre écran.
 
 ### 7. Extension et documentation
 
-- Extension : seulement la retouche `triggerUnlock` du §5. Sur chaque PC, Luca recharge
+- Extension : seulement `keepass.passkeysTestAssociation` (§5). Sur chaque PC, Luca recharge
   l'extension (`chrome://extensions`) et active « Clés d'accès » dans ses options (désactivée par
   défaut), en laissant le repli actif.
 - **Effet de bord accepté** (choix de Claude) : avec l'option active, `content/passkeys.js:260-273`
@@ -202,8 +205,8 @@ partir de `has_passkey`, déjà présent dans `EntryInfo`. Aucun autre écran.
     `allowCredentials` et par `USER_HANDLE`, `excludeCredentials`.
 - À la main : webauthn.io (créer puis se connecter), puis Binance ou PayPal sur le compte réel de
   Luca. Ensuite, connexion depuis l'autre PC après synchronisation. Annuler → la fenêtre Windows
-  apparaît, sans notification d'erreur ; coffre verrouillé → MyPass passe au premier plan et la
-  fenêtre Windows apparaît ; un site avec une clé Windows Hello existante marche toujours par son
+  apparaît, sans notification d'erreur ; coffre verrouillé → MyPass passe au premier plan et,
+  dès le déverrouillage, la fenêtre de confirmation s'affiche ; un site avec une clé Windows Hello existante marche toujours par son
   bouton, sans notification d'erreur.
 - Non-régression habituelle : les trois `cargo test`, `cargo clippy`, `npm run lint`,
   `npm run format:check`, `npm run build`.

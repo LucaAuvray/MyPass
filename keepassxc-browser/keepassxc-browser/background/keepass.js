@@ -692,10 +692,28 @@ keepass.requestAutotype = async function(tab, args = []) {
     }
 };
 
+// MyPass: with a locked vault, bring MyPass forward (triggerUnlock) and wait for the unlock,
+// within the request's timeout, so the passkey prompt follows it without a second click.
+// MyPass not running or browser not associated: no wait, the browser takes over at once.
+keepass.passkeysTestAssociation = async function(tab, timeout) {
+    if (await keepass.testAssociation(tab, [ false, true ])) {
+        return true;
+    }
+
+    const deadline = Date.now() + (Number(timeout) || 60000) - 2000;
+    while (keepass.isConnected && keepass.isDatabaseClosed && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (await keepass.testAssociation(tab, [ false ])) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
 keepass.passkeysRegister = async function(tab, args = []) {
     try {
-        // MyPass: triggerUnlock brings a locked MyPass forward instead of a silent fallback to Windows.
-        const taResponse = await keepass.testAssociation(tab, [ false, true ]);
+        const taResponse = await keepass.passkeysTestAssociation(tab, args[0]?.timeout);
         if (!taResponse || !keepass.isConnected || args.length < 2) {
             browserAction.showDefault(tab);
             return [];
@@ -731,8 +749,7 @@ keepass.passkeysRegister = async function(tab, args = []) {
 
 keepass.passkeysGet = async function(tab, args = []) {
     try {
-        // MyPass: triggerUnlock brings a locked MyPass forward instead of a silent fallback to Windows.
-        const taResponse = await keepass.testAssociation(tab, [ false, true ]);
+        const taResponse = await keepass.passkeysTestAssociation(tab, args[0]?.timeout);
         if (!taResponse || !keepass.isConnected || args.length < 2) {
             browserAction.showDefault(tab);
             return [];
