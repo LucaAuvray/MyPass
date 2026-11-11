@@ -113,7 +113,7 @@ pub fn last_seen(id_key: &str) -> String {
 /// it disable everything, including the association flow.
 const ADVERTISED_VERSION: &str = "2.7.10";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 struct NativeRequest {
     action: String,
     message: Option<String>,
@@ -144,6 +144,7 @@ struct NativeResponse {
 
 // ── Session State ─────────────────────────────────────────────────
 
+#[derive(Clone)]
 struct SessionState {
     /// Browser's public key (from change-public-keys)
     browser_public_key: Option<Vec<u8>>,
@@ -174,11 +175,8 @@ impl SessionState {
 /// since the browser launches it as a fresh, separate process. Kept for
 /// completeness/testing; the real entry point is `run_native_messaging_proxy`.
 pub fn run_native_messaging(db_state: Arc<Mutex<DbState>>) -> Result<(), String> {
-    let stdin = std::io::stdin();
-    let stdout = std::io::stdout();
-    let mut stdin = stdin.lock();
-    let mut stdout = stdout.lock();
-    run_message_loop(&mut stdin, &mut stdout, &db_state)
+    let mut stdin = std::io::stdin().lock();
+    run_message_loop(&mut stdin, std::io::stdout(), &db_state)
 }
 
 /// Start a local TCP server the main app listens on for the lifetime of the
@@ -213,9 +211,8 @@ pub fn start_local_bridge(db_state: Arc<Mutex<DbState>>) {
                     Ok(s) => s,
                     Err(_) => return,
                 };
-                let mut writer = stream;
                 ACTIVE_CONNECTIONS.fetch_add(1, Ordering::Relaxed);
-                let _ = run_message_loop(&mut reader, &mut writer, &db_state);
+                let _ = run_message_loop(&mut reader, stream, &db_state);
                 ACTIVE_CONNECTIONS.fetch_sub(1, Ordering::Relaxed);
             });
         }
@@ -267,11 +264,13 @@ pub fn run_native_messaging_proxy() -> Result<(), String> {
 /// Core protocol loop shared by both the direct stdio host and the local
 /// bridge: read length-prefixed frames, route each to `handle_action`, write
 /// back the (possibly encrypted) response.
-fn run_message_loop(
+fn run_message_loop<W: Write + Send + 'static>(
     reader: &mut impl Read,
-    writer: &mut impl Write,
+    writer: W,
     db_state: &Arc<Mutex<DbState>>,
 ) -> Result<(), String> {
+    // Shared with passkey threads; one frame is written under one lock.
+    let writer = Arc::new(Mutex::new(writer));
     let mut sessions: HashMap<String, SessionState> = HashMap::new();
 
     loop {
@@ -309,7 +308,7 @@ fn run_message_loop(
                     version: None,
                     extra: HashMap::new(),
                 };
-                send_response(writer, &error_resp, None);
+                send_response(&mut *lock_writer(&writer), &error_resp, None);
                 continue;
             }
         };
@@ -317,54 +316,77 @@ fn run_message_loop(
         let client_id = req.client_id.clone();
         let session = sessions.entry(client_id.clone()).or_insert_with(SessionState::new);
 
+        // A passkey request waits for the user (up to 2 min): answer it on its
+        // own thread so the browser's other requests (autofill in other tabs,
+        // status checks with a 500 ms timeout) are not stuck behind the dialog.
+        if matches!(req.action.as_str(), "passkeys-register" | "passkeys-get") {
+            if let Some(id_key) = &session.id_key {
+                record_activity(id_key);
+            }
+            let (mut session, db_state, writer) = (session.clone(), db_state.clone(), writer.clone());
+            std::thread::spawn(move || {
+                let response = handle_action(&req, &mut session, &db_state);
+                reply(&writer, &req, &session, response);
+            });
+            continue;
+        }
+
         // 4. Handle action
-        let mut response = handle_action(&req, session, db_state);
+        let response = handle_action(&req, session, db_state);
 
         if let Some(id_key) = &session.id_key {
             record_activity(id_key);
         }
 
-        // 5. Send response. The extension matches responses to pending
-        // requests by nonce: every reply must carry the request nonce
-        // incremented by one (libsodium semantics), both as the outer nonce
-        // and inside the encrypted payload.
-        let resp_nonce = req
-            .nonce
-            .as_deref()
-            .and_then(base64_decode)
-            .map(|n| nacl::increment_nonce(&n));
-
-        // Detect errors via error_code, not error: the set-login success
-        // response must carry error:"success" (KeePassXC protocol quirk —
-        // the extension reads that exact string to report "saved").
-        if response.error_code.is_some() {
-            // Errors go out in plaintext without a nonce — that's the shape
-            // the extension's error path matches on (by action).
-            response.nonce = None;
-            response.message = None;
-            send_response(writer, &response, None);
-        } else {
-            response.nonce = resp_nonce.as_deref().map(base64_encode);
-
-            // Encrypted once the key exchange is done. The change-public-keys
-            // reply itself must stay plaintext: it carries our public key,
-            // which the browser needs *to* decrypt anything at all.
-            let encrypt_keys = if req.action == "change-public-keys" {
-                None
-            } else {
-                match (&session.browser_public_key, &session.our_keypair, &resp_nonce) {
-                    (Some(bpk), Some((_, sk)), Some(nonce)) => {
-                        Some((bpk.as_slice(), sk.as_slice(), nonce.as_slice()))
-                    }
-                    _ => None,
-                }
-            };
-
-            send_response(writer, &response, encrypt_keys);
-        }
+        reply(&writer, &req, session, response);
     }
 
     Ok(())
+}
+
+fn lock_writer<W>(writer: &Mutex<W>) -> std::sync::MutexGuard<'_, W> {
+    writer.lock().unwrap_or_else(|e| e.into_inner())
+}
+
+/// Sends the response. The extension matches responses to pending requests
+/// by nonce: every reply must carry the request nonce incremented by one
+/// (libsodium semantics), both as the outer nonce and inside the encrypted
+/// payload.
+fn reply<W: Write>(writer: &Mutex<W>, req: &NativeRequest, session: &SessionState, mut response: NativeResponse) {
+    let resp_nonce = req
+        .nonce
+        .as_deref()
+        .and_then(base64_decode)
+        .map(|n| nacl::increment_nonce(&n));
+
+    // Detect errors via error_code, not error: the set-login success
+    // response must carry error:"success" (KeePassXC protocol quirk —
+    // the extension reads that exact string to report "saved").
+    if response.error_code.is_some() {
+        // Errors go out in plaintext without a nonce — that's the shape
+        // the extension's error path matches on (by action).
+        response.nonce = None;
+        response.message = None;
+        send_response(&mut *lock_writer(writer), &response, None);
+    } else {
+        response.nonce = resp_nonce.as_deref().map(base64_encode);
+
+        // Encrypted once the key exchange is done. The change-public-keys
+        // reply itself must stay plaintext: it carries our public key,
+        // which the browser needs *to* decrypt anything at all.
+        let encrypt_keys = if req.action == "change-public-keys" {
+            None
+        } else {
+            match (&session.browser_public_key, &session.our_keypair, &resp_nonce) {
+                (Some(bpk), Some((_, sk)), Some(nonce)) => {
+                    Some((bpk.as_slice(), sk.as_slice(), nonce.as_slice()))
+                }
+                _ => None,
+            }
+        };
+
+        send_response(&mut *lock_writer(writer), &response, encrypt_keys);
+    }
 }
 
 // ── Action Router ─────────────────────────────────────────────────
@@ -403,6 +425,8 @@ fn handle_action(
         "get-database-groups" => handle_get_database_groups(req, session, db_state),
         "create-new-group" => handle_create_new_group(req, session, db_state),
         "request-autotype" => handle_request_autotype(req, session),
+        "passkeys-register" => handle_passkeys(req, session, db_state, true),
+        "passkeys-get" => handle_passkeys(req, session, db_state, false),
         _ => error_response(req, 0, &format!("Unknown action: {}", req.action)),
     }
 }
@@ -962,6 +986,61 @@ fn handle_request_autotype(_req: &NativeRequest, _session: &SessionState) -> Nat
     }
 }
 
+/// passkeys-register / passkeys-get (KeePassXC's `BrowserAction::handlePasskeys*`).
+/// Blocks until the user answers the in-app dialog: run on its own thread.
+fn handle_passkeys(
+    req: &NativeRequest,
+    session: &SessionState,
+    db_state: &Arc<Mutex<DbState>>,
+    register: bool,
+) -> NativeResponse {
+    // Like KeePassXC: only an associated browser may create or use passkeys.
+    if !session.associated {
+        return error_response(req, 8, "Not associated");
+    }
+    let inner = match decrypt_message(req, session) {
+        Ok(msg) => msg,
+        Err(e) => return error_response(req, 1, &format!("Decrypt error: {e}")),
+    };
+    let public_key = inner.get("publicKey").cloned().unwrap_or(serde_json::Value::Null);
+    let origin = inner.get("origin").and_then(|v| v.as_str()).unwrap_or("");
+
+    let outcome = if register {
+        crate::passkeys::register(db_state, &public_key, origin, crate::passkeys::confirm::ask)
+    } else {
+        crate::passkeys::get(db_state, &public_key, origin, crate::passkeys::confirm::ask)
+    };
+    passkey_response(req, outcome)
+}
+
+/// Encrypted success reply; `response` carries the credential or the
+/// `errorCode`, and is absent for a silent fallback to the browser.
+fn passkey_response(req: &NativeRequest, outcome: crate::passkeys::Outcome) -> NativeResponse {
+    use crate::passkeys::Outcome;
+    let mut extra = HashMap::new();
+    extra.insert("success".to_string(), serde_json::Value::String("true".to_string()));
+    match outcome {
+        Outcome::Credential(credential) => {
+            extra.insert("response".to_string(), credential);
+        }
+        Outcome::Error(code) => {
+            extra.insert("response".to_string(), serde_json::json!({ "errorCode": code }));
+        }
+        // Without `response`, the extension hands over to the browser with no error toast.
+        Outcome::Fallback => {}
+    }
+    NativeResponse {
+        action: Some(req.action.clone()),
+        message: None,
+        nonce: None,
+        client_id: Some(req.client_id.clone()),
+        error: None,
+        error_code: None,
+        version: None,
+        extra,
+    }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────
 
 fn error_response(req: &NativeRequest, code: u8, msg: &str) -> NativeResponse {
@@ -1080,5 +1159,38 @@ mod tests {
         assert!(db.keepass_file.is_none());
         assert!(db.master_password.is_none());
         assert!(db.keyfile_data.is_none());
+    }
+
+    fn req(action: &str) -> NativeRequest {
+        NativeRequest {
+            action: action.into(),
+            message: None,
+            nonce: None,
+            client_id: "c".into(),
+            public_key: None,
+            trigger_unlock: None,
+        }
+    }
+
+    #[test]
+    fn passkey_response_shapes() {
+        use crate::passkeys::Outcome;
+        let r = passkey_response(&req("passkeys-get"), Outcome::Credential(serde_json::json!({"id": "x"})));
+        assert_eq!(r.extra["success"], "true");
+        assert_eq!(r.extra["response"]["id"], "x");
+        assert!(r.error_code.is_none());
+        let r = passkey_response(&req("passkeys-get"), Outcome::Error(28));
+        assert_eq!(r.extra["response"], serde_json::json!({"errorCode": 28}));
+        let r = passkey_response(&req("passkeys-register"), Outcome::Fallback);
+        assert!(!r.extra.contains_key("response"));
+        assert_eq!(r.extra["success"], "true");
+        assert_eq!(r.action.as_deref(), Some("passkeys-register"));
+    }
+
+    #[test]
+    fn passkeys_require_association() {
+        let db = Arc::new(Mutex::new(DbState::default()));
+        let r = handle_passkeys(&req("passkeys-register"), &SessionState::new(), &db, true);
+        assert_eq!(r.error_code.as_deref(), Some("8"));
     }
 }
